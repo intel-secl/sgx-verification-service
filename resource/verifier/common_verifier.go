@@ -1,0 +1,207 @@
+/*
+ * Copyright (C) 2019 Intel Corporation
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+package verifier
+
+import (
+	"errors"
+	"strings"
+	"crypto/x509"
+	"encoding/asn1"
+	"crypto/sha256"
+	"crypto/x509/pkix"
+
+       	"intel/isecl/svs/resource/utils"
+	log "github.com/sirupsen/logrus"
+)
+
+
+var ExtCRLDistributionPointOid          asn1.ObjectIdentifier   = asn1.ObjectIdentifier{2,5,29,31}
+var ExtSubjectKeyIdentifierOid          asn1.ObjectIdentifier   = asn1.ObjectIdentifier{2,5,29,14}
+var ExtKeyUsageOid                      asn1.ObjectIdentifier   = asn1.ObjectIdentifier{2,5,29,15}
+var ExtBasicConstrainsOid               asn1.ObjectIdentifier   = asn1.ObjectIdentifier{2,5,29,19}
+var ExtAuthorityKeyIdentifierOid        asn1.ObjectIdentifier   = asn1.ObjectIdentifier{2,5,29,35}
+var ExtSgxOid                           asn1.ObjectIdentifier   = asn1.ObjectIdentifier{1,2,840,113741,1,13,1}
+var ExtSgxPPIDOid                       asn1.ObjectIdentifier   = asn1.ObjectIdentifier{1,2,840,113741,1,13,1,1}
+var ExtSgxTCBOid                        asn1.ObjectIdentifier   = asn1.ObjectIdentifier{1,2,840,113741,1,13,1,2}
+var ExtSgxPCEIDOid                      asn1.ObjectIdentifier   = asn1.ObjectIdentifier{1,2,840,113741,1,13,1,3}
+var ExtSgxFMSPCOid                      asn1.ObjectIdentifier   = asn1.ObjectIdentifier{1,2,840,113741,1,13,1,4}
+var ExtSgxSGXTypeOid                    asn1.ObjectIdentifier   = asn1.ObjectIdentifier{1,2,840,113741,1,13,1,5}
+
+
+func VerifyRequiredExtensions( cert *x509.Certificate, requiredExtDict map[string]asn1.ObjectIdentifier ) ( bool, error ){
+
+	if cert == nil || len(requiredExtDict) == 0 {
+		return false, errors.New("VerifyRequiredExtensions: Certificate Object is nul or requiredExtDict is Empty")
+	}
+
+        var ext pkix.Extension
+        var present int = 0
+        for i:=0; i< len(cert.Extensions); i++ {
+                ext = cert.Extensions[i]
+                //log.Debug("VerifyRequiredExtensions: Extension[",i,"]:", ext.Id.String())
+                if _, ok := requiredExtDict[ext.Id.String()]; ok {
+                         //log.Debug("Extension[",i,"]:", ext.Id.String()," found in list")
+                         present += 1
+                }
+        }
+        if present != len(requiredExtDict) {
+                return false, errors.New("VerifyRequiredExtensions: Required Extension not found")
+        }
+        return true, nil
+}
+
+
+func GetRootCARequiredExtMap() (map[string]asn1.ObjectIdentifier){
+        RequiredExtension := make(map[string]asn1.ObjectIdentifier)
+        RequiredExtension[ExtAuthorityKeyIdentifierOid.String()]     = ExtAuthorityKeyIdentifierOid
+        RequiredExtension[ExtCRLDistributionPointOid.String()]       = ExtCRLDistributionPointOid
+        RequiredExtension[ExtSubjectKeyIdentifierOid.String()]       = ExtSubjectKeyIdentifierOid  
+        RequiredExtension[ExtKeyUsageOid.String()]                   = ExtKeyUsageOid
+        RequiredExtension[ExtBasicConstrainsOid.String()]            = ExtBasicConstrainsOid
+	return RequiredExtension
+}
+
+
+func VerifyString( input string, cmpStr string )( bool ){
+	
+	if len(input)==0 || len(cmpStr)==0 {
+		return false
+	}
+	cmpStrArr := strings.Split( cmpStr, "|")
+
+	for i:=0; i<len(cmpStrArr);i++ {
+		if strings.Compare(cmpStrArr[i],  input) == 0 {
+			return true
+		}
+	}
+
+	log.Errorf("VerifyString: Input:%s not mached with %s\n", input, cmpStr)
+	return false
+}
+
+func VerifyInterCACertificate( interCA *x509.Certificate, rootCA []*x509.Certificate, subjectStr string ) (bool, error){
+
+	if rootCA == nil || len(subjectStr) == 0 {
+		return false, errors.New("VerifyInterCACertificate: Certificate Object is nul or requiredExtDict is Empty")
+	}
+
+	if !VerifyString(interCA.Subject.String(), subjectStr) {
+		return false, errors.New("VerifyInterCACertificate: Invalid Certificate Subject: "+ interCA.Subject.String()+
+						 "not matched with "+  subjectStr )
+	}
+	_, err := VerifyRequiredExtensions( interCA, GetRootCARequiredExtMap())
+	if err != nil {
+		return false, errors.New("VerifyInterCACertificate: "+ err.Error())
+	}
+
+	var opts x509.VerifyOptions
+	opts.Roots = x509.NewCertPool()
+ 	for i:=0; i< len(rootCA); i++ {
+		opts.Roots.AddCert(rootCA[i])
+	}
+	_, err = interCA.Verify(opts)
+        if err != nil {
+                return false, errors.New("VerifyInterCACertificate: Verification failure:"+err.Error())
+        }
+	return true, nil
+}
+
+func VerifyRootCACertificate( rootCA *x509.Certificate, subjectStr string ) (bool, error){
+
+	if rootCA == nil || len(subjectStr) == 0 {
+		return false, errors.New("VerifyRootCACertificate: Certificate Object is nul or requiredExtDict is Empty")
+	}
+
+	var opts x509.VerifyOptions
+
+	if strings.Compare(subjectStr,  rootCA.Subject.String()) != 0 {
+		return false, errors.New("VerifyRootCACertificate: Invalid Certificate Subject: "+ rootCA.Subject.String() )
+	}
+		
+	if strings.Compare(rootCA.Issuer.String(),  rootCA.Subject.String()) != 0 {
+		return false, errors.New("VerifyRootCACertificate: Invalid Certificate Subject/Verifier differed: "+ rootCA.Subject.String() )
+	}
+
+	_, err := VerifyRequiredExtensions( rootCA, GetRootCARequiredExtMap())
+	if err != nil {
+		return false, errors.New("VerifyRootCACertificate: "+ err.Error())
+	}
+
+	opts.Roots = x509.NewCertPool()
+	opts.Roots.AddCert(rootCA)
+
+	_, err = rootCA.Verify(opts)
+        if err != nil {
+                return false, errors.New("VerifyRootCACertificate: Verification failure:"+err.Error())
+        }
+
+	err =  rootCA.CheckSignature( rootCA.SignatureAlgorithm, rootCA.RawTBSCertificate, rootCA.Signature)
+	if err != nil {
+		return false, errors.New("VerifyRootCACertificate: Signature check failed: "+ err.Error())
+	}
+	return true, nil
+}
+
+
+func VerifyRequiredSGXExtensions( cert *x509.Certificate, requiredExtDict map[string]asn1.ObjectIdentifier  ) ( bool, error){
+
+	if cert == nil || len(requiredExtDict) == 0 {
+		return false, errors.New("VerifyRequiredSGXExtensions: Certificate Object is nul or requiredExtDict is Empty")
+	}
+
+        var present int = 0
+        var ext, sgxExt pkix.Extension
+        var sgxExtensions []asn1.RawValue
+
+        for i:=0; i< len(cert.Extensions); i++ {
+                ext = cert.Extensions[i]
+                if ExtSgxOid.Equal(ext.Id) == true {
+                        _, err := asn1.Unmarshal(ext.Value, &sgxExtensions)
+                        if err != nil {
+                                return false, err
+                        }
+
+                        log.Debug("Required Extension Dictionary", requiredExtDict)
+                        for j:=0; j<len(sgxExtensions); j++ {
+
+                                _, err = asn1.Unmarshal(sgxExtensions[j].FullBytes, &sgxExt)
+                                log.Debug("SGXExtension[",j,"]:", sgxExt.Id.String())
+                                if _, ok := requiredExtDict[sgxExt.Id.String()]; ok {
+                                        log.Debug("SGXExtension[",j,"]:", sgxExt.Id.String()," found in list")
+                                        present += 1
+                                }
+                        }
+                }
+        }
+        if present != len(requiredExtDict) {
+                return false, errors.New("VerifyRequiredSGXExtensions: Required SGX Extension not found")
+        }
+        return true, nil
+}
+
+func VerifiySHA256Hash( hash []byte, blob []byte) ( bool, error ){
+	if len(hash) == 0 || len(blob) == 0 || len(hash) != sha256.Size {
+                return false, errors.New("VerifiySHA256Hash: Invalid hash verify input data")
+	}
+
+	h := sha256.New()
+	h.Write(blob)
+	hashValue := h.Sum(nil)
+
+	if len(hashValue) != sha256.Size {
+		return false, errors.New("VerifiySHA256Hash: Error in Hash generation")
+	}
+
+	utils.DumpDataInHex("Quote Hash", hash, len(hash))
+	utils.DumpDataInHex("Gen Hash", hashValue, len(hashValue))
+	for i:=0;i<len(hash);i++{
+		if hashValue[i] != hash[i]{
+			return false, errors.New("VerifiySHA256Hash: Public 256 validation failed")
+		}
+	}
+	log.Debug("VerifiySHA256Hash: Passed...")
+	return true, nil
+}
