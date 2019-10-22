@@ -1,0 +1,152 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: ISecL Certificate Management Service
+servers:
+  - url: http://cms.com/cms/v1
+paths:
+  /version:
+    get:
+      summary: Get a version of CMS
+      description: Get a version of CMS along with commit ID
+      tags:
+        - Version
+      responses:
+        '200':
+          description: Successfully fetched Version of CMS
+          content:
+            text/plain:
+              schema: 
+                $ref : '#/components/schemas/Version'
+          
+  /ca-certificates:
+    get:
+      summary: Get a list of root CA certificates
+      description: Get a list of root CA certificates used as Trusted Authority
+      tags:
+        - CA-Certificates
+      responses:
+        '200':
+          description: Successfully fetched Root CA Certificate
+          content:
+            application/x-pem-file:
+              schema:
+                $ref : '#/components/schemas/CA-Certificate'
+        '404':
+          description: Root CA Certificate not found
+
+  /certificates:
+    post:
+      summary: Submit a new Certificate Signing Request
+      description: Submit a new Certificate Signing Request which needs to be signed by Root CA
+      tags:
+        - Certificates
+      requestBody:
+        content:
+          application/x-pem-file:
+            schema:
+              $ref: '#/components/schemas/CSR'
+                      
+      responses:
+        '201':
+          description: Successfully signed CSR
+          content:
+            application/x-pem-file:
+              schema:
+                  $ref: '#/components/schemas/Certificate'
+
+components:
+  responses:
+    401Unauthorized:
+      description: Caller is not authenticated
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          example:
+            message: "You must be authenticated to use this resource"
+    403Forbidden:
+      description: Caller is not authorized to use this resource
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          example:
+            message: "You must have the sufficient role(s) to use this resource"
+  schemas:
+    Version:
+      example: "v0.0.0-00eba4f"
+
+    Message:
+      required:
+        - message
+      properties:
+        message:
+          type: string
+      example:
+        message: "Missing permissions to access resource"
+
+    CA-Certificate:
+      example:  "-----BEGIN CERTIFICATE-----
+                  MIIELDCCApSgAwIBAgIBADANBgkqhkiG9w0BAQwFADBHMQswCQYDVQQGEwJJTjEL
+                  MAkGA1UECBMCS04xCzAJBgNVBAcTAkJHMQ4wDAYDVQQKEwVJTlRFTDEOMAwGA1UE
+                  AxMFQ01TQ0EwHhcNMTkwNjAzMDQyMDQyWhcNMjQwNjAzMDQyMDQyWjBHMQswCQYD
+                  VQQGEwJJTjELMAkGA1UECBMCS04xCzAJBgNVBAcTAkJHMQ4wDAYDVQQKEwVJTlRF
+                  TDEOMAwGA1UEAxMFQ01TQ0EwggGiMA0GCSqGSIb3DQEBAQUAA4IBjwAwggGKAoIB
+                  gQDB/SIfXMHgsmSA5UzAqeaLRVGiei6POuPpBjmMpmTLCn5WiBTQwToEPkfckpVB
+                  TdLXCT40ZJQA0OZNpt3UrHIOSZI2v9BduA2sOLHPcb4GmeA07h3dCw+amnFgz5uD
+                  chthCqv+FObDBRB50e6eAIUqZ4CQ0VQyfAj4ShLHHls8qbCGm9HJBabSjT1wBmwV
+                  suqlyKb1sYgdLybi4jUKPRrJUs5yzMe3LaaTid+BbwYZwGlawcFXRA5PFfGhIFn9
+                  yy7fb9Z3sBDJlYF8CNClm4rZoIDeFJIZVzIj3Q3tCcTdfd5ConUm2fB+lFt3mQLx
+                  Ye0jwjc6Crv0eWh8bWroMs+fR4QZaERqHZeO7+Oki6DcUmtfaIcg+gY115H48T9I
+                  g9eur6RTcSJ8Uz0uYnBVDsNfhuaYy/MfnYI19xNdaehW8WIA3I6GngGk4BP1bmrX
+                  PKuGH0Yx0Et9lYiOGioM5c7AXNUqT+UfQE1TIfDU2pwgUHqRDZS//OhSeYg+Jzkm
+                  d9kCAwEAAaMjMCEwDgYDVR0PAQH/BAQDAgEGMA8GA1UdEwEB/wQFMAMBAf8wDQYJ
+                  KoZIhvcNAQEMBQADggGBAJJ8XNwBDbQ2ht95A6Lojlr7YvtnxjaGzGO5b8CebEHd
+                  9n8O89SN/oZBnu8UvoAYcE2aY5YuZKUUOtXaE7b210sb5sprvDN9m+FBS9gGPf0X
+                  P03NMtZSWATgkfygaKpFH3HbBszixyJsKdhSdGoyFUkgHqcGYWQgoM//O0S9+cdS
+                  SW4uPMQfRz2nHk8mUIt0gXn6KxtqPhVO+Xe23M6I7BkWdHpBSX8M1hTFxUgdz88A
+                  MEgVuw2/7EJftvSRxh/IHR4/T5r0pmjz6E2hoUZktZrqf0U6EjdTstVXwmJhnhFf
+                  XpEXRBQJNIb5grPi9sRSC8R/HOqfV3OPV93nq9YLa+3LTejO2l09ZY0pef8t4OVW
+                  n6xaxEsfTcuGKsqilaFo/4DNUwXcFy945YtQQSth9oGCUuzYNliz01/KIeScZuFk
+                  kjrWviMrWtKCo0KqcAuyyA96rIcOIdUmBQfISTumpD9QJksjpQg4a6gC4AckBpKb
+                  Sp0Y1tm3knKk8w1uklUlMw==
+                  -----END CERTIFICATE-----"
+    CSR:
+      example: "MIICmDCCAYACAQAwUzELMAkGA1UEBhMCSU4xDDAKBgNVBAMMA0NNUzELMAkGA1UE
+                  BwwCQkExDjAMBgNVBAoMBUlOVEVMMQswCQYDVQQIDAJLTjEMMAoGA1UECwwDU1NU
+                  MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqeFgO427qngOSrKD1axt
+                  ov7cTd9M+ohvzj3aJPVqNU1y5XsMy7tKvgvJp8FM5oZdJAJ2duHkG2RlHsSyFkkA
+                  /Gmv49r4G7rURhjUfrIWQP0AqHIDsItIxdgnY7KE76Z4lawSvLsBcU8xbA12KdKF
+                  MrvpoEOWaiHX4ZwH2u9IwASIyXkVjd4coyTb9LIm1oiSda6+3BH6OpKoL80Kv96C
+                  vy2/yqKZK1iC3Hot55/JD72WTVnwe5p/BfIPw5U5JacIjJo5+9GE6DDHQlzOLIcJ
+                  EGNIYnd0O5eOxXZs7aSbiN2p8XvxlveFYpQSKFbukSnqP31ry82XRP6p9VmUKamB
+                  +wIDAQABoAAwDQYJKoZIhvcNAQELBQADggEBABBZ2KVWjnn1BCSJWq7Ugv73uHe6
+                  TsekCq3RT1AhZ4oADpMRZEUrLgo6RNdlI64viBZaYzhuvKR+v5OaTv7KAzbHHVKf
+                  TU/mANfVn0SZikV8LoO0aiuZLlOS9xcXKTEYKj0bLQnC0a0/12IgVBG1If11tCzF
+                  3yri1jqLNDnb6J9/mVkFKkGd2M6ogpWBBWV7NP7SuHZtKC0YaqJkOP2F7N4ZP7ia
+                  W4Dr+wHHmqmbH5S0Jiwnrss7QP4wBUY7rYlJOZgndLSsuGcCZoKkW0x+BJg7hbxI
+                  R9PGcyD/kyvjGCc0pmd73HBgESsHK/NiKrWAsay3Gu2DATDoxyncRr6S8S4="
+    Certificate:
+      example: "-----BEGIN CERTIFICATE-----
+                  MIIDvDCCAiSgAwIBAgIBBDANBgkqhkiG9w0BAQwFADAQMQ4wDAYDVQQDEwVDTVND
+                  QTAeFw0xOTA2MDMwNTI0MTlaFw0yMDA2MDMwNTI0MTlaMA4xDDAKBgNVBAMTA0NN
+                  UzCCAaIwDQYJKoZIhvcNAQEBBQADggGPADCCAYoCggGBAL+OtUjlSCBysxdHbFjW
+                  7tP0iV+N6JUAozsIV39RnB30QtxmLo66vhStTZY925JJ3ndCcX1beXi/PE/ijpxf
+                  G5n04hYIL3srldKvbP0Ve96yL3KNDN8JfTupbf2neMyRki4t1TaQMrHY/eczREKc
+                  MYGWQHDAl8OmYiuWBD3D9YwTRbByr1+Aj5x+z9HQUM+752qRHUPwxrWMJ4I7ezFW
+                  PDajXVucDi1/vrUGilYD11iIaNbkuyFRgrD+mzx0iV6NMRfakhLgdVS4CvSEZz9X
+                  km6BZtefs7vuVGpUDLQheiEZLQYaP6+fqVyuQ5FodeyjWtGXIUlctDW9QMTmEr0o
+                  ++2Wb0ocE25gBO6YqDBDCv9WjTY23DHDqP9X4gU0cm/sdnDarWZfYFDwyQbJxfwn
+                  dIn5z3Yu+RrFznfBuCeydIjEMjcFlGpcwqyV1IHDQ5hggcK+CaKmli/+miCrmm5+
+                  iVIfTOmtx1nd0cXVPd22zYYi/fw+q0+d2Z5EGOX0wISKbwIDAQABoyMwITAOBgNV
+                  HQ8BAf8EBAMCB4AwDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQwFAAOCAYEA
+                  SLkj74hGIdYisoM0HHdFedtMfRBJKE64D5WlUkSvagM586cLyIFSOXB7DIJF08HE
+                  8gcuvDW2xXVlebEfVPo3+p8yPYtz3N8uxhyjs8Dn2tHKRxQMQ4G+Wjw8qY05cwKm
+                  /+PDajdykKL382pNSl0X4Hn9TR8woF/nW9FkDgpasMglnyHTclDhs3pmSzNA8WQ6
+                  Rjr6838TNmu9d4Abe6C76Bua7DSUfjwuIFfcB6cUY+ZUXSdzj6CPFb5N98agb0GB
+                  EajC65sLC9zXE7HiQUA+skXDhlNIbaaGfE677Fw55iKagD4nrcyH1VdiHTGElnRN
+                  k9cokdJ3y7tmu7gfrvJqu5nYi79ZQ+3DqkVq4fvNXYAcLKumvsGHyVgwAcrhlsqP
+                  yMAoLzOLhegKLqLL0VIvZBH8NNwouk1ofAvWnWkv+A8bT2Rryay96v5KJBCD2tYy
+                  x042NzUbepxGm6qfa0KQkGXhxNOnHnLWQ5YynlHErACm6eQdfIxFnsH5cYTcW/7A
+                  -----END CERTIFICATE-----"

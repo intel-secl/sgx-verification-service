@@ -1,0 +1,101 @@
+image: golang:latest
+
+before_script:
+  - echo "Acquire::http::Proxy \"http://proxy-us.intel.com:911\";" >> /etc/apt/apt.conf
+  - echo "Acquire::https::Proxy \"http://proxy-us.intel.com:911\";" >> /etc/apt/apt.conf
+
+  - git config --global http.proxy "http://proxy-us.intel.com:911"
+  - git config --global http."https://gitlab.devtools.intel.com".proxy ""
+  - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.devtools.intel.com".insteadOf "https://gitlab.devtools.intel.com"
+
+  - echo "[http \"https://gitlab.devtools.intel.com\"]" >> ~/.gitconfig
+  - echo "        proxy = \"\"" >> ~/.gitconfig
+  - cd $CI_PROJECT_DIR
+  
+variables:
+  HTTPS_PROXY: http://proxy-us.intel.com:911
+  no_proxy: ".intel.com"
+
+stages:
+  - build
+  - test
+  - deploy
+  - pages
+
+compile:
+  stage: build
+  tags:
+    - go
+  script:
+    - go build ./...
+
+test:
+  stage: test
+  tags:
+    - go
+  script:
+    - go test ./... -tags=integration -coverpkg=./... -coverprofile cover.out
+    - go tool cover -func cover.out
+    - go tool cover -html=cover.out -o cover.html
+  artifacts:
+    paths:
+      - "cover.html"
+
+installer:
+  stage: deploy
+  tags:
+    - go
+  script:
+    - apt-get update && apt-get install -y makeself
+    - make installer
+    - cp ./docs/swagger.yml ./out/swagger.yml
+  artifacts:
+    paths:
+      - "out/svs-*.bin"
+      - "out/swagger.yml"
+    expire_in: 1 week
+
+docker:
+  stage: deploy
+  tags: 
+    - go
+    - docker
+  script:
+    - curl -sSL https://get.docker.com/ | sh
+    - apt-get update && apt-get install -y makeself
+    - make docker
+    - cp ./docs/swagger.yml ./out/swagger.yml    
+    - cp ./dist/docker/docker-compose.yml ./out/docker-compose.yml
+  artifacts:
+    paths:
+      - "out/*.tar"      
+      - "out/docker-compose.yml"
+      - "out/swagger.yml"
+    expire_in: 1 week
+
+
+lld:
+  stage: deploy
+  tags:
+    - go
+  script:
+    - apt update && apt install -y pandoc
+    - pandoc --standalone --css pandoc.css -f markdown_github -t html5 docs/LLD.md -o LLD.html
+  artifacts:
+    paths:
+      - LLD.html
+
+pages:
+  stage: pages
+  tags:
+    - go
+  dependencies:
+    - test
+    - lld
+  script:
+    - mkdir -p public/
+    - cp cover.html public/cover.html
+    - cp LLD.html public/LLD.html
+  artifacts:
+    paths:
+    - public
