@@ -6,6 +6,7 @@ require (
 	github.com/gorilla/handlers v1.4.0
 	github.com/gorilla/mux v1.7.3
 	github.com/jinzhu/gorm v1.9.10
+	github.com/pkg/errors v0.8.0
 	github.com/sirupsen/logrus v1.4.0
 	github.com/stretchr/testify v1.3.0
 	golang.org/x/crypto v0.0.0-20190325154230-a5d413f7728c
@@ -15,4 +16,4 @@ require (
 	intel/isecl/lib/common v1.0.0-Beta
 )
 
-replace intel/isecl/lib/common => gitlab.devtools.intel.com/sst/isecl/lib/common.git v0.0.0-20191004192529-c4a1171a5ec2
+replace intel/isecl/lib/common => gitlab.devtools.intel.com/sst/isecl/lib/common.git v0.0.0-20191016183925-1ef952a3c1c0

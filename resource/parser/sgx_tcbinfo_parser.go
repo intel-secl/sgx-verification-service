@@ -11,9 +11,11 @@ import (
 	"errors"
 	"strings"
 	"net/http"
+	"math/big"
 	"crypto/x509"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"encoding/asn1"
 	"encoding/json"
 
 	"intel/isecl/svs/constants"
@@ -67,6 +69,9 @@ type TcbInfoStruct struct {
 	IntermediateCA 	map[string]*x509.Certificate
 	RawBlob		[]byte
 }
+type ECDSASignature struct {
+    R, S *big.Int
+}
 
 
 func NewTCBInfo(fmspc string) (*TcbInfoStruct, error) {
@@ -105,14 +110,23 @@ func (e *TcbInfoStruct) GetTCBInfoRootCAList()([]*x509.Certificate){
 }
 
 func (e *TcbInfoStruct) GetTCBInfoPublicKey()( *ecdsa.PublicKey){
-        for _, v := range e.IntermediateCA {
+        for _, v := range e.IntermediateCA{
 		if strings.Compare( v.Subject.String(), constants.SGXTCBInfoSubjectStr ) == 0 {
 			return v.PublicKey.(*ecdsa.PublicKey)
 		}
+		utils.DumpDataInHex("Signature:", v.Signature, len(v.Signature))
         }
+	log.Error("GetTCBInfoPublicKey: Public Key not found\n")
 	return nil
 }
 
+func (e *TcbInfoStruct) GetTcbInfoIssueDate()( string ){
+	return e.TcbInfoData.TcbInfo.IssueDate
+}
+
+func (e *TcbInfoStruct) GetTcbInfoNextUpdate()( string ){
+	return e.TcbInfoData.TcbInfo.NextUpdate
+}
 
 func (e *TcbInfoStruct) GetTcbInfoStruct(fmspc string)(error) {
 
@@ -197,11 +211,17 @@ func (e *TcbInfoStruct) GetTcbInfoBlob()([]byte){
 
 
 func (e *TcbInfoStruct) GetTcbInfoSignature()([]byte, error){
-	data, err := hex.DecodeString(e.TcbInfoData.Signature)
+	signatureBytes, err := hex.DecodeString(e.TcbInfoData.Signature)
 	if err != nil {
     		return nil, errors.New("GetTcbInfoSignature: error in decode string")
 	}
-        return data, nil
+
+	rBytes, sBytes  := signatureBytes[:32], signatureBytes[32:]
+        bytes, err :=  asn1.Marshal(ECDSASignature{R : new(big.Int).SetBytes(rBytes), S:new(big.Int).SetBytes(sBytes)})
+        if err!=nil {
+    		return nil, errors.New("GetTcbInfoSignature: "+ err.Error())
+        }
+        return bytes, nil
 }
 
 func (e *TcbInfoStruct) GetTcbInfoStatus()(string){

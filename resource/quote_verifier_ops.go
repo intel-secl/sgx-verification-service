@@ -110,44 +110,6 @@ func SwQuoteVerifyCB(w http.ResponseWriter, r *http.Request, skcBlobParser *pars
 }
         
 
-func VerifyTCBInfo(quoteObj *parser.SgxQuoteParsed, certObj *parser.PckCert, tcbObj *parser.TcbInfoStruct, trustedRootCA *x509.Certificate)(error){
-
-	if tcbObj.GetTcbInfoFmspc() != certObj.GetFMSPCValue(){
-		return errors.New("VerifyTCBInfo: FMSPC not matched with PCK Cert FMSPC")
-        }
-
-	_, err := verifier.VerifyTcbInfoCertChain( tcbObj.GetTCBInfoInterCAList(), tcbObj.GetTCBInfoRootCAList(),
-			trustedRootCA)
-	if err != nil{
-		return errors.New("VerifyTCBInfo: "+ err.Error())
-	}
-
-	if strings.Compare( tcbObj.GetTcbInfoStatus() , "UpToDate" ) != 0 {
-		return errors.New("VerifyTCBInfo: Invalid TcbInfo Stauts:"+ tcbObj.GetTcbInfoStatus())
-	}
-
-/*
-
-	pubKey := tcbObj.GetTCBInfoPublicKey()
-	if pubKey == nil{
-		return errors.New("VerifyTCBInfo: ECDSA Public Key not found")
-	}
-
-	data, err := tcbObj.GetTcbInfoSignature()
-        if err!=nil {
-		return errors.New("VerifyTCBInfo: "+err.Error())
-        }
-	utils.DumpDataInHex("TCB Info Signature", data, len(data))
-	utils.DumpDataInHex("TCB Info Blob", tcbObj.GetTcbInfoBlob(), len(tcbObj.GetTcbInfoBlob()))
-
-
-	_, err = verifier.VerifySGXECDSASignature1(data, tcbObj.GetTcbInfoBlob(), pubKey)
-        if err!=nil {
-		return errors.New("VerifyTCBInfo: "+err.Error())
-        }
-*/
-	return nil
-}
 
 func SGXECDSAQuoteVerifyCB(w http.ResponseWriter, r *http.Request, skcBlobParser *parser.SkcBlobParsed, config *config.Configuration) error { 
 	if len(skcBlobParser.GetQuoteBlob()) == 0 {
@@ -343,3 +305,44 @@ func VerifyQeIdentity(qeIdObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteP
         return VerifyQEIdentityReport(qeIdObj, quoteObj)
 }
 
+func VerifyTCBInfo(quoteObj *parser.SgxQuoteParsed, certObj *parser.PckCert, tcbObj *parser.TcbInfoStruct, trustedRootCA *x509.Certificate)(error){
+
+	if tcbObj.GetTcbInfoFmspc() != certObj.GetFMSPCValue(){
+		return errors.New("VerifyTCBInfo: FMSPC not matched with PCK Cert FMSPC")
+        }
+
+	_, err := verifier.VerifyTcbInfoCertChain( tcbObj.GetTCBInfoInterCAList(), tcbObj.GetTCBInfoRootCAList(),
+			trustedRootCA)
+	if err != nil{
+		return errors.New("VerifyTCBInfo: "+ err.Error())
+	}
+
+	if strings.Compare( tcbObj.GetTcbInfoStatus() , "UpToDate" ) != 0 {
+		return errors.New("VerifyTCBInfo: Invalid TcbInfo Stauts:"+ tcbObj.GetTcbInfoStatus())
+	}
+
+        if utils.CheckDate(tcbObj.GetTcbInfoIssueDate(), tcbObj.GetTcbInfoNextUpdate()) == false {
+                return errors.New("VerifyTCBInfo: Date Check validation failed")
+        }
+
+/*
+	pubKey := tcbObj.GetTCBInfoPublicKey()
+	if pubKey == nil{
+		return errors.New("VerifyTCBInfo: ECDSA Public Key not found")
+	}
+
+	data, err := tcbObj.GetTcbInfoSignature()
+        if err!=nil {
+		return errors.New("VerifyTCBInfo: "+err.Error())
+        }
+	utils.DumpDataInHex("TCB Info Signature", data, len(data))
+	utils.DumpDataInHex("TCB Info Blob", tcbObj.GetTcbInfoBlob(), len(tcbObj.GetTcbInfoBlob()))
+
+
+	_, err = verifier.VerifySGXECDSASignature1(data, tcbObj.GetTcbInfoBlob(), tcbObj.GetTCBInfoPublicKey())
+        if err!=nil {
+		return errors.New("VerifyTCBInfo: "+err.Error())
+        }
+*/
+	return nil
+}

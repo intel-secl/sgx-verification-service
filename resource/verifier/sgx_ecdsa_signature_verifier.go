@@ -46,6 +46,7 @@ func VerifyECDSA256Signature( data []byte, pubkey *ecdsa.PublicKey, signatureByt
 
 	utils.DumpDataInHex("VerifyEcdsa256Signature-Data", data, len(data))
 	utils.DumpDataInHex("VerifyEcdsa256Signature-Signature", signatureBytes, len(signatureBytes))
+	utils.DumpDataInHex("VerifyEcdsa256Signature-Hash", h, len(h))
 
 	if valid {
 		log.Debug("Signature Verification is Passed")
