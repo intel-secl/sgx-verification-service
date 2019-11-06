@@ -8,7 +8,6 @@ package parser
 import (
 	"C"
 	"fmt"
-	"errors"
 	"strings"
 	"crypto/x509"
 	"encoding/pem"
@@ -16,9 +15,13 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"gopkg.in/restruct.v1"
+	clog "intel/isecl/lib/common/log"
+	"github.com/pkg/errors"
 
-	log "github.com/sirupsen/logrus"
 )
+
+var log = clog.GetDefaultLogger()
+var slog = clog.GetSecurityLogger()
 
 const (
         SgxReportBodyReserved1Bytes     = 12
@@ -133,36 +136,40 @@ type SgxQuoteParsed struct{
 
 
 func ParseEcdsaEncodedQuoteBlob( rawQuote []byte) ( *SgxQuoteParsed ){
+	log.Trace("resource/parser/sgx_ecdsa_quote_parser:ParseEcdsaEncodedQuoteBlob() Entering")
+	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:ParseEcdsaEncodedQuoteBlob() Leaving")
 
 	if len(rawQuote) < 1 {
-		log.Debug("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote is Empty")
+		log.Info("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote is Empty")
 		return nil
 	}
 
 	parsedObj := new( SgxQuoteParsed )
 	decodedQuote, err := base64.StdEncoding.DecodeString(string(rawQuote))
         if err != nil {
-                log.Debug("Failed to Decode Quote")
+                log.Info("Failed to Decode Quote")
 		return nil
         }
 	_, err = parsedObj.ParseRawECDSAQuote( decodedQuote )
 	if err != nil {
-		log.Debug("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote parsing error", err.Error())
+		log.Info("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote parsing error", err.Error())
 		return nil
 	}
 	return parsedObj
 }
 
 func ParseEcdsaQuoteBlob( rawBlob []byte) ( *SgxQuoteParsed ){
+	log.Trace("resource/parser/sgx_ecdsa_quote_parser:ParseEcdsaQuoteBlob() Entering")
+	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:ParseEcdsaQuoteBlob() Leaving")
 
 	if len(rawBlob) < 1 {
-		log.Debug("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote is Empty")
+		log.Info("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote is Empty")
 		return nil
 	}
 	parsedObj := new( SgxQuoteParsed )
 	_, err := parsedObj.ParseRawECDSAQuote( rawBlob )
 	if err != nil {
-		log.Debug("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote parsing error", err.Error())
+		log.Info("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote parsing error", err.Error())
 		return nil
 	}
 	return parsedObj
@@ -171,6 +178,9 @@ func ParseEcdsaQuoteBlob( rawBlob []byte) ( *SgxQuoteParsed ){
 
 
 func SwapByte32(val uint32 ) ( uint32 ) {
+	log.Trace("resource/parser/sgx_ecdsa_quote_parser:SwapByte32() Entering")
+	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:SwapByte32() Leaving")
+
 	return val
 
 	log.Printf("Before wapping 32 :0x%04x", val)
@@ -182,6 +192,9 @@ func SwapByte32(val uint32 ) ( uint32 ) {
 
 
 func SwapByte16(val uint16 ) ( uint16 ) {
+	log.Trace("resource/parser/sgx_ecdsa_quote_parser:SwapByte16() Entering")
+	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:SwapByte16() Leaving")
+
 	return val
 	log.Printf("Before wapping 16 :0x%02x", val)
 	var swapped uint16 = ((val << 8) | (val >> 8))
@@ -190,15 +203,22 @@ func SwapByte16(val uint16 ) ( uint16 ) {
 }
 
 func (e *SgxQuoteParsed) GetRawBlob1() ([]byte, error){
+	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetRawBlob1() Entering")
+	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetRawBlob1() Leaving")
+
+	var err error
 	BlobLen := len(e.EcdsaBlob1)	
 	if BlobLen < 1 {
-		return nil, errors.New("Invalid Raw Blob Len\n")
+		return nil, errors.Wrap(err, "GetRawBlob1: Invalid Raw Blob1 Len")
 	}
 	Blob1 := make( []byte, len(e.EcdsaBlob1))
 	copy( Blob1, e.EcdsaBlob1 )
 	return Blob1, nil
 }
 func (e *SgxQuoteParsed) GetSHA256Hash() ([]byte){
+	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetSHA256Hash() Entering")
+	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetSHA256Hash() Leaving")
+
 	HashValue := make( []byte, sha256.Size  )
 	for i:=0; i<sha256.Size; i++ {
 		HashValue[i] = e.Header.ReportBody.SgxReportData[i]
@@ -207,10 +227,13 @@ func (e *SgxQuoteParsed) GetSHA256Hash() ([]byte){
 }
 
 func (e *SgxQuoteParsed) GenerateRawBlob2() ( error){
+	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GenerateRawBlob2() Entering")
+	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GenerateRawBlob2() Leaving")
 
+	var err error
 	var rawBlobSize2 =  48 + 384
 	if e.RawQuoteFull == nil || len(e.RawQuoteFull) < rawBlobSize2 {
-		return errors.New("GenerateRawBlob2 Invalid raw blob data\n")
+		return errors.Wrap(err, "GenerateRawBlob2: Invalid raw blob2 data")
 	}
 	e.EcdsaBlob2 = make ( []byte, rawBlobSize2 )
 	for i:=0;i<rawBlobSize2; i++ {
@@ -220,6 +243,9 @@ func (e *SgxQuoteParsed) GenerateRawBlob2() ( error){
 }
 
 func (e *SgxQuoteParsed) GenerateRawBlob1() ( error){
+	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GenerateRawBlob1() Entering")
+	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GenerateRawBlob1() Leaving")
+
 	var offset int = 0
 	report := e.Ecdsa256SignatureData.ReportBody
 	e.EcdsaBlob1 = make( []byte, 384)
@@ -339,9 +365,13 @@ func (e *SgxQuoteParsed) GenerateRawBlob1() ( error){
 }
 
 func (e *SgxQuoteParsed) GetRawBlob2() ([]byte, error){
+	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetRawBlob2() Entering")
+	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetRawBlob2() Leaving")
+
+	var err error
 	BlobLen := len(e.EcdsaBlob2)	
 	if BlobLen < 1 {
-		return nil, errors.New("Invalid Raw Blob-2Len\n")
+		return nil, errors.Wrap(err, "GetRawBlob2: Invalid Raw Blob-2Len")
 	}
 	Blob2 := make( []byte, len(e.EcdsaBlob2))
 	copy( Blob2, e.EcdsaBlob2 )
@@ -349,6 +379,9 @@ func (e *SgxQuoteParsed) GetRawBlob2() ([]byte, error){
 }
 
 func (e *SgxQuoteParsed) GetQEReportAttributes() ([2]uint64 ){
+	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetQEReportAttributes() Entering")
+	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetQEReportAttributes() Leaving")
+
        report := e.Ecdsa256SignatureData.ReportBody.SgxAttributes
        ReportAttributes := [2]uint64{}
        ReportAttributes[0] = report.Flags
@@ -376,6 +409,8 @@ func (e *SgxQuoteParsed) GetQEReportIsvSvn() ( uint16 ){
 
 
 func (e *SgxQuoteParsed) DumpSGXQuote(){
+	log.Trace("resource/parser/sgx_ecdsa_quote_parser:DumpSGXQuote() Entering")
+	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:DumpSGXQuote() Leaving")
 
 	log.Debug("Version = ",e.Header.Version)
         log.Debug("SignType = ",e.Header.SignType)
@@ -384,6 +419,7 @@ func (e *SgxQuoteParsed) DumpSGXQuote(){
         log.Debug("PceSvn = ",e.Header.PceSvn)
         log.Debug("Xeid = ",e.Header.Xeid)
         log.Printf("BaseName = %x",e.Header.BaseName)
+	log.WithField("BaseName",e.Header.BaseName).Info()
         log.Printf("ReportBody.MrEnclave = %x",e.Header.ReportBody.MrEnclave)
         log.Printf("ReportBody.MrSigner = %x",e.Header.ReportBody.MrSigner)
         log.Printf("ReportBody.ConfigId = %x",e.Header.ReportBody.ConfigId)
@@ -415,6 +451,8 @@ func (e *SgxQuoteParsed) DumpSGXQuote(){
 }
 
 func  (e *SgxQuoteParsed) GetECDSASignature1()([]byte){
+	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetECDSASignature1() Entering")
+	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetECDSASignature1() Leaving")
 	
 	Signature1 := make( []byte, len(e.Ecdsa256SignatureData.ReportSignature))
 	copy( Signature1, e.Ecdsa256SignatureData.ReportSignature[:])
@@ -422,14 +460,18 @@ func  (e *SgxQuoteParsed) GetECDSASignature1()([]byte){
 }
 
 func  (e *SgxQuoteParsed) GetECDSASignature2()([]byte){
+	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetECDSASignature2() Entering")
+	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetECDSASignature2() Leaving")
 	
 	Signature2 := make( []byte, len(e.Ecdsa256SignatureData.Signature))
 	copy( Signature2, e.Ecdsa256SignatureData.Signature[:])
 	return Signature2
 }
 
-
 func  (e *SgxQuoteParsed) GetECDSAPublicKey2()([]byte){
+	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetECDSAPublicKey2() Entering")
+	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetECDSAPublicKey2() Leaving")
+
 	
 	PublicKey2 := make( []byte, len(e.Ecdsa256SignatureData.PublicKey))
 	copy( PublicKey2, e.Ecdsa256SignatureData.PublicKey[:])
@@ -437,6 +479,9 @@ func  (e *SgxQuoteParsed) GetECDSAPublicKey2()([]byte){
 }
 
 func (e *SgxQuoteParsed) GetQuotePckCertObj()(*x509.Certificate){
+	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetQuotePckCertObj() Entering")
+	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetQuotePckCertObj() Leaving")
+
 	var copyPCKCert *x509.Certificate
 	copyPCKCert = e.PCKCert
 	return copyPCKCert
@@ -444,6 +489,9 @@ func (e *SgxQuoteParsed) GetQuotePckCertObj()(*x509.Certificate){
 
 
 func (e *SgxQuoteParsed) GetQuotePckCertInterCAList()([]*x509.Certificate){
+	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetQuotePckCertInterCAList() Entering")
+	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetQuotePckCertInterCAList() Leaving")
+
 	interMediateCAArr := make( []*x509.Certificate, len(e.InterMediateCA))
 	var i  int=0	
 	for _, v := range e.InterMediateCA { 
@@ -454,6 +502,9 @@ func (e *SgxQuoteParsed) GetQuotePckCertInterCAList()([]*x509.Certificate){
 }
 
 func (e *SgxQuoteParsed) GetQuotePckCertRootCAList()([]*x509.Certificate){
+	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetQuotePckCertRootCAList() Entering")
+	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetQuotePckCertRootCAList() Leaving")
+
 	RootCAArr := make( []*x509.Certificate, len(e.RootCA))
 	var i  int=0	
 	for _, v := range e.RootCA { 
@@ -464,6 +515,8 @@ func (e *SgxQuoteParsed) GetQuotePckCertRootCAList()([]*x509.Certificate){
 }
 
 func  (e *SgxQuoteParsed) ParseQuoteCertificates()(error){
+	log.Trace("resource/parser/sgx_ecdsa_quote_parser:ParseQuoteCertificates() Entering")
+	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:ParseQuoteCertificates() Leaving")
 
 	if e.QuoteCertData.Type != 5 {
 		return errors.New(fmt.Sprintf("Invalid Certificate type in Quote Info: %d", e.QuoteCertData.Type))
@@ -475,18 +528,20 @@ func  (e *SgxQuoteParsed) ParseQuoteCertificates()(error){
 	var PckCertCount int=0
 	var IntermediateCACount int=0
 	var RootCACount int=0
+	var err error
 
 	e.RootCA = make(map[string]*x509.Certificate)
 	e.InterMediateCA = make(map[string]*x509.Certificate)
 	for i:=0; i<len(certs); i++{
 		block, _ := pem.Decode( []byte( certs[i] ))
 		if block == nil{
-			return errors.New("ParseQuoteCertificates: error in pem decode")
+			log.Info("Error in pem decode")
+			return errors.Wrap(err,"ParseQuoteCertificates: error in pem decode")
 		}
 		cert, err := x509.ParseCertificate( block.Bytes )
 		if err != nil {
                 	log.Error("ParseCertificate error")
-			return err
+			return errors.Wrap(err, "ParseQuoteCertificates: ParseCertificate error")
 		}
 
 		if strings.Contains(cert.Subject.String(), "CN=Intel SGX PCK Certificate") {
@@ -518,6 +573,8 @@ func  (e *SgxQuoteParsed) ParseQuoteCertificates()(error){
 
 
 func (e *SgxQuoteParsed) ParseRawECDSAQuote(decodedQuote []byte) (bool, error){
+	log.Trace("resource/parser/sgx_ecdsa_quote_parser:ParseRawECDSAQuote() Entering")
+	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:ParseRawECDSAQuote() Leaving")
 
 	e.RawQuoteFull = make( []byte, len(decodedQuote))
 	e.RawQuoteLen  = len(decodedQuote)
@@ -532,8 +589,8 @@ func (e *SgxQuoteParsed) ParseRawECDSAQuote(decodedQuote []byte) (bool, error){
 
 	err := e.GenerateRawBlob1()	
 	if err != nil {
-                log.Debug("GenerateRawBlob1 ended with error")
-		return false, err
+                log.Info("GenerateRawBlob1 ended with error")
+		return false, errors.Wrap(err, "resource/parser/sgx_ecdsa_quote_parser:ParseRawECDSAQuote() Failed to GenerateRawBlob1")
 	}
 
 	err = e.GenerateRawBlob2()	
@@ -545,7 +602,7 @@ func (e *SgxQuoteParsed) ParseRawECDSAQuote(decodedQuote []byte) (bool, error){
 
 	err = e.ParseQuoteCertificates()
 	if err != nil {
-		return false, err	
+		return false, errors.Wrap(err, "Failed to ParseQuoteCertificates")
 	}
 	return true, nil
 }

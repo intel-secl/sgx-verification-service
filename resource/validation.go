@@ -7,7 +7,6 @@
  import (
 	"regexp"
 	"intel/isecl/svs/constants"
-	log "github.com/sirupsen/logrus"
  )
 
 var regExMap = map[string]*regexp.Regexp{

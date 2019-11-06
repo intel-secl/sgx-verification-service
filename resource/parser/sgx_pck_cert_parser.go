@@ -8,7 +8,6 @@ package parser
 import (
 	"fmt"
 	"regexp"
-	"errors"
 	"strings"
 	"net/http"
 	"io/ioutil"
@@ -19,14 +18,10 @@ import (
 	"encoding/asn1"
 	"crypto/x509/pkix"
 
-
+	"github.com/pkg/errors"
 	"intel/isecl/svs/resource/utils"
 	"intel/isecl/svs/resource/verifier"
-	//"intel/isecl/svs/config"
-	log "github.com/sirupsen/logrus"
-	
 )
-
 
 type PckCRL struct {
 	PckCRLUrls 		[]string
@@ -44,6 +39,8 @@ type PckCert struct {
 }
 
 func NewPCKCertObj(certBlob []byte)( *PckCert ){
+	log.Trace("resource/parser/sgx_pck_cert_parser:NewPCKCertObj() Entering")
+	defer log.Trace("resource/parser/sgx_pck_cert_parser:NewPCKCertObj() Leaving")
 
 	if len(certBlob) < 1 {
 		log.Debug("PckCertParsed Object Spawn: Pck Cert Blob is Empty")
@@ -53,30 +50,30 @@ func NewPCKCertObj(certBlob []byte)( *PckCert ){
 	parsedPck := new( PckCert )
 	err := parsedPck.GenCertObj( certBlob )
 	if err != nil {
-		log.Debug("PckCert Object Spawn: Generate Certificate Object Error", err.Error())
+		log.Debug("NewPCKCertObj: Generate Certificate Object Error", err.Error())
 		return nil
 	}
 	parsedPck.GeneratePckCertRequiredExtMap()
 	_, err = verifier.VerifyRequiredExtensions( parsedPck.PckCertObj, parsedPck.GetPckCertRequiredExtMap())
 	if err != nil {
-		log.Debug("PckCert Object Spawn: VerifyRequiredExtensions not found", err.Error())
+		log.Debug("NewPCKCertObj: VerifyRequiredExtensions not found", err.Error())
 		return nil
 	}
 	parsedPck.GeneratePckCertRequiredSgxExtMap()
 	_, err = verifier.VerifyRequiredSGXExtensions( parsedPck.PckCertObj, parsedPck.GetPckCertRequiredSgxExtMap())
 	if err != nil {
-		log.Debug("PckCert Object Spawn: VerifyRequiredSGXExtensions not found", err.Error())
+		log.Debug("NewPCKCertObj: VerifyRequiredSGXExtensions not found", err.Error())
 		return nil
 	}
 
 	err = parsedPck.ParseFMSPCValue()
 	if err != nil {
-		log.Debug("PckCert Object Spawn: Fmspc Parse error", err.Error())
+		log.Debug("NewPCKCertObj: Fmspc Parse error", err.Error())
 		return nil
 	}
 	err = parsedPck.ParsePCKCRL()
 	if err != nil {
-		log.Debug("PckCert Object Spawn: PCK CRL Parse error", err.Error())
+		log.Debug("NewPCKCertObj: PCK CRL Parse error", err.Error())
 		return nil
 	}
 	return parsedPck
@@ -84,6 +81,9 @@ func NewPCKCertObj(certBlob []byte)( *PckCert ){
 
 
 func (e *PckCert) GeneratePckCertRequiredExtMap() {
+	log.Trace("resource/parser/sgx_pck_cert_parser:GeneratePckCertRequiredExtMap() Entering")
+	defer log.Trace("resource/parser/sgx_pck_cert_parser:GeneratePckCertRequiredExtMap() Leaving")
+
 	e.RequiredExtension = make(map[string]asn1.ObjectIdentifier)
 	e.RequiredExtension[verifier.ExtAuthorityKeyIdentifierOid.String()]	= verifier.ExtAuthorityKeyIdentifierOid
 	e.RequiredExtension[verifier.ExtCRLDistributionPointOid.String()] 	= verifier.ExtCRLDistributionPointOid
@@ -93,6 +93,9 @@ func (e *PckCert) GeneratePckCertRequiredExtMap() {
 
 
 func (e *PckCert) GeneratePckCertRequiredSgxExtMap() {
+	log.Trace("resource/parser/sgx_pck_cert_parser:GeneratePckCertRequiredSgxExtMap() Entering")
+	defer log.Trace("resource/parser/sgx_pck_cert_parser:GeneratePckCertRequiredSgxExtMap() Leaving")
+
 	e.RequiredSGXExtension = make(map[string]asn1.ObjectIdentifier)
 	e.RequiredSGXExtension[verifier.ExtSgxPPIDOid.String()]			= verifier.ExtSgxPPIDOid
 	e.RequiredSGXExtension[verifier.ExtSgxTCBOid.String()] 			= verifier.ExtSgxTCBOid
@@ -102,30 +105,45 @@ func (e *PckCert) GeneratePckCertRequiredSgxExtMap() {
 }
 
 func (e *PckCert) GetPckCertRequiredExtMap() ( map[string]asn1.ObjectIdentifier ){
+	log.Trace("resource/parser/sgx_pck_cert_parser:GetPckCertRequiredExtMap() Entering")
+	defer log.Trace("resource/parser/sgx_pck_cert_parser:GetPckCertRequiredExtMap() Leaving")
+
 	return e.RequiredExtension
 }
 func (e *PckCert) GetPckCertRequiredSgxExtMap() ( map[string]asn1.ObjectIdentifier ){
+	log.Trace("resource/parser/sgx_pck_cert_parser:GetPckCertRequiredSgxExtMap() Entering")
+	defer log.Trace("resource/parser/sgx_pck_cert_parser:GetPckCertRequiredSgxExtMap() Leaving")
+
 	return e.RequiredSGXExtension
 }
 
 func (e *PckCert) GenCertObj( certBlob []byte )( error ){
+	log.Trace("resource/parser/sgx_pck_cert_parser:NewPCKCertObj() Entering")
+	defer log.Trace("resource/parser/sgx_pck_cert_parser:NewPCKCertObj() Leaving")
+
 	var err error
 	block, _ := pem.Decode([]byte(certBlob))
         e.PckCertObj, err = x509.ParseCertificate( block.Bytes )
 	if err != nil {
-		return err
+		return errors.Wrap(err,"GenCertObj: Failed to parse Certificate")
 	}
 	return nil
 }
 
 func (e *PckCert) GetFMSPCValue() string{
+	log.Trace("resource/parser/sgx_pck_cert_parser:GetFMSPCValue() Entering")
+	defer log.Trace("resource/parser/sgx_pck_cert_parser:GetFMSPCValue() Leaving")
+
 	fmspcValue := e.FmspcStr
 	return fmspcValue
 }
 
 func (e *PckCert) ParseFMSPCValue()(error){
+	log.Trace("resource/parser/sgx_pck_cert_parser:ParseFMSPCValue() Entering")
+	defer log.Trace("resource/parser/sgx_pck_cert_parser:ParseFMSPCValue() Leaving")
 
         var ext pkix.Extension
+	var err error
         for i:=0; i< len(e.PckCertObj.Extensions); i++ {
                 ext=e.PckCertObj.Extensions[i]
                 if verifier.ExtSgxOid.Equal(ext.Id) == true {
@@ -133,7 +151,7 @@ func (e *PckCert) ParseFMSPCValue()(error){
                         var asn1Extensions []asn1.RawValue
                         _, err := asn1.Unmarshal(ext.Value, &asn1Extensions)
                         if err != nil {
-                                return err
+                                return errors.Wrap(err,"Asn1 Extension Unmarshal failed")
                         }
 
                         var sgxExtension pkix.Extension
@@ -146,27 +164,41 @@ func (e *PckCert) ParseFMSPCValue()(error){
                                 if verifier.ExtSgxFMSPCOid.Equal(sgxExtension.Id) == true {
                                         e.FmspcStr=hex.EncodeToString(sgxExtension.Value)
                                         log.WithField("FMSPC hex value", e.FmspcStr).Debug("Fmspc Value from cert")
+                                        log.WithField("FMSPC hex value", e.FmspcStr).Debug("Fmspc Value from cert")
                                         return nil
                                 }
                         }
                 }
         }
-        return errors.New("Fmspc Value not found in Extension")
+	log.Info("Fmspc Value not found in Extension")
+        return errors.Wrap(err,"Fmspc Value not found in Extension")
 }
 
 func (e *PckCert) GetECDSAPublicKey() ( *ecdsa.PublicKey ){
+	log.Trace("resource/parser/sgx_pck_cert_parser:GetECDSAPublicKey() Entering")
+	defer log.Trace("resource/parser/sgx_pck_cert_parser:GetECDSAPublicKey() Leaving")
+
 	return e.PckCertObj.PublicKey.(*ecdsa.PublicKey)
 } 
 
 func (e *PckCert) GetPckCRLURLs() ( []string ){
+	log.Trace("resource/parser/sgx_pck_cert_parser:GetPckCRLURLs() Entering")
+	defer log.Trace("resource/parser/sgx_pck_cert_parser:GetPckCRLURLs() Leaving")
+
 	return e.PckCRL.PckCRLUrls
 } 
 
 func (e *PckCert) GetPckCRLObj() ( []*pkix.CertificateList ){
+	log.Trace("resource/parser/sgx_pck_cert_parser:GetPckCRLObj() Entering")
+	defer log.Trace("resource/parser/sgx_pck_cert_parser:GetPckCRLObj() Leaving")
+
 	return e.PckCRL.PckCRLObjs
 } 
 
 func (e *PckCert) GetPckCRLInterCAList()([]*x509.Certificate){
+	log.Trace("resource/parser/sgx_pck_cert_parser:GetPckCRLInterCAList() Entering")
+	defer log.Trace("resource/parser/sgx_pck_cert_parser:GetPckCRLInterCAList() Leaving")
+
         interMediateCAArr := make( []*x509.Certificate, len(e.PckCRL.IntermediateCA))
         var i  int=0
         for _, v := range e.PckCRL.IntermediateCA {
@@ -178,6 +210,9 @@ func (e *PckCert) GetPckCRLInterCAList()([]*x509.Certificate){
 }
 
 func (e *PckCert) GetPckCRLRootCAList()([]*x509.Certificate){
+	log.Trace("resource/parser/sgx_pck_cert_parser:GetPckCRLRootCAList() Entering")
+	defer log.Trace("resource/parser/sgx_pck_cert_parser:GetPckCRLRootCAList() Leaving")
+
         RootCAArr := make( []*x509.Certificate, len(e.PckCRL.RootCA))
         var i  int=0
         for _, v := range e.PckCRL.RootCA {
@@ -189,6 +224,9 @@ func (e *PckCert) GetPckCRLRootCAList()([]*x509.Certificate){
 }
 
 func (e *PckCert) ParsePCKCRL() error{
+	log.Trace("resource/parser/sgx_pck_cert_parser:ParsePCKCRL() Entering")
+	defer log.Trace("resource/parser/sgx_pck_cert_parser:ParsePCKCRL() Leaving")
+
 	e.PckCRL.PckCRLUrls = e.PckCertObj.CRLDistributionPoints
 	e.PckCRL.PckCRLObjs = make( []*pkix.CertificateList, len(e.PckCRL.PckCRLUrls))
 
@@ -196,7 +234,7 @@ func (e *PckCert) ParsePCKCRL() error{
 
 		client, conf, err := utils.GetHTTPClientObj()
 		if err != nil {
-			return  err
+			return  errors.Wrap(err, "Failed to get HTTPClientObj")
 		}
 
 		url := fmt.Sprintf("%s", e.PckCRL.PckCRLUrls[i])
@@ -207,19 +245,19 @@ func (e *PckCert) ParsePCKCRL() error{
 			splitUrl := a.Split(url, -1)
 			log.Debug("Splited string:", splitUrl)
 			if len(splitUrl) != 2 {
-				return errors.New("ParsePCKCRL: Invalid PCK CRL Url")
+				return errors.Wrap(err, "ParsePCKCRL: Invalid PCK CRL Url")
 			}
 			url = scsUrl + splitUrl[1]
 		}
 
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
-		    return err
+		    return errors.Wrap(err, "ParsePCKCRL: Failed to Get New request")
 		}
 
 		resp, err := client.Do( req )
 		if err != nil {
-		    return err
+		    return errors.Wrap(err, "Client request Failed")
 		}
 
 		if resp.StatusCode != 200  {
@@ -228,18 +266,18 @@ func (e *PckCert) ParsePCKCRL() error{
 
 		crlBody, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "read Response failed ")
 		}
 		resp.Body.Close()
 		crlObj, err := x509.ParseCRL(crlBody)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "failed to ParseCRL")
 		}
 
 		e.PckCRL.PckCRLObjs[i] = crlObj
 		certChainList, err := utils.GetCertObjListFromStr( string( resp.Header.Get("SGX-PCK-CRL-Issuer-Chain") ))
 		if err != nil {
-			return err
+			return errors.Wrap(err, "Failed to ger object list from string")
 		}
 
 		e.PckCRL.RootCA = make( map[string]*x509.Certificate )
@@ -262,7 +300,7 @@ func (e *PckCert) ParsePCKCRL() error{
 		}
 
 		if IntermediateCACount == 0 || RootCACount == 0 {
-			return errors.New("PCK CRL- Root CA/Intermediate CA Invalid count\n")
+			return errors.Wrap(err, "PCK CRL- Root CA/Intermediate CA Invalid count")
 		}
 	}
 	return nil

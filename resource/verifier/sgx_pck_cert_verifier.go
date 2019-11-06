@@ -7,22 +7,21 @@ package verifier
 
 import (
 	"strings"
-	"errors"
        	"crypto/x509"
 	"crypto/x509/pkix"
-
+	"github.com/pkg/errors"
 	"intel/isecl/svs/constants"
-	log "github.com/sirupsen/logrus"
 )
 
 
 func VerifyPCKCertificate(pckCert *x509.Certificate, interCA []*x509.Certificate, RootCA []*x509.Certificate, 
 					crl []*pkix.CertificateList, trustedRootCA *x509.Certificate) (bool, error){
+	log.Trace("resource/verifier/sgx_pck_cert_verifier:VerifyPCKCertificate() Entering")
+	defer log.Trace("resource/verifier/sgx_pck_cert_verifier:VerifyPCKCertificate() Leaving")
 
 	if pckCert == nil || len(interCA) == 0 || len(RootCA) == 0 || len(crl)==0 {
 		return false, errors.New("VerifyPCKCertificate: Invalid Inter/Root ca certs, CRL data")
 	}
-
 
 	if !VerifyString( pckCert.Subject.String(), constants.SGXPCKCertificateSubjectStr){
 		return false, errors.New("VerifyPCKCertificate: Invalid Subject info in PCK Certicate")
@@ -37,7 +36,7 @@ func VerifyPCKCertificate(pckCert *x509.Certificate, interCA []*x509.Certificate
 	for i:=0; i<len(interCA);i++ {
 		_, err := VerifyInterCACertificate( interCA[i], RootCA, constants.SGXInterCACertSubjectStr)
 		if err != nil {
-			return false, err
+			return false, errors.Wrap(err, "Invalid Inter CA Certificate")
 		}
 		opts.Intermediates.AddCert(interCA[i])
 	}
@@ -45,7 +44,7 @@ func VerifyPCKCertificate(pckCert *x509.Certificate, interCA []*x509.Certificate
 	for i:=0; i<len(RootCA);i++ {
 		_, err := VerifyRootCACertificate( RootCA[i], constants.SGXRootCACertSubjectStr)
 		if err != nil {
-			return false, err
+			return false, errors.Wrap(err, "Invalid Root CA Certificate")
 		}
 		opts.Roots.AddCert(RootCA[i])
 	}
@@ -57,7 +56,7 @@ func VerifyPCKCertificate(pckCert *x509.Certificate, interCA []*x509.Certificate
 	_, err := pckCert.Verify(opts)
 	if err != nil {
 		log.Error("Error in PCKCert Verification:", err.Error())
-		return false, errors.New("VerifyPCKCertificate: verify certificate: "+err.Error())
+		return false, errors.Wrap(err,"VerifyPCKCertificate: verify certificate")
 	}
 
 	for i:=0; i<len(crl); i++{

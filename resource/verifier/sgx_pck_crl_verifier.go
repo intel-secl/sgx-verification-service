@@ -8,16 +8,17 @@ package verifier
 import (
 	"crypto/x509/pkix"
 	"time"
-	"errors"
 	"crypto/x509"
 	"strings"
 	"intel/isecl/svs/constants"
+	"github.com/pkg/errors"
 
-	log "github.com/sirupsen/logrus"
 )
 
-
 func CheckExpiry(crl *pkix.CertificateList)(bool){
+	log.Trace("resource/verifier/sgx_pck_crl_verifier:CheckExpiry() Entering")
+	defer log.Trace("resource/verifier/sgx_pck_crl_verifier:CheckExpiry() Leaving")
+
 	if crl.HasExpired(time.Now()){
 		log.Error("CRL Expired")
 		return false
@@ -26,11 +27,18 @@ func CheckExpiry(crl *pkix.CertificateList)(bool){
 }
 
 func VerifyPCKCRLIssuer( crl *pkix.CertificateList) (bool){
+	log.Trace("resource/verifier/sgx_pck_crl_verifier:VerifyPCKCRLIssuer() Entering")
+	defer log.Trace("resource/verifier/sgx_pck_crl_verifier:VerifyPCKCRLIssuer() Leaving")
+
 	issuer := crl.TBSCertList.Issuer.String()
 	return VerifyString( issuer, constants.SGXCRLIssuerStr)
 }
 
-func VerifyPCKCRL(crlUrl []string, crlList []*pkix.CertificateList, interCA []*x509.Certificate, rootCA []*x509.Certificate, trustedRootCA *x509.Certificate)(bool, error){
+func VerifyPCKCRL (crlUrl []string, crlList []*pkix.CertificateList, interCA []*x509.Certificate,
+				rootCA []*x509.Certificate, trustedRootCA *x509.Certificate)(bool, error){
+	log.Trace("resource/verifier/sgx_pck_crl_verifier:VerifyPCKCRL() Entering")
+	defer log.Trace("resource/verifier/sgx_pck_crl_verifier:VerifyPCKCRL() Leaving")
+
 	if len(crlList) == 0 || len(interCA) == 0 || len(rootCA) == 0 {
 		return false, errors.New("VerifyPCKCRL: CRL List/InterCA/RootCA is empty")
 	}
@@ -38,17 +46,17 @@ func VerifyPCKCRL(crlUrl []string, crlList []*pkix.CertificateList, interCA []*x
         for i:=0; i<len(interCA);i++ {
                 _, err := VerifyInterCACertificate( interCA[i], rootCA, constants.SGXInterCACertSubjectStr)
                 if err != nil {
-                        return false, errors.New("VerifyPCKCRL: VerifyInterCACertificate failed: "+ err.Error())
+                        return false, errors.Wrap(err, "VerifyPCKCRL: VerifyInterCACertificate failed")
                 }
         }
         for i:=0; i<len(rootCA);i++ {
                 _, err := VerifyRootCACertificate( rootCA[i], constants.SGXRootCACertSubjectStr)
                 if err != nil {
-                        return false, errors.New("VerifyPCKCRL: VerifyRootCACertificate failed: "+ err.Error())
+                        return false, errors.Wrap(err, "VerifyPCKCRL: VerifyRootCACertificate failed ")
                 }
         }
 
-	log.Printf("CRL List:%d", len(crlUrl))
+	log.Debug("CRL List:", len(crlUrl))
 	var signPassCount int=0
 	for i:=0; i<len(crlList); i++{
 		ret := CheckExpiry(crlList[i])

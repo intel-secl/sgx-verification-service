@@ -8,7 +8,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509/pkix"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -20,7 +19,6 @@ import (
 	"syscall"
 	"time"
 	"path"
-	stdlog "log"
 
 	"intel/isecl/lib/common/setup"
 	"intel/isecl/lib/common/validation"
@@ -32,7 +30,11 @@ import (
 	e "intel/isecl/lib/common/exec"
 	cos "intel/isecl/lib/common/os"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/pkg/errors"
+	commLog "intel/isecl/lib/common/log"
+	commLogInt "intel/isecl/lib/common/log/setup"
+	stdlog "log"
+
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
@@ -119,6 +121,7 @@ func (a *App) executablePath() string {
 	}
 	exec, err := os.Executable()
 	if err != nil {
+		log.WithError(err).Error("app:executablePath() Unable to find SVS executable")
 		// if we can't find self-executable path, we're probably in a state that is panic() worthy
 		panic(err)
 	}
@@ -160,25 +163,58 @@ func (a *App) runDirPath() string {
 	return constants.RunDirPath
 }
 
-func (a *App) configureLogs() {
-	log.SetOutput(io.MultiWriter(os.Stderr, a.logWriter()))
-	log.SetLevel(a.configuration().LogLevel)
+var log = commLog.GetDefaultLogger()
+var slog = commLog.GetSecurityLogger()
 
-	// override golang logger
-	w := log.StandardLogger().WriterLevel(a.configuration().LogLevel)
-	stdlog.SetOutput(w)
+var secLogFile *os.File
+var defaultLogFile *os.File
+
+func (a *App) configureLogs(isStdOut bool, isFileOut bool) {
+        var ioWriterDefault io.Writer
+        ioWriterDefault = defaultLogFile
+        if isStdOut && isFileOut {
+                ioWriterDefault = io.MultiWriter(os.Stdout, defaultLogFile)
+        } else if isStdOut && !isFileOut {
+                ioWriterDefault = os.Stdout
+        }
+
+        ioWriterSecurity := io.MultiWriter(ioWriterDefault, secLogFile)
+        commLogInt.SetLogger(commLog.DefaultLoggerName, a.configuration().LogLevel, nil, ioWriterDefault, false)
+        commLogInt.SetLogger(commLog.SecurityLoggerName, a.configuration().LogLevel, nil, ioWriterSecurity, false)
+
+        slog.Trace("sec log initiated")
+        log.Trace("loggers setup finished")
 }
 
 func (a *App) Run(args []string) error {
-	a.configureLogs()
 
 	if len(args) < 2 {
 		a.printUsage()
 		os.Exit(1)
 	}
+        var err error
+        secLogFile, err = os.OpenFile(constants.SecurityLogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0755)
+        if err != nil {
+                log.Errorf("Could not open Security log file")
+        }
+        os.Chmod(constants.SecurityLogFile, 0664)
+        defaultLogFile, err = os.OpenFile(constants.LogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0755)
+        if err != nil {
+                log.Errorf("Could not open default log file")
+        }
+        os.Chmod(constants.LogFile, 0664)
 
-	//bin := args[0]
-	cmd := args[1]
+        defer secLogFile.Close()
+        defer defaultLogFile.Close()
+
+        //bin := args[0]
+        isStdOut := false
+        isCMSConsoleEnabled := os.Getenv("SVS_ENABLE_CONSOLE_LOG")
+        if isCMSConsoleEnabled == "true" {
+                isStdOut = true
+        }
+        a.configureLogs(isStdOut, true)
+        cmd := args[1]
 	switch cmd {
 	default:
 		a.printUsage()
@@ -194,7 +230,7 @@ func (a *App) Run(args []string) error {
 			fmt.Fprintln(os.Stderr, "Error: daemon did not start - ", err.Error())
 			// wait some time for logs to flush - otherwise, there will be no entry in syslog
 			time.Sleep(10 * time.Millisecond)
-			return err;
+			return errors.Wrap(err, "app:Run() Error starting SVS service")
 		}
 	case "-help":
 		fallthrough
@@ -222,6 +258,7 @@ func (a *App) Run(args []string) error {
 		var context setup.Context
 		if len(args) <= 2 {
 			a.printUsage()
+			log.Error("app:Run() Invalid command")
 			os.Exit(1)
 		}
 		if args[2] != "admin" &&
@@ -237,7 +274,7 @@ func (a *App) Run(args []string) error {
 
 		valid_err := validateSetupArgs(args[2], args[3:])
 		if valid_err != nil {
-			return valid_err
+			return errors.Wrap(valid_err, "app:Run() Invalid setup task arguments")
 		}
 
 		a.Config = config.Global()
@@ -287,7 +324,6 @@ func (a *App) Run(args []string) error {
 			},
 			AskInput: false,
 		}
-		//var err error
 		if task == "all" {
 			err = setupRunner.RunTasks()
 		} else {
@@ -307,6 +343,9 @@ func (a *App) retrieveJWTSigningCerts() error {
 }
 
 func (a *App) startServer() error {
+	log.Trace("app:startServer() Entering")
+	defer log.Trace("app:startServer() Leaving")
+
 	c := a.configuration()
 	// Create Router, set routes
 	r := mux.NewRouter()
@@ -341,7 +380,7 @@ func (a *App) startServer() error {
                 tlsCert := path.Join(a.configDir(), constants.TLSCertFile)
                 tlsKey := path.Join(a.configDir(), constants.TLSKeyFile)
                 if err := h.ListenAndServeTLS(tlsCert, tlsKey); err != nil {
-                        log.WithError(err).Info("Failed to start HTTPS server")
+                        slog.WithError(err).Info("Failed to start HTTPS server")
                         stop <- syscall.SIGTERM
                 }
 	}()
@@ -352,40 +391,52 @@ func (a *App) startServer() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := h.Shutdown(ctx); err != nil {
-		log.WithError(err).Info("Failed to gracefully shutdown webserver")
-		return err
+		slog.WithError(err).Info("Failed to gracefully shutdown webserver")
+		return errors.Wrap(err, "app:startServer() Failed to gracefully shutdown webserver")
 	}
 	return nil
 }
 
 func (a *App) start() error {
+	log.Trace("app:start() Entering")
+	defer log.Trace("app:start() Leaving")
+
 	fmt.Fprintln(a.consoleWriter(), `Forwarding to "systemctl start svs"`)
 	systemctl, err := exec.LookPath("systemctl")
 	if err != nil {
-		return err
+		return errors.Wrap(err, "app:start() Could not locate systemctl to start application service")
 	}
 	return syscall.Exec(systemctl, []string{"systemctl", "start", "svs"}, os.Environ())
 }
 
 func (a *App) stop() error {
+	log.Trace("app:stop() Entering")
+	defer log.Trace("app:stop() Leaving")
+
 	fmt.Fprintln(a.consoleWriter(), `Forwarding to "systemctl stop svs"`)
 	systemctl, err := exec.LookPath("systemctl")
 	if err != nil {
-		return err
+		return errors.Wrap(err, "app:stop() Could not locate systemctl to stop application service")
 	}
 	return syscall.Exec(systemctl, []string{"systemctl", "stop", "svs"}, os.Environ())
 }
 
 func (a *App) status() error {
+	log.Trace("app:status() Entering")
+	defer log.Trace("app:status() Leaving")
+
 	fmt.Fprintln(a.consoleWriter(), `Forwarding to "systemctl status svs"`)
 	systemctl, err := exec.LookPath("systemctl")
 	if err != nil {
-		return err
+		return errors.Wrap(err, "app:status() Could not locate systemctl to check status of application service")
 	}
 	return syscall.Exec(systemctl, []string{"systemctl", "status", "svs"}, os.Environ())
 }
 
 func (a *App) uninstall(keepConfig bool) {
+	log.Trace("app:uninstall() Entering")
+	defer log.Trace("app:uninstall() Leaving")
+
 	fmt.Println("Uninstalling sgx Verification Service")
 	removeService()
 
@@ -427,6 +478,9 @@ func (a *App) uninstall(keepConfig bool) {
 	a.stop()
 }
 func removeService() {
+	log.Trace("app:removeService() Entering")
+	defer log.Trace("app:removeService() Leaving")
+
 	_, _, err := e.RunCommandWithTimeout(constants.ServiceRemoveCmd, 5)
 	if err != nil {
 		fmt.Println("Could not remove sgx Verification Service")
@@ -435,6 +489,8 @@ func removeService() {
 }
 
 func validateCmdAndEnv(env_names_cmd_opts map[string]string, flags *flag.FlagSet) error {
+	log.Trace("app:validateCmdAndEnv() Entering")
+	defer log.Trace("app:validateCmdAndEnv() Leaving")
 
 	env_names := make([]string, 0)
 	for k, _ := range env_names_cmd_opts {
@@ -445,7 +501,7 @@ func validateCmdAndEnv(env_names_cmd_opts map[string]string, flags *flag.FlagSet
 	if valid_err != nil && missing != nil {
 		for _, m := range missing {
 			if cmd_f := flags.Lookup(env_names_cmd_opts[m]); cmd_f == nil {
-				return errors.New("Insufficient arguments")
+				return errors.Wrap(valid_err, "app:validateCmdAndEnv() Insufficient arguments")
 			}
 		}
 	}
@@ -453,6 +509,8 @@ func validateCmdAndEnv(env_names_cmd_opts map[string]string, flags *flag.FlagSet
 }
 
 func validateSetupArgs(cmd string, args []string) error {
+	log.Trace("app:validateSetupArgs() Entering")
+	defer log.Trace("app:validateSetupArgs() Leaving")
 
 	var fs *flag.FlagSet
 
@@ -515,13 +573,13 @@ func validateSetupArgs(cmd string, args []string) error {
 
 		err := fs.Parse(args)
 		if err != nil {
-			return fmt.Errorf("Fail to parse arguments: %s", err.Error())
+			return errors.Wrap(err, "app:validateCmdAndEnv() Fail to parse arguments")
 		}
 		return validateCmdAndEnv(env_names_cmd_opts, fs)
 
 	case "all":
 		if len(args) != 0 {
-			return errors.New("Please setup the arguments with env")
+			return errors.New("app:validateCmdAndEnv() Please setup the arguments with env")
 		}
 	case "jwt":
 		return nil
@@ -530,12 +588,15 @@ func validateSetupArgs(cmd string, args []string) error {
 	return nil
 }
 func (a* App) PrintDirFileContents(dir string) error {
+	log.Trace("app:PrintDirFileContents() Entering")
+	defer log.Trace("app:PrintDirFileContents() Leaving")
+
         if dir == "" {
                 return fmt.Errorf("PrintDirFileContents needs a directory path to look for files")
         }
         data, err := cos.GetDirFileContents(dir, "")
         if err != nil {
-                return err
+                return errors.Wrap(err, "app:PrintDirFileContents() Fail to get file content")
         }
         for i, fileData := range data {
                 fmt.Println("File :", i)

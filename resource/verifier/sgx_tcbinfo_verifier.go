@@ -6,16 +6,19 @@
 package verifier
 
 import (
-	"errors"
 	"crypto/x509"
 	"strings"
 	"intel/isecl/svs/constants"
+	"github.com/pkg/errors"
 
-	log "github.com/sirupsen/logrus"
 )
 
 
-func VerifyTcbInfoCertChain( interCA []*x509.Certificate, rootCA []*x509.Certificate, trustedRootCA *x509.Certificate)(bool, error){
+func VerifyTcbInfoCertChain( interCA []*x509.Certificate, rootCA []*x509.Certificate,
+						trustedRootCA *x509.Certificate)(bool, error){
+	log.Trace("resource/verifier/sgx_tcbinfo_verifier:VerifyTcbInfoCertChain() Entering")
+	defer log.Trace("resource/verifier/sgx_tcbinfo_verifier:VerifyTcbInfoCertChain() Leaving")
+
 	if len(interCA) == 0 || len(rootCA) == 0 {
 		return false, errors.New("VerifyTcbInfo: InterCA/RootCA is empty")
 	}
@@ -23,13 +26,13 @@ func VerifyTcbInfoCertChain( interCA []*x509.Certificate, rootCA []*x509.Certifi
         for i:=0; i<len(interCA);i++ {
                 _, err := VerifyInterCACertificate( interCA[i], rootCA, constants.SGXTCBInfoSubjectStr)
                 if err != nil {
-                        return false, errors.New("VerifyTcbInfo: VerifyInterCACertificate failed: "+ err.Error())
+                        return false, errors.Wrap(err, "VerifyTcbInfo: VerifyInterCACertificate failed")
                 }
         }
         for i:=0; i<len(rootCA);i++ {
                 _, err := VerifyRootCACertificate( rootCA[i], constants.SGXRootCACertSubjectStr)
                 if err != nil {
-                        return false, errors.New("VerifyTcbInfo: VerifyRootCACertificate failed: "+ err.Error())
+                        return false, errors.Wrap(err, "VerifyTcbInfo: VerifyRootCACertificate failed")
                 }
         }
 
