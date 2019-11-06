@@ -8,7 +8,6 @@ package parser
 import (
         "fmt"
         "bytes"
-	"errors"
 	"strings"
         "net/http"
 	"crypto/x509"
@@ -16,9 +15,9 @@ import (
         "encoding/hex"
         "encoding/json"
 
+	"github.com/pkg/errors"
         "intel/isecl/svs/resource/utils"
         "intel/isecl/svs/constants"
-        log "github.com/sirupsen/logrus"
 )
 
 type QeIdentityJson struct {
@@ -47,18 +46,20 @@ type QeIdentityType struct {
 }
 
 func NewQeIdentity() (*QeIdentityData, error) {
+	log.Trace("resource/parser/sgx_qeidentity_parser:NewQeIdentity() Entering")
+	defer log.Trace("resource/parser/sgx_qeidentity_parser:NewQeIdentity() Leaving")
 
 	obj := new( QeIdentityData )
 
 	client, conf, err := utils.GetHTTPClientObj()
         if err != nil {
-		return nil, errors.New("NewQeIdentity: failed to Get client Obj: " + err.Error())
+		return nil, errors.Wrap(err, "NewQeIdentity: failed to Get client Obj")
         }
 
         url := fmt.Sprintf("%s/qe/identity", conf.SCSBaseUrl)
         req, err := http.NewRequest("GET", url, nil)
         if err != nil {
-            return nil, errors.New("NewQeIdentity: " + err.Error())
+            return nil, errors.Wrap(err, "NewQeIdentity: failed to get new request")
         }
 
 	log.Debug("QEIdentity URL:", url)
@@ -67,7 +68,7 @@ func NewQeIdentity() (*QeIdentityData, error) {
 
         resp, err := client.Do( req )
         if err != nil {
-            return nil, errors.New("NewQeIdentity: " + err.Error())
+            return nil, errors.Wrap(err, "NewQeIdentity: failed to to client request")
         }
 
 	if resp.StatusCode !=  200 {
@@ -79,22 +80,21 @@ func NewQeIdentity() (*QeIdentityData, error) {
 
 
         if len(buf.Bytes()) == 0 {
-                return nil, errors.New("NewQeIdentity: " + err.Error())
+                return nil, errors.Wrap(err, "NewQeIdentity: buffer lenght is zero")
         }
 
 	obj.RawBlob = make( []byte, len(buf.Bytes()))
 	copy( obj.RawBlob, buf.Bytes())
 
         if err := json.Unmarshal(buf.Bytes(), &obj.QEJson ); err != nil {
-                return nil, errors.New("NewQeIdentity: QeIdentity Unmarshal Failed" + err.Error())
+                return nil, errors.Wrap(err, "NewQeIdentity: QeIdentity Unmarshal Failed")
 	}
 
 	log.Debug("NewQeIdentity: Headers:", resp.Header)
 	certChainList, err := utils.GetCertObjListFromStr( string( resp.Header.Get("Sgx-Qe-Identity-Issuer-Chain") ))
         if err != nil {
-                return nil, errors.New("NewQeIdentity: "+err.Error())
+                return nil, errors.Wrap(err, "NewQeIdentity: failed to get objects")
         }
-
 
 	obj.RootCA = make( map[string]*x509.Certificate )
         obj.IntermediateCA = make( map[string]*x509.Certificate )
@@ -115,13 +115,16 @@ func NewQeIdentity() (*QeIdentityData, error) {
         }
 
         if IntermediateCACount == 0 || RootCACount == 0 {
-                return nil, errors.New("NewQeIdentity - Root CA/Intermediate CA Invalid count")
+                return nil, errors.Wrap(err, "NewQeIdentityi: Root CA/Intermediate CA Invalid count")
         }
 
 	return obj, nil
 }
 
 func (e *QeIdentityData) GetQEInfoInterCAList()([]*x509.Certificate){
+	log.Trace("resource/parser/sgx_qeidentity_parser:GetQEInfoInterCAList() Entering")
+	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQEInfoInterCAList() Leaving")
+
         interMediateCAArr := make( []*x509.Certificate, len(e.IntermediateCA))
         var i  int=0
         for _, v := range e.IntermediateCA {
@@ -133,6 +136,9 @@ func (e *QeIdentityData) GetQEInfoInterCAList()([]*x509.Certificate){
 }
 
 func (e *QeIdentityData) GetQEInfoRootCAList()([]*x509.Certificate){
+	log.Trace("resource/parser/sgx_qeidentity_parser:GetQEInfoRootCAList() Entering")
+	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQEInfoRootCAList() Leaving")
+
         RootCAArr := make( []*x509.Certificate, len(e.RootCA))
         var i  int=0
         for _, v := range e.RootCA {
@@ -144,6 +150,9 @@ func (e *QeIdentityData) GetQEInfoRootCAList()([]*x509.Certificate){
 }
 
 func (e *QeIdentityData) GetQEInfoPublicKey()( *ecdsa.PublicKey){
+	log.Trace("resource/parser/sgx_qeidentity_parser:GetQEInfoPublicKey() Entering")
+	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQEInfoPublicKey() Leaving")
+
         for _, v := range e.IntermediateCA {
                 if strings.Compare( v.Subject.String(), constants.SGXQEInfoSubjectStr ) == 0 {
                         return v.PublicKey.(*ecdsa.PublicKey)
@@ -151,14 +160,18 @@ func (e *QeIdentityData) GetQEInfoPublicKey()( *ecdsa.PublicKey){
         }
         return nil
 }
+
 func (e *QeIdentityData) GetQEInfoBlob()([]byte){
+	log.Trace("resource/parser/sgx_qeidentity_parser:GetQEInfoBlob() Entering")
+	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQEInfoBlob() Leaving")
+
         return e.RawBlob
 }
 
-
-
-
 func (e *QeIdentityData) GetQeIdentityStatus() (bool){
+	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdentityStatus() Entering")
+	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdentityStatus() Leaving")
+
 	sign, _ :=   e.GetQeIdSignature()
 	if  !utils.IntToBool(int(e.GetQeIdVersion()))    || !utils.IntToBool(len(e.GetQeIdIssueDate()))      ||
 	    !utils.IntToBool(len(e.GetQeIdMiscSelect())) || !utils.IntToBool(len(e.GetQeIdMiscSelectMask())) || 
@@ -171,54 +184,90 @@ func (e *QeIdentityData) GetQeIdentityStatus() (bool){
 }
 
 func (e *QeIdentityData) GetQeIdVersion()(uint8){
+	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdVersion() Entering")
+	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdVersion() Leaving")
+
 	return e.QEJson.QeIdentity.Version
 }
 
 func (e *QeIdentityData) GetQeIdIssueDate()(string){
+	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdIssueDate() Entering")
+	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdIssueDate() Leaving")
+
         return e.QEJson.QeIdentity.IssueDate
 }
 
 func (e *QeIdentityData) GetQeIdNextUpdate()(string){
+	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdNextUpdate() Entering")
+	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdNextUpdate() Leaving")
+
         return e.QEJson.QeIdentity.NextUpdate
 }
 
 func (e *QeIdentityData) GetQeIdMiscSelect()(string){
+	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdMiscSelect() Entering")
+	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdMiscSelect() Leaving")
+
         return e.QEJson.QeIdentity.MiscSelect
 }
 
 func (e *QeIdentityData) GetQeIdMiscSelectMask()(string){
+	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdMiscSelectMask() Entering")
+	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdMiscSelectMask() Leaving")
+
         return e.QEJson.QeIdentity.MiscSelectMask
 }
 
 func (e *QeIdentityData) GetQeIdAttributes()(string){
+	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdAttributes() Entering")
+	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdAttributes() Leaving")
+
 	return e.QEJson.QeIdentity.Attributes
 }
 
 func (e *QeIdentityData) GetQeIdAttributesMask()(string){
+	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdAttributesMask() Entering")
+	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdAttributesMask() Leaving")
+
 	return e.QEJson.QeIdentity.AttributesMask
 }
 
 func (e *QeIdentityData) GetQeIdMrSigner()(string){
+	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdMrSigner() Entering")
+	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdMrSigner() Leaving")
+
         return e.QEJson.QeIdentity.MrSigner
 }
 
 func (e *QeIdentityData) GetQeIdIsvProdId()(uint8){
+	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdIsvProdId() Entering")
+	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdIsvProdId() Leaving")
+
         return e.QEJson.QeIdentity.IsvProdId
 }
 
 func (e *QeIdentityData) GetQeIdIsvSvn()(uint8){
+	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdIsvSvn() Entering")
+	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdIsvSvn() Leaving")
+
         return e.QEJson.QeIdentity.IsvSvn
 }
 
 func (e *QeIdentityData) GetQeIdSignature()([]byte, error){
+	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdSignature() Entering")
+	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdSignature() Leaving")
+
  	data, err := hex.DecodeString(e.QEJson.Signature)
         if err != nil {
-                return nil, errors.New("GetQeIdSignature: error in decode string")
+                return nil, errors.Wrap(err, "GetQeIdSignature: error in decode string")
         }
         return data, nil
 }
 
 func (e *QeIdentityData) DumpQeIdentity(){
+	log.Trace("resource/parser/sgx_qeidentity_parser:DumpQeIdentity() Entering")
+	defer log.Trace("resource/parser/sgx_qeidentity_parser:DumpQeIdentity() Leaving")
+
         log.Debug("===========QEIdentity==============")
         log.Printf("Version: %v", e.QEJson.QeIdentity.Version)
         log.Printf("IssueDate: %v", e.QEJson.QeIdentity.IssueDate)

@@ -65,8 +65,10 @@ mkdir -p $CONFIG_PATH/root-ca && chown svs:svs $CONFIG_PATH/root-ca
 chmod 700 $CONFIG_PATH/root-ca
 chmod g+s $CONFIG_PATH/root-ca
 
-# make log files world readable
-chmod 661 $LOG_PATH
+# Create logging dir in /var/log
+mkdir -p $LOG_PATH && chown svs:svs $LOG_PATH
+chmod 761 $LOG_PATH
+chmod g+s $LOG_PATH
 
 # Install systemd script
 cp svs.service $PRODUCT_HOME && chown $SERVICE_USERNAME:$SERVICE_USERNAME $PRODUCT_HOME/svs.service && chown $SERVICE_USERNAME:$SERVICE_USERNAME $PRODUCT_HOME
@@ -75,6 +77,67 @@ cp svs.service $PRODUCT_HOME && chown $SERVICE_USERNAME:$SERVICE_USERNAME $PRODU
 systemctl disable svs.service > /dev/null 2>&1
 systemctl enable $PRODUCT_HOME/svs.service
 systemctl daemon-reload
+
+#Install log rotation
+auto_install() {
+  local component=${1}
+  local cprefix=${2}
+  local yum_packages=$(eval "echo \$${cprefix}_YUM_PACKAGES")
+  # detect available package management tools. start with the less likely ones to differentiate.
+  yum -y install $yum_packages
+}
+
+# SCRIPT EXECUTION
+logRotate_clear() {
+  logrotate=""
+}
+
+logRotate_detect() {
+  local logrotaterc=`ls -1 /etc/logrotate.conf 2>/dev/null | tail -n 1`
+  logrotate=`which logrotate 2>/dev/null`
+  if [ -z "$logrotate" ] && [ -f "/usr/sbin/logrotate" ]; then
+    logrotate="/usr/sbin/logrotate"
+  fi
+}
+
+logRotate_install() {
+  LOGROTATE_YUM_PACKAGES="logrotate"
+  if [ "$(whoami)" == "root" ]; then
+    auto_install "Log Rotate" "LOGROTATE"
+    if [ $? -ne 0 ]; then echo_failure "Failed to install logrotate"; exit -1; fi
+  fi
+  logRotate_clear; logRotate_detect;
+    if [ -z "$logrotate" ]; then
+      echo_failure "logrotate is not installed"
+    else
+      echo  "logrotate installed in $logrotate"
+    fi
+}
+
+logRotate_install
+
+export LOG_ROTATION_PERIOD=${LOG_ROTATION_PERIOD:-hourly}
+export LOG_COMPRESS=${LOG_COMPRESS:-compress}
+export LOG_DELAYCOMPRESS=${LOG_DELAYCOMPRESS:-delaycompress}
+export LOG_COPYTRUNCATE=${LOG_COPYTRUNCATE:-copytruncate}
+export LOG_SIZE=${LOG_SIZE:-1K}
+export LOG_OLD=${LOG_OLD:-12}
+
+mkdir -p /etc/logrotate.d
+
+if [ ! -a /etc/logrotate.d/svs ]; then
+ echo "/var/log/svs/* {
+    missingok
+        notifempty
+        rotate $LOG_OLD
+        maxsize $LOG_SIZE
+    nodateext
+        $LOG_ROTATION_PERIOD
+        $LOG_COMPRESS
+        $LOG_DELAYCOMPRESS
+        $LOG_COPYTRUNCATE
+}" > /etc/logrotate.d/svs
+fi
 
 # check if SVS_NOSETUP is defined
 if [ "${SVS_NOSETUP,,}" == "true" ]; then

@@ -8,21 +8,20 @@ package resource
 import (
 	"fmt"
 	"strings"
-	"errors"
 	"net/http"
 	"crypto/x509"
 	"encoding/json"
 	"intel/isecl/svs/config"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-
+	"github.com/pkg/errors"
 
 	"intel/isecl/svs/resource/utils"
 	"intel/isecl/svs/resource/parser"
 	"intel/isecl/svs/resource/verifier"
 
-	log "github.com/sirupsen/logrus"
 )
+
 type SwResponse struct{
         Status          	string
         Message         	string
@@ -45,11 +44,15 @@ type SGXResponse struct{
 	IsvSvn			string	
 	ConfigId		string
 }
+
 type QuoteData struct {
         QuoteBlob		string  `json:"quote"`
 }
 
 func QuoteVerifyCB(router *mux.Router, config *config.Configuration) {
+	log.Trace("resource/quote_verifier_ops:QuoteVerifyCB() Entering")
+	defer log.Trace("resource/quote_verifier_ops:QuoteVerifyCB() Leaving")
+
 	router.Handle("/verifyQuote", handlers.ContentTypeHandler( GenericQuoteVerifyCB(config), "application/json")).Methods("POST")
 	router.Handle("/push", handlers.ContentTypeHandler( GenericQuoteVerifyCB(config), "application/json")).Methods("GET")
 }
@@ -73,7 +76,6 @@ func GenericQuoteVerifyCB(config *config.Configuration) errorHandlerFunc {
 			return &resourceError{Message: "GenericQuoteVerifyCB - ParseSkcQuoteBlob parsing failed", 
 					StatusCode: http.StatusBadRequest}
 		}
-		
 
 		if obj.GetQuoteType() == parser.QuoteTypeEcdsa {
 			return SGXECDSAQuoteVerifyCB(w, r, obj, config)
@@ -83,7 +85,11 @@ func GenericQuoteVerifyCB(config *config.Configuration) errorHandlerFunc {
 		return nil
 	}
 }
-func SwQuoteVerifyCB(w http.ResponseWriter, r *http.Request, skcBlobParser *parser.SkcBlobParsed, config *config.Configuration) error { 
+
+func SwQuoteVerifyCB(w http.ResponseWriter, r *http.Request,
+			skcBlobParser *parser.SkcBlobParsed, config *config.Configuration) error {
+	log.Trace("resource/quote_verifier_ops:SwQuoteVerifyCB() Entering")
+	defer log.Trace("resource/quote_verifier_ops:SwQuoteVerifyCB() Leaving")
 
 	rsaBytes, err := skcBlobParser.GetRSAPubKeyObj()
         if err != nil {
@@ -108,10 +114,11 @@ func SwQuoteVerifyCB(w http.ResponseWriter, r *http.Request, skcBlobParser *pars
         w.Write(js)
         return nil
 }
-        
-
 
 func SGXECDSAQuoteVerifyCB(w http.ResponseWriter, r *http.Request, skcBlobParser *parser.SkcBlobParsed, config *config.Configuration) error { 
+	log.Trace("resource/quote_verifier_ops:SGXECDSAQuoteVerifyCB() Entering")
+	defer log.Trace("resource/quote_verifier_ops:SGXECDSAQuoteVerifyCB() Leaving")
+
 	if len(skcBlobParser.GetQuoteBlob()) == 0 {
 		return &resourceError{Message: "Invalid SGX ECDSA Quote", StatusCode: http.StatusBadRequest}
 	}
@@ -120,7 +127,7 @@ func SGXECDSAQuoteVerifyCB(w http.ResponseWriter, r *http.Request, skcBlobParser
         if quoteObj == nil {
 		return &resourceError{Message: "Invalid SGX ECDSA Quote", StatusCode: http.StatusBadRequest}
         }
-        quoteObj.DumpSGXQuote()
+        //quoteObj.DumpSGXQuote()
 
 	pckCertBytes, err := utils.GetCertPemData(quoteObj.GetQuotePckCertObj())
 	if err != nil{
@@ -132,7 +139,7 @@ func SGXECDSAQuoteVerifyCB(w http.ResponseWriter, r *http.Request, skcBlobParser
         if certObj == nil {
 		return &resourceError{Message: "Invalid PCK Certificate Buffer", StatusCode: http.StatusBadRequest}
         }
-	log.Debug("Parsing is completed")
+	log.Info("Parsing is completed")
 
 	_, err = verifier.VerifyPCKCertificate(quoteObj.GetQuotePckCertObj(), quoteObj.GetQuotePckCertInterCAList(),
 					quoteObj.GetQuotePckCertRootCAList(), certObj.GetPckCRLObj(), config.TrustedRootCA)
@@ -148,7 +155,7 @@ func SGXECDSAQuoteVerifyCB(w http.ResponseWriter, r *http.Request, skcBlobParser
 						StatusCode: http.StatusInternalServerError}
         }
 
-	log.Debug("CRL Verification completed")
+	log.Info("CRL Verification completed")
 
         tcbObj, err := parser.NewTCBInfo(certObj.GetFMSPCValue())
 	if err != nil {
@@ -239,22 +246,25 @@ func SGXECDSAQuoteVerifyCB(w http.ResponseWriter, r *http.Request, skcBlobParser
 }
 
 func VerifyQEIdentityReport(qeIdObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteParsed) ( bool, error ) {
+	log.Trace("resource/quote_verifier_ops:VerifyQEIdentityReport() Entering")
+	defer log.Trace("resource/quote_verifier_ops:VerifyQEIdentityReport() Leaving")
+
 
         _, err := verifier.VerifyMiscSelect(quoteObj.GetQEReportMiscSelect(), qeIdObj.GetQeIdMiscSelect(), 
 						qeIdObj.GetQeIdMiscSelectMask())
 	if err!= nil{
-                return false, errors.New("VerifyQEIdentityReport: "+ err.Error())
+                return false, errors.Wrap(err, "VerifyQEIdentityReport: ")
         }
 
 	_, err = verifier.VerifyAttributes(quoteObj.GetQEReportAttributes(), qeIdObj.GetQeIdAttributes(), 
 						qeIdObj.GetQeIdAttributesMask())
 	if err!= nil{
-                return false, errors.New("VerifyQEIdentityReport: "+ err.Error())
+                return false, errors.Wrap(err, "VerifyQEIdentityReport:")
         }
 
         _, err = verifier.VerifyReportAttributeSize32(quoteObj.GetQEReportMrSigner(), "MrSigner", qeIdObj.GetQeIdMrSigner())
 	if err != nil{
-                return false, errors.New("VerifyQEIdentityReport: "+ err.Error())
+                return false, errors.Wrap(err, "VerifyQEIdentityReport")
         }
 
         if quoteObj.GetQEReportProdId() != uint16(qeIdObj.GetQeIdIsvProdId()){
@@ -265,7 +275,11 @@ func VerifyQEIdentityReport(qeIdObj *parser.QeIdentityData, quoteObj *parser.Sgx
         }
 	return true, nil
 }
-func VerifyQeIdentity(qeIdObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteParsed, trustedRootCA *x509.Certificate) ( bool, error ) {
+
+func VerifyQeIdentity(qeIdObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteParsed,
+						trustedRootCA *x509.Certificate) ( bool, error ) {
+	log.Trace("resource/quote_verifier_ops:VerifyQeIdentity() Entering")
+	defer log.Trace("resource/quote_verifier_ops:VerifyQeIdentity() Leaving")
 
         if qeIdObj == nil || quoteObj == nil {
                 return false, errors.New("VerifyQeIdentity: QEIdentity/Quote Object is empty")
@@ -273,7 +287,7 @@ func VerifyQeIdentity(qeIdObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteP
 	_, err := verifier.VerifyQEIdentityCertChain(qeIdObj.GetQEInfoInterCAList(), qeIdObj.GetQEInfoRootCAList(),
                         trustedRootCA)
 	if err != nil {
-                return false, errors.New("VerifyQeIdentity: VerifyQEIdentityCertChain: "+ err.Error())
+                return false, errors.Wrap(err, "VerifyQeIdentity: VerifyQEIdentityCertChain")
         }
 
 	status := qeIdObj.GetQeIdentityStatus()
@@ -293,12 +307,12 @@ func VerifyQeIdentity(qeIdObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteP
 	}
 	sign, err :=  qeIdObj.GetQeIdSignature()
         if err!=nil {
-		return false, errors.New("VerifyQeIdentity: GetQeIdSignature: "+err.Error())
+		return false, errors.Wrap(err, "resource/quote_verifier_ops:VerifyQeIdentity() failed to Get QeIdSignature")
         }
 
 	_, err = verifier.VerifySGXECDSASignature1(sign, qeIdObj.GetQEInfoBlob(), pubKey)
         if err!=nil {
-		return false, errors.New("VerifyQeIdentity: "+err.Error())
+		return false, errors.Wrap(err, "VerifyQeIdentity: failed to verify SGXECDSASignature1")
         }
 */
 
@@ -306,6 +320,8 @@ func VerifyQeIdentity(qeIdObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteP
 }
 
 func VerifyTCBInfo(quoteObj *parser.SgxQuoteParsed, certObj *parser.PckCert, tcbObj *parser.TcbInfoStruct, trustedRootCA *x509.Certificate)(error){
+	log.Trace("resource/quote_verifier_ops:VerifyTCBInfo() Entering")
+	defer log.Trace("resource/quote_verifier_ops:VerifyTCBInfo() Leaving")
 
 	if tcbObj.GetTcbInfoFmspc() != certObj.GetFMSPCValue(){
 		return errors.New("VerifyTCBInfo: FMSPC not matched with PCK Cert FMSPC")
@@ -314,7 +330,7 @@ func VerifyTCBInfo(quoteObj *parser.SgxQuoteParsed, certObj *parser.PckCert, tcb
 	_, err := verifier.VerifyTcbInfoCertChain( tcbObj.GetTCBInfoInterCAList(), tcbObj.GetTCBInfoRootCAList(),
 			trustedRootCA)
 	if err != nil{
-		return errors.New("VerifyTCBInfo: "+ err.Error())
+		return errors.Wrap(err, "VerifyTCBInfo: failed to verify Tcbinfo Certchain")
 	}
 
 	if strings.Compare( tcbObj.GetTcbInfoStatus() , "UpToDate" ) != 0 {
@@ -324,24 +340,26 @@ func VerifyTCBInfo(quoteObj *parser.SgxQuoteParsed, certObj *parser.PckCert, tcb
         if utils.CheckDate(tcbObj.GetTcbInfoIssueDate(), tcbObj.GetTcbInfoNextUpdate()) == false {
                 return errors.New("VerifyTCBInfo: Date Check validation failed")
         }
-
 /*
 	pubKey := tcbObj.GetTCBInfoPublicKey()
 	if pubKey == nil{
+		slog.Info("resource/quote_verifier_ops:VerifyTCBInfo() ECDSA Public Key not found")
 		return errors.New("VerifyTCBInfo: ECDSA Public Key not found")
 	}
 
 	data, err := tcbObj.GetTcbInfoSignature()
         if err!=nil {
-		return errors.New("VerifyTCBInfo: "+err.Error())
+		slog.Info(resource/quote_verifier_ops:VerifyTCBInfo()Failed to get Tcbinfo Signature)
+		return errors.Wrap(err, "VerifyTCBInfo: failed to get Tcbinfo Signature", )
         }
-	utils.DumpDataInHex("TCB Info Signature", data, len(data))
-	utils.DumpDataInHex("TCB Info Blob", tcbObj.GetTcbInfoBlob(), len(tcbObj.GetTcbInfoBlob()))
+	//utils.DumpDataInHex("TCB Info Signature", data, len(data))
+	//utils.DumpDataInHex("TCB Info Blob", tcbObj.GetTcbInfoBlob(), len(tcbObj.GetTcbInfoBlob()))
 
 
 	_, err = verifier.VerifySGXECDSASignature1(data, tcbObj.GetTcbInfoBlob(), tcbObj.GetTCBInfoPublicKey())
         if err!=nil {
-		return errors.New("VerifyTCBInfo: "+err.Error())
+		slog.Info("resource/quote_verifier_ops:VerifyTCBInfo()Failed to verify SGXECDSASignature1")
+		return errors.Wrap(err, "VerifyTCBInfo: "failed to verify SGXECDSASignature1)
         }
 */
 	return nil

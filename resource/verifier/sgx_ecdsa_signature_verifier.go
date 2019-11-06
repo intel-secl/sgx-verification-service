@@ -7,15 +7,14 @@ package verifier
 
 import (
 
-	"errors"
        	"math/big"
        	"crypto/ecdsa"
        	"crypto/sha256"
        	"crypto/elliptic"
 
-	log "github.com/sirupsen/logrus"
+	//"intel/isecl/svs/resource/utils"
+	"github.com/pkg/errors"
 
-       	"intel/isecl/svs/resource/utils"
 )
 
 type ECDSASignature struct {
@@ -29,6 +28,8 @@ func GenerateHash(b []byte) []byte {
 }
 
 func VerifyECDSA256Signature( data []byte, pubkey *ecdsa.PublicKey, signatureBytes []byte) (bool){
+	log.Trace("resource/verifier/sgx_ecdsa_signature_verifier:VerifyECDSA256Signature() Entering")
+	defer log.Trace("resource/verifier/sgx_ecdsa_signature_verifier:VerifyECDSA256Signature() Leaving")
 
 	var signature ECDSASignature
 	rBytes, sBytes 	:= signatureBytes[:32], signatureBytes[32:]
@@ -44,21 +45,23 @@ func VerifyECDSA256Signature( data []byte, pubkey *ecdsa.PublicKey, signatureByt
 						signature.S,
     			   )
 
-	utils.DumpDataInHex("VerifyEcdsa256Signature-Data", data, len(data))
-	utils.DumpDataInHex("VerifyEcdsa256Signature-Signature", signatureBytes, len(signatureBytes))
-	utils.DumpDataInHex("VerifyEcdsa256Signature-Hash", h, len(h))
+	//utils.DumpDataInHex("VerifyEcdsa256Signature-Data", data, len(data))
+	//utils.DumpDataInHex("VerifyEcdsa256Signature-Signature", signatureBytes, len(signatureBytes))
 
 	if valid {
-		log.Debug("Signature Verification is Passed")
+		log.Info("Signature Verification is Passed")
 	}else {
-		log.Debug("Signature Verification is Failed")
+		log.Info("Signature Verification is Failed")
 	}
 	return valid
 }
 
 func VerifySGXECDSASignature1(sigBlob []byte, blob []byte, pubKey *ecdsa.PublicKey) (bool, error){
+	log.Trace("resource/verifier/sgx_ecdsa_signature_verifier:VerifySGXECDSASignature1() Entering")
+	defer log.Trace("resource/verifier/sgx_ecdsa_signature_verifier:VerifySGXECDSASignature1() Leaving")
+
 	if len(sigBlob) < 1 || len(blob) < 1  || pubKey == nil {
-		return false, errors.New("SGXECDSASignature1: Invalid input data\n")
+		return false, errors.New("SGXECDSASignature1: Invalid input data")
 	}
 	ret := VerifyECDSA256Signature(blob, pubKey, sigBlob)
 	if !ret {
@@ -67,11 +70,12 @@ func VerifySGXECDSASignature1(sigBlob []byte, blob []byte, pubKey *ecdsa.PublicK
 	return true, nil
 }
 
-
-
 func VerifySGXECDSASignature2(sigBlob []byte, blob []byte, pubKeyBlob []byte) (bool, error){
+	log.Trace("resource/verifier/sgx_ecdsa_signature_verifier:VerifySGXECDSASignature2() Entering")
+	defer log.Trace("resource/verifier/sgx_ecdsa_signature_verifier:VerifySGXECDSASignature2() Leaving")
+
 	if len(sigBlob) < 1 || len(blob) < 1  || len(pubKeyBlob) < 1 {
-		return false, errors.New("SGXECDSASignature2: Invalid input data\n")
+		return false, errors.New("SGXECDSASignature2: Invalid input data")
 	}
 
 	curve := elliptic.P256()

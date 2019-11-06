@@ -6,15 +6,15 @@
 package verifier
 
 import (
-	"errors"
 	"strings"
 	"crypto/x509"
 	"encoding/asn1"
 	"crypto/sha256"
 	"crypto/x509/pkix"
 
-       	"intel/isecl/svs/resource/utils"
-	log "github.com/sirupsen/logrus"
+	clog "intel/isecl/lib/common/log"
+	//"intel/isecl/svs/resource/utils"
+	"github.com/pkg/errors"
 )
 
 
@@ -30,8 +30,12 @@ var ExtSgxPCEIDOid                      asn1.ObjectIdentifier   = asn1.ObjectIde
 var ExtSgxFMSPCOid                      asn1.ObjectIdentifier   = asn1.ObjectIdentifier{1,2,840,113741,1,13,1,4}
 var ExtSgxSGXTypeOid                    asn1.ObjectIdentifier   = asn1.ObjectIdentifier{1,2,840,113741,1,13,1,5}
 
+var log = clog.GetDefaultLogger()
+var slog = clog.GetSecurityLogger()
 
 func VerifyRequiredExtensions( cert *x509.Certificate, requiredExtDict map[string]asn1.ObjectIdentifier ) ( bool, error ){
+	log.Trace("resource/verifier/common_verifier:VerifyRequiredExtensions() Entering")
+	defer log.Trace("resource/verifier/common_verifier:VerifyRequiredExtensions() Leaving")
 
 	if cert == nil || len(requiredExtDict) == 0 {
 		return false, errors.New("VerifyRequiredExtensions: Certificate Object is nul or requiredExtDict is Empty")
@@ -53,8 +57,10 @@ func VerifyRequiredExtensions( cert *x509.Certificate, requiredExtDict map[strin
         return true, nil
 }
 
-
 func GetRootCARequiredExtMap() (map[string]asn1.ObjectIdentifier){
+	log.Trace("resource/verifier/common_verifier:GetRootCARequiredExtMap() Entering")
+	defer log.Trace("resource/verifier/common_verifier:GetRootCARequiredExtMap() Leaving")
+
         RequiredExtension := make(map[string]asn1.ObjectIdentifier)
         RequiredExtension[ExtAuthorityKeyIdentifierOid.String()]     = ExtAuthorityKeyIdentifierOid
         RequiredExtension[ExtCRLDistributionPointOid.String()]       = ExtCRLDistributionPointOid
@@ -64,8 +70,9 @@ func GetRootCARequiredExtMap() (map[string]asn1.ObjectIdentifier){
 	return RequiredExtension
 }
 
-
 func VerifyString( input string, cmpStr string )( bool ){
+	log.Trace("resource/verifier/common_verifier:VerifyString() Entering")
+	defer log.Trace("resource/verifier/common_verifier:VerifyString() Leaving")
 	
 	if len(input)==0 || len(cmpStr)==0 {
 		return false
@@ -83,6 +90,8 @@ func VerifyString( input string, cmpStr string )( bool ){
 }
 
 func VerifyInterCACertificate( interCA *x509.Certificate, rootCA []*x509.Certificate, subjectStr string ) (bool, error){
+	log.Trace("resource/verifier/common_verifier:VerifyInterCACertificate() Entering")
+	defer log.Trace("resource/verifier/common_verifier:VerifyInterCACertificate() Leaving")
 
 	if rootCA == nil || len(subjectStr) == 0 {
 		return false, errors.New("VerifyInterCACertificate: Certificate Object is nul or requiredExtDict is Empty")
@@ -94,7 +103,7 @@ func VerifyInterCACertificate( interCA *x509.Certificate, rootCA []*x509.Certifi
 	}
 	_, err := VerifyRequiredExtensions( interCA, GetRootCARequiredExtMap())
 	if err != nil {
-		return false, errors.New("VerifyInterCACertificate: "+ err.Error())
+		return false, errors.Wrap(err, "VerifyInterCACertificate: ")
 	}
 
 	var opts x509.VerifyOptions
@@ -104,12 +113,15 @@ func VerifyInterCACertificate( interCA *x509.Certificate, rootCA []*x509.Certifi
 	}
 	_, err = interCA.Verify(opts)
         if err != nil {
-                return false, errors.New("VerifyInterCACertificate: Verification failure:"+err.Error())
+                return false, errors.Wrap(err, "VerifyInterCACertificate: Verification failure")
         }
 	return true, nil
 }
 
 func VerifyRootCACertificate( rootCA *x509.Certificate, subjectStr string ) (bool, error){
+	log.Trace("resource/verifier/common_verifier:VerifyRootCACertificate() Entering")
+	defer log.Trace("resource/verifier/common_verifier:VerifyRootCACertificate() Leaving")
+
 
 	if rootCA == nil || len(subjectStr) == 0 {
 		return false, errors.New("VerifyRootCACertificate: Certificate Object is nul or requiredExtDict is Empty")
@@ -127,7 +139,7 @@ func VerifyRootCACertificate( rootCA *x509.Certificate, subjectStr string ) (boo
 
 	_, err := VerifyRequiredExtensions( rootCA, GetRootCARequiredExtMap())
 	if err != nil {
-		return false, errors.New("VerifyRootCACertificate: "+ err.Error())
+		return false, errors.Wrap(err, "VerifyRootCACertificate: ")
 	}
 
 	opts.Roots = x509.NewCertPool()
@@ -135,18 +147,19 @@ func VerifyRootCACertificate( rootCA *x509.Certificate, subjectStr string ) (boo
 
 	_, err = rootCA.Verify(opts)
         if err != nil {
-                return false, errors.New("VerifyRootCACertificate: Verification failure:"+err.Error())
+                return false, errors.Wrap(err, "VerifyRootCACertificate: Verification failure:")
         }
 
 	err =  rootCA.CheckSignature( rootCA.SignatureAlgorithm, rootCA.RawTBSCertificate, rootCA.Signature)
 	if err != nil {
-		return false, errors.New("VerifyRootCACertificate: Signature check failed: "+ err.Error())
+		return false, errors.Wrap(err, "VerifyRootCACertificate: Signature check failed ")
 	}
 	return true, nil
 }
 
-
 func VerifyRequiredSGXExtensions( cert *x509.Certificate, requiredExtDict map[string]asn1.ObjectIdentifier  ) ( bool, error){
+	log.Trace("resource/verifier/common_verifier:VerifyRequiredSGXExtensions() Entering")
+	defer log.Trace("resource/verifier/common_verifier:VerifyRequiredSGXExtensions() Leaving")
 
 	if cert == nil || len(requiredExtDict) == 0 {
 		return false, errors.New("VerifyRequiredSGXExtensions: Certificate Object is nul or requiredExtDict is Empty")
@@ -161,7 +174,7 @@ func VerifyRequiredSGXExtensions( cert *x509.Certificate, requiredExtDict map[st
                 if ExtSgxOid.Equal(ext.Id) == true {
                         _, err := asn1.Unmarshal(ext.Value, &sgxExtensions)
                         if err != nil {
-                                return false, err
+                                return false, errors.Wrap(err, "VerifyRequiredSGXExtensions: unmarshal failed")
                         }
 
                         log.Debug("Required Extension Dictionary", requiredExtDict)
@@ -183,6 +196,9 @@ func VerifyRequiredSGXExtensions( cert *x509.Certificate, requiredExtDict map[st
 }
 
 func VerifiySHA256Hash( hash []byte, blob []byte) ( bool, error ){
+	log.Trace("resource/verifier/common_verifier:VerifiySHA256Hash() Entering")
+	defer log.Trace("resource/verifier/common_verifier:VerifiySHA256Hash() Leaving")
+
 	if len(hash) == 0 || len(blob) == 0 || len(hash) != sha256.Size {
                 return false, errors.New("VerifiySHA256Hash: Invalid hash verify input data")
 	}
@@ -195,13 +211,13 @@ func VerifiySHA256Hash( hash []byte, blob []byte) ( bool, error ){
 		return false, errors.New("VerifiySHA256Hash: Error in Hash generation")
 	}
 
-	utils.DumpDataInHex("Quote Hash", hash, len(hash))
-	utils.DumpDataInHex("Gen Hash", hashValue, len(hashValue))
+	//utils.DumpDataInHex("Quote Hash", hash, len(hash))
+	//utils.DumpDataInHex("Gen Hash", hashValue, len(hashValue))
 	for i:=0;i<len(hash);i++{
 		if hashValue[i] != hash[i]{
 			return false, errors.New("VerifiySHA256Hash: Public 256 validation failed")
 		}
 	}
-	log.Debug("VerifiySHA256Hash: Passed...")
+	log.Info("Verifiy SHA256 Hash Passed...")
 	return true, nil
 }

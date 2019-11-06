@@ -81,6 +81,9 @@ var mu sync.Mutex
 var global *Configuration
 
 func Global() *Configuration {
+	log.Trace("config/config:Global() Entering")
+	defer log.Trace("config/config:Global() Leaving")
+
 	if global == nil {
 		global = Load(path.Join(constants.ConfigDir, constants.ConfigFile))
 	}
@@ -88,7 +91,11 @@ func Global() *Configuration {
 }
 
 var ErrNoConfigFile = errors.New("no config file")
+
 func (conf *Configuration) SaveConfiguration(c setup.Context) error {
+	log.Trace("config/config:SaveConfiguration() Entering")
+	defer log.Trace("config/config:SaveConfiguration() Leaving")
+
         var err error = nil
         
 	cmsBaseUrl, err := c.GetenvString("CMS_BASE_URL", "CMS Base URL")
@@ -186,6 +193,9 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 }
 
 func (c *Configuration) Save() error {
+	log.Trace("config/config:Save() Entering")
+	defer log.Trace("config/config:Save() Leaving")
+
 	if c.configFile == "" {
 		return ErrNoConfigFile
 	}
@@ -209,6 +219,9 @@ func (c *Configuration) Save() error {
 }
 
 func Load(path string) *Configuration {
+	log.Trace("config/config:Load() Entering")
+	defer log.Trace("config/config:Load() Leaving")
+
 	var c Configuration
 	file, err := os.Open(path)
 	if err == nil {
@@ -216,10 +229,10 @@ func Load(path string) *Configuration {
 		yaml.NewDecoder(file).Decode(&c)
 	} else {
 		// file doesnt exist, create a new blank one
-		c.LogLevel = log.DebugLevel
+		c.LogLevel = log.ErrorLevel
 	}
 
-	c.LogLevel = log.DebugLevel
+	c.LogLevel = log.InfoLevel
 	c.configFile = path
 	return &c
 }
