@@ -19,6 +19,7 @@ import (
 	"syscall"
 	"time"
 	"path"
+	stdlog "log"
 
 	"intel/isecl/lib/common/setup"
 	"intel/isecl/lib/common/validation"
@@ -27,16 +28,15 @@ import (
 	"intel/isecl/svs/resource"
 	"intel/isecl/svs/tasks"
 	"intel/isecl/svs/version"
+	"intel/isecl/lib/common/proc"
 	e "intel/isecl/lib/common/exec"
 	cos "intel/isecl/lib/common/os"
-
-	"github.com/pkg/errors"
 	commLog "intel/isecl/lib/common/log"
 	commLogInt "intel/isecl/lib/common/log/setup"
-	stdlog "log"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 type App struct {
@@ -375,25 +375,33 @@ func (a *App) startServer() error {
 		TLSConfig: tlsconfig,
 	}
 
-	// dispatch web server go routine
+	proc.AddTask()
 	go func() {
-                tlsCert := path.Join(a.configDir(), constants.TLSCertFile)
-                tlsKey := path.Join(a.configDir(), constants.TLSKeyFile)
-                if err := h.ListenAndServeTLS(tlsCert, tlsKey); err != nil {
-                        slog.WithError(err).Info("Failed to start HTTPS server")
-                        stop <- syscall.SIGTERM
-                }
-	}()
+		defer proc.TaskDone()
+		proc.AddTask()
 
-	fmt.Fprintln(a.consoleWriter(), "SGX verification Service is running")
-	// TODO dispatch Service status checker goroutine
-	<-stop
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := h.Shutdown(ctx); err != nil {
-		slog.WithError(err).Info("Failed to gracefully shutdown webserver")
-		return errors.Wrap(err, "app:startServer() Failed to gracefully shutdown webserver")
-	}
+		// dispatch web server go routine
+		go func() {
+			defer proc.TaskDone()
+			tlsCert := path.Join(a.configDir(), constants.TLSCertFile)
+			tlsKey := path.Join(a.configDir(), constants.TLSKeyFile)
+			if err := h.ListenAndServeTLS(tlsCert, tlsKey); err != nil {
+				proc.SetError(fmt.Errorf("HTTPS server error : %v", err))
+				proc.EndProcess()
+			}
+		}()
+
+		fmt.Fprintln(a.consoleWriter(), "SGX verification Service is running")
+		<-proc.QuitChan
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := h.Shutdown(ctx); err != nil {
+			slog.WithError(err).Info("Failed to gracefully shutdown webserver")
+			errors.Wrap(err, "app:startServer() Failed to gracefully shutdown webserver")
+		}
+		time.Sleep(time.Millisecond*200)
+	}()
+	proc.WaitForQuitAndCleanup(10 * time.Second)
 	return nil
 }
 
