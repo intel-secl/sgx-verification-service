@@ -28,7 +28,6 @@ import (
 	"intel/isecl/svs/resource"
 	"intel/isecl/svs/tasks"
 	"intel/isecl/svs/version"
-	"intel/isecl/lib/common/proc"
 	e "intel/isecl/lib/common/exec"
 	cos "intel/isecl/lib/common/os"
 	commLog "intel/isecl/lib/common/log"
@@ -255,10 +254,10 @@ func (a *App) Run(args []string) error {
 	case "version":
 		fmt.Fprintf(a.consoleWriter(), "sgx verification service %s-%s\n", version.Version, version.GitHash)
 	case "setup":
+		a.configureLogs(false, true)
 		var context setup.Context
 		if len(args) <= 2 {
 			a.printUsage()
-			log.Error("app:Run() Invalid command")
 			os.Exit(1)
 		}
 		if args[2] != "admin" &&
@@ -296,26 +295,25 @@ func (a *App) Run(args []string) error {
                                         ConsoleWriter: os.Stdout,
                                 },
 				setup.Download_Cert{
-                                        Flags:              args,
+					Flags:              flags,
+					KeyFile:            path.Join(a.configDir(), constants.TLSKeyFile),
+					CertFile:           path.Join(a.configDir(), constants.TLSCertFile),
+					KeyAlgorithm:       constants.DefaultKeyAlgorithm,
+					KeyAlgorithmLength: constants.DefaultKeyAlgorithmLength,
 					CmsBaseURL:         a.Config.CMSBaseUrl,
-                                        KeyFile:            path.Join(a.configDir(), constants.TLSKeyFile),
-                                        CertFile:           path.Join(a.configDir(), constants.TLSCertFile),
-                                        KeyAlgorithm:       constants.DefaultKeyAlgorithm,
-                                        KeyAlgorithmLength: constants.DefaultKeyAlgorithmLength,
-                                        Subject: pkix.Name{
-                                                Country:      []string{a.Config.Subject.Country},
-                                                Organization: []string{a.Config.Subject.Organization},
-                                                Locality:     []string{a.Config.Subject.Locality},
-                                                Province:     []string{a.Config.Subject.Province},
-                                                CommonName:   a.Config.Subject.TLSCertCommonName,
-                                        },
-
-                                        SanList:            constants.DefaultAasTlsSan, 
-                                        CertType:           "TLS",
-                                        CaCertsDir:         constants.TrustedCAsStoreDir,
-                                        BearerToken:        "",
-                                        ConsoleWriter:      os.Stdout,
-                                },
+					Subject: pkix.Name{
+						Country:      []string{a.Config.Subject.Country},
+						Organization: []string{a.Config.Subject.Organization},
+						Locality:     []string{a.Config.Subject.Locality},
+						Province:     []string{a.Config.Subject.Province},
+						CommonName:   a.Config.Subject.TLSCertCommonName,
+					},
+					SanList:       constants.DefaultAasTlsSan,
+					CertType:      "TLS",
+					CaCertsDir:    constants.TrustedCAsStoreDir,
+					BearerToken:   "",
+					ConsoleWriter: os.Stdout,
+				},
 				tasks.Server{
 					Flags:         flags,
 					Config:        a.configuration(),
@@ -324,6 +322,7 @@ func (a *App) Run(args []string) error {
 			},
 			AskInput: false,
 		}
+		a.configureLogs(true, true)
 		if task == "all" {
 			err = setupRunner.RunTasks()
 		} else {
@@ -375,33 +374,25 @@ func (a *App) startServer() error {
 		TLSConfig: tlsconfig,
 	}
 
-	proc.AddTask()
+	// dispatch web server go routine
 	go func() {
-		defer proc.TaskDone()
-		proc.AddTask()
-
-		// dispatch web server go routine
-		go func() {
-			defer proc.TaskDone()
-			tlsCert := path.Join(a.configDir(), constants.TLSCertFile)
-			tlsKey := path.Join(a.configDir(), constants.TLSKeyFile)
-			if err := h.ListenAndServeTLS(tlsCert, tlsKey); err != nil {
-				proc.SetError(fmt.Errorf("HTTPS server error : %v", err))
-				proc.EndProcess()
-			}
-		}()
-
-		fmt.Fprintln(a.consoleWriter(), "SGX verification Service is running")
-		<-proc.QuitChan
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := h.Shutdown(ctx); err != nil {
-			slog.WithError(err).Info("Failed to gracefully shutdown webserver")
-			errors.Wrap(err, "app:startServer() Failed to gracefully shutdown webserver")
+		tlsCert := path.Join(a.configDir(), constants.TLSCertFile)
+		tlsKey := path.Join(a.configDir(), constants.TLSKeyFile)
+		if err := h.ListenAndServeTLS(tlsCert, tlsKey); err != nil {
+			log.WithError(err).Info("Failed to start HTTPS server")
+			stop <- syscall.SIGTERM
 		}
-		time.Sleep(time.Millisecond*200)
 	}()
-	proc.WaitForQuitAndCleanup(10 * time.Second)
+
+	fmt.Fprintln(a.consoleWriter(), "SGX Verification Service is running")
+	// TODO dispatch Service status checker goroutine
+	<-stop
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := h.Shutdown(ctx); err != nil {
+		log.WithError(err).Info("Failed to gracefully shutdown webserver")
+		return err
+	}
 	return nil
 }
 
