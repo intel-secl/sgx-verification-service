@@ -7,8 +7,10 @@ package parser
 
 import (
 	"strconv"
+	//"io/ioutil"
 	"math/big"
 	"crypto/rsa"
+	"crypto/x509"
 	"encoding/pem"
 	"encoding/base64"
 	"encoding/binary"
@@ -77,6 +79,9 @@ func ParseSkcQuoteBlob( rawBlob string) ( *SkcBlobParsed ){
 		log.Debug("ParseSkcBlob Object Spawn: Raw SKC Blob is Empty")
 		return nil
 	}
+
+	//data := []byte(rawBlob)
+    	//ioutil.WriteFile("/tmp/quote.txt", data, 0644)
 
 	parsedObj := new( SkcBlobParsed )
 	_, err := parsedObj.ParseSkcBlobData( rawBlob )
@@ -261,30 +266,32 @@ func (e *SkcBlobParsed) GetRSAPubKeyObj()( []byte, error ){
 	}
 
 
-	moduleLen := int(e.GetRSAModulusLen())
-	//exponentLen := int(e.GetRSAExponentLen())
+	exponentLen := int(e.GetRSAExponentLen())
+	exponentArr := pubKeyBlob[:exponentLen]
+	modulusStrOffset := exponentLen 
 
 	n := big.Int{}
-	E := big.Int{}
-        n.SetBytes(pubKeyBlob[:moduleLen])
-        E.SetBytes(pubKeyBlob[moduleLen:])
+        n.SetBytes(pubKeyBlob[modulusStrOffset:])
+	eb := big.Int{}
+	eb.SetBytes(exponentArr)
 
-	ev, err := strconv.Atoi(E.String())
+	ex, err := strconv.Atoi(eb.String())
 	if err != nil {
-		return nil, errors.Wrap(err, "GetRSAPubKeyObj: String to Integer conversion")
+		return nil, errors.Wrap(err, "GetRSAPubKeyObj: Strconv to int")
 	}
 
-	log.Debug("Size of ModulusLen: ", len(pubKeyBlob[moduleLen:]),", Exponent: ", E.String())
+	pubKey := rsa.PublicKey { N: &n, E: int(ex)}
 
-	pubKey := rsa.PublicKey { N: &n, E: ev}
-	log.Debug("GetRSAPubKeyObj: size:", pubKey.Size())
+	pubKeyBytes, err := x509.MarshalPKIXPublicKey(&pubKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetRSAPubKeyObj: Marshal error")
+	}
 
-	rsaPem := pem.Block { Type : "RSA PUBLIC KEY", Bytes : pubKeyBlob }
+	rsaPem := pem.Block { Type : "PUBLIC KEY", Bytes : pubKeyBytes }
 	rsaBytes := pem.EncodeToMemory(&rsaPem)
 	if rsaBytes == nil {
 		return nil, errors.Wrap(err, "GetRSAPubKeyObj: Pem Encode failed")
 	}
 
-	log.Debug("Encoded RSA key: ", rsaBytes, ", string: ", string(rsaBytes))
 	return rsaBytes, nil
 }
