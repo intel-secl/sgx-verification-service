@@ -238,10 +238,10 @@ func SGXECDSAQuoteVerifyCB(w http.ResponseWriter, r *http.Request, skcBlobParser
 	}
         js, err := json.Marshal(res)
         if err != nil {
-		log.Debug("Invalid PCK CRL Data")
                 return &resourceError{Message: err.Error(), StatusCode: http.StatusInternalServerError}
         }
         w.Write(js)
+	log.Info("Sgx Quote Verification completed successfully:", string(js))
         return nil
 }
 
