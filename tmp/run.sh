@@ -2,5 +2,5 @@
 make clean
 svs uninstall
 make installer
-./out/svs-v0.0.0.bin
+./out/svs-SKC_SVS_M8_WW47.04.bin
 ./test.sh

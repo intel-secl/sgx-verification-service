@@ -21,7 +21,6 @@ const (
 	TLSKeyFile		      = "key.pem"
 	TLSCertFile		      = "cert.pem"
 	RootCADirPath                 = ConfigDir + "certs/trustedca/"
-        //RootCACertPath                = RootCADirPath + "root-ca-cert.pem"
         RootCAKeyPath                 = ConfigDir + "root-ca-key.pem"
         TLSCertPath                   = ConfigDir + "tls-cert.pem"
         TLSKeyPath                    = ConfigDir + "tls-key.pem"

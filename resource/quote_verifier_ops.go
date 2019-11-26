@@ -60,6 +60,9 @@ func QuoteVerifyCB(router *mux.Router, config *config.Configuration) {
 func GenericQuoteVerifyCB(config *config.Configuration) errorHandlerFunc {
         return func(w http.ResponseWriter, r *http.Request) error {
 		var data QuoteData
+		if (r.ContentLength == 0) {
+                        return &resourceError{Message: "The request body was not provided", StatusCode: http.StatusBadRequest}
+                }
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()
 		err := dec.Decode(&data)
@@ -81,6 +84,9 @@ func GenericQuoteVerifyCB(config *config.Configuration) errorHandlerFunc {
 			return SGXECDSAQuoteVerifyCB(w, r, obj, config)
 		}else if obj.GetQuoteType() == parser.QuoteTypeSw {
 			return SwQuoteVerifyCB(w, r, obj, config)
+		}else {
+			return &resourceError{Message: "GenericQuoteVerifyCB - ParseSkcQuoteBlob parsing failed",
+					StatusCode: http.StatusBadRequest}
 		}
 		return nil
 	}
