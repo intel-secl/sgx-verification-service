@@ -7,9 +7,10 @@ package parser
 
 import (
         "fmt"
-        "bytes"
+        //"bytes"
 	"strings"
         "net/http"
+	"io/ioutil"
 	"crypto/x509"
 	"crypto/ecdsa"
         "encoding/hex"
@@ -75,18 +76,21 @@ func NewQeIdentity() (*QeIdentityData, error) {
                 return nil, errors.New(fmt.Sprintf("NewQeIdentity: Invalid Status code received: %d",resp.StatusCode))
         }
 
-	buf := new(bytes.Buffer)
-        buf.ReadFrom(resp.Body)
+	content, err := ioutil.ReadAll(resp.Body)
+        if err != nil {
+                        return nil, errors.Wrap(err, "read Response failed ")
+        }
+        resp.Body.Close()
 
 
-        if len(buf.Bytes()) == 0 {
+        if len(content) == 0 {
                 return nil, errors.Wrap(err, "NewQeIdentity: buffer lenght is zero")
         }
 
-	obj.RawBlob = make( []byte, len(buf.Bytes()))
-	copy( obj.RawBlob, buf.Bytes())
+	obj.RawBlob = make( []byte, len(content))
+	copy( obj.RawBlob, content)
 
-        if err := json.Unmarshal(buf.Bytes(), &obj.QEJson ); err != nil {
+        if err := json.Unmarshal(content, &obj.QEJson ); err != nil {
                 return nil, errors.Wrap(err, "NewQeIdentity: QeIdentity Unmarshal Failed")
 	}
 

@@ -7,10 +7,11 @@ package parser
 
 import (
 	"fmt"
-	"bytes"
+	//"bytes"
 	"strings"
 	"net/http"
 	"math/big"
+	"io/ioutil"
 	"crypto/x509"
 	"crypto/ecdsa"
 	"encoding/hex"
@@ -148,16 +149,20 @@ func (e *TcbInfoStruct) GetTcbInfoStruct(fmspc string)(error) {
 	log.Trace("resource/parser/sgx_tcbinfo_parser:GetTcbInfoStruct() Entering")
 	defer log.Trace("resource/parser/sgx_tcbinfo_parser:GetTcbInfoStruct() Leaving")
 
+	log.Debug("GetTcbInfoStruct: started processing")
 	client, conf, err := utils.GetHTTPClientObj()
         if err != nil {
+		log.Error("GetTcbInfoStruct: client object error")
 		return errors.Wrap(err, "GetTcbInfoStruct: Failed to Get client Obj")
         }
 
 	url := fmt.Sprintf("%s/tcb", conf.SCSBaseUrl)
         req, err := http.NewRequest("GET", url, nil)
         if err != nil {
+		log.Error("GetTcbInfoStruct: req object error")
                 return errors.Wrap(err,"GetTcbInfoStruct: Failed to Get http NewRequest")
         }
+
 
         q := req.URL.Query()
         q.Add("fmspc", fmspc)
@@ -167,15 +172,22 @@ func (e *TcbInfoStruct) GetTcbInfoStruct(fmspc string)(error) {
         if err != nil {
                 return errors.Wrap(err,"GetTcbInfoStruct: Failed to Get http client")
         }
+	log.Debug("GetTcbInfoStruct: Got status:", resp.StatusCode, ", content-len:", resp.ContentLength, " resp body:", resp.Body)
 
 	if resp.StatusCode !=  200 {
                 return errors.New(fmt.Sprintf("GetTcbInfoJson: Invalid Status code received: %d",resp.StatusCode))
 	}
-        buf := new(bytes.Buffer)
-        buf.ReadFrom(resp.Body)
 
-	e.RawBlob =  make( []byte, resp.ContentLength)
-	copy( e.RawBlob, buf.Bytes())
+	content, err := ioutil.ReadAll(resp.Body)
+        if err != nil {
+                        return errors.Wrap(err, "read Response failed ")
+        }
+        resp.Body.Close()
+
+	e.RawBlob =  make( []byte, len(content))
+
+	log.Debug("GetTcbInfoStruct: debug 4:")
+	copy( e.RawBlob, content)
 
 	log.Debug("GetTcbInfoJson: blob[",resp.ContentLength,"]:", len(e.RawBlob))
 	
@@ -184,7 +196,7 @@ func (e *TcbInfoStruct) GetTcbInfoStruct(fmspc string)(error) {
                 return errors.Wrap(err, "GetTcbInfoStruct: failed to get object")
         }
 
-        if err := json.Unmarshal(buf.Bytes(), &e.TcbInfoData); err != nil {
+        if err := json.Unmarshal(content, &e.TcbInfoData); err != nil {
                 return errors.Wrap(err, "TCBInfo Unmarshal Failed")
 	}
 
