@@ -188,15 +188,12 @@ func CheckDate(issueDate string, nextUpdate string) bool {
 		return false
         }
 
-	cond1 := universalTime.Before(iDate)
-	cond2 := universalTime.After(nUpdate)
+	cond1 := universalTime.After(iDate)
+	cond2 := universalTime.Before(nUpdate)
 
-	
 	log.Debug("CheckDate: issuedate:", issueDate, ", nextUpdate:", nextUpdate, ", Current Date:", universalTime)
-        if cond1 || cond2 {
-                log.Error(fmt.Sprintf("CheckData: Validataion Failed, conditon1:%v, condition:%v", 
-						cond1,
-						cond2))
+        if (cond1 == false || cond2 == false) {
+                log.Error(fmt.Sprintf("CheckDate: Validataion Failed, conditon1:%v, condition:%v", cond1, cond2))
                 return false
         }else {
                 return true

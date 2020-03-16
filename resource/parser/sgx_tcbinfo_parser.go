@@ -40,26 +40,29 @@ type TcbType struct {
         Sgxtcbcomp14svn int		`json: "sgxtcbcomp14svn"`
         Sgxtcbcomp15svn int		`json: "sgxtcbcomp15svn"`
         Sgxtcbcomp16svn int		`json: "sgxtcbcomp16svn"`
-        Pcesvn 		int		`json: "pcesvn"`
+        PceSvn 		int		`json: "pcesvn"`
 }
 
 type TcbLevelsType struct {
 	Tcb     	TcbType 	`json: "tcb"`
-	Status  	string  	`json: "status"`
+	TcbDate		string		`json: "tcbDate"`
+	TcbStatus  	string  	`json: "tcbStatus"`
 }
 
 type TcbInfoType struct {
-	Version         int             `json:"version"`
-        IssueDate       string          `json:"issueDate"`
-        NextUpdate      string          `json:"nextUpdate"`
-        Fmspc           string          `json:"fmspc"`
-        PceId           string          `json:"pceId"`
-        TcbLevels       []TcbLevelsType `json: "tcbLevels"`
+	Version         	int             `json:"version"`
+        IssueDate       	string          `json:"issueDate"`
+        NextUpdate      	string          `json:"nextUpdate"`
+        Fmspc           	string          `json:"fmspc"`
+        PceId           	string          `json:"pceId"`
+	TcbType			uint		`json: "tcbType"`
+	TcbEvaluationDataNumber	uint		`json: "tcbEvaluationDataNumber"`
+        TcbLevels       	[]TcbLevelsType `json: "tcbLevels"`
 }
 
 type TcbInfoJson struct {
-        TcbInfo 	TcbInfoType
-        Signature 	string		`json:"signature"`
+        TcbInfo 	TcbInfoType	`json: "tcbInfo"`
+        Signature 	string		`json: "signature"`
 }
 
 type TcbInfoStruct struct {
@@ -71,7 +74,6 @@ type TcbInfoStruct struct {
 type ECDSASignature struct {
     R, S *big.Int
 }
-
 
 func NewTCBInfo(fmspc string) (*TcbInfoStruct, error) {
 	log.Trace("resource/parser/sgx_tcbinfo_parser:NewTCBInfo() Entering")
@@ -264,7 +266,7 @@ func (e *TcbInfoStruct) GetTcbInfoStatus()(string){
 	log.Trace("resource/parser/sgx_tcbinfo_parser:GetTcbInfoStatus() Entering")
 	defer log.Trace("resource/parser/sgx_tcbinfo_parser:GetTcbInfoStatus() Leaving")
 
-        return e.TcbInfoData.TcbInfo.TcbLevels[0].Status
+        return e.TcbInfoData.TcbInfo.TcbLevels[0].TcbStatus
 }
 
 func (e *TcbInfoStruct) DumpTcbInfo(){
@@ -293,7 +295,7 @@ func (e *TcbInfoStruct) DumpTcbInfo(){
         log.Printf("Sgxtcbcomp14svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.Sgxtcbcomp14svn)
         log.Printf("Sgxtcbcomp15svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.Sgxtcbcomp15svn)
         log.Printf("Sgxtcbcomp16svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.Sgxtcbcomp16svn)
-        log.Printf("Status:          %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Status)
-        log.Printf("Pcesvn:          %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.Pcesvn)
+        log.Printf("Status:          %v", e.TcbInfoData.TcbInfo.TcbLevels[0].TcbStatus)
+        log.Printf("Pcesvn:          %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.PceSvn)
         log.Printf("Signature:       %v", e.TcbInfoData.Signature)
 }
