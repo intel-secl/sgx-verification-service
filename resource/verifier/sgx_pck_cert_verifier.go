@@ -7,14 +7,14 @@ package verifier
 
 import (
 	"strings"
-       	"crypto/x509"
+	"crypto/x509"
 	"crypto/x509/pkix"
 	"github.com/pkg/errors"
 	"intel/isecl/svs/constants"
 )
 
 
-func VerifyPCKCertificate(pckCert *x509.Certificate, interCA []*x509.Certificate, RootCA []*x509.Certificate, 
+func VerifyPCKCertificate(pckCert *x509.Certificate, interCA []*x509.Certificate, RootCA []*x509.Certificate,
 					crl []*pkix.CertificateList, trustedRootCA *x509.Certificate) (bool, error){
 	log.Trace("resource/verifier/sgx_pck_cert_verifier:VerifyPCKCertificate() Entering")
 	defer log.Trace("resource/verifier/sgx_pck_cert_verifier:VerifyPCKCertificate() Leaving")
@@ -48,8 +48,8 @@ func VerifyPCKCertificate(pckCert *x509.Certificate, interCA []*x509.Certificate
 		}
 		opts.Roots.AddCert(RootCA[i])
 	}
-		
- 	if strings.Compare( string(trustedRootCA.Signature), string(RootCA[0].Signature)) != 0 {
+
+	if strings.Compare( string(trustedRootCA.Signature), string(RootCA[0].Signature)) != 0 {
                 return false, errors.New("VerifyTcbInfo: Trusted CA Verification Failed")
         }
 

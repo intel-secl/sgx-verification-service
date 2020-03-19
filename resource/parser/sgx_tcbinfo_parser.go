@@ -7,7 +7,6 @@ package parser
 
 import (
 	"fmt"
-	//"bytes"
 	"strings"
 	"net/http"
 	"math/big"
@@ -24,55 +23,55 @@ import (
 )
 
 type TcbType struct {
-        Sgxtcbcomp01svn int		`json: "sgxtcbcomp01svn"`
-        Sgxtcbcomp02svn int		`json: "sgxtcbcomp02svn"`
-        Sgxtcbcomp03svn int		`json: "sgxtcbcomp03svn"`
-        Sgxtcbcomp04svn int		`json: "sgxtcbcomp04svn"`
-        Sgxtcbcomp05svn int		`json: "sgxtcbcomp05svn"`
-        Sgxtcbcomp06svn int		`json: "sgxtcbcomp06svn"`
-        Sgxtcbcomp07svn int		`json: "sgxtcbcomp07svn"`
-        Sgxtcbcomp08svn int		`json: "sgxtcbcomp08svn"`
-        Sgxtcbcomp09svn int		`json: "sgxtcbcomp09svn"`
-        Sgxtcbcomp10svn int		`json: "sgxtcbcomp10svn"`
-        Sgxtcbcomp11svn int		`json: "sgxtcbcomp11svn"`
-        Sgxtcbcomp12svn int		`json: "sgxtcbcomp12svn"`
-        Sgxtcbcomp13svn int		`json: "sgxtcbcomp13svn"`
-        Sgxtcbcomp14svn int		`json: "sgxtcbcomp14svn"`
-        Sgxtcbcomp15svn int		`json: "sgxtcbcomp15svn"`
-        Sgxtcbcomp16svn int		`json: "sgxtcbcomp16svn"`
-        PceSvn 		int		`json: "pcesvn"`
+	Sgxtcbcomp01svn int	`json: "sgxtcbcomp01svn"`
+	Sgxtcbcomp02svn int	`json: "sgxtcbcomp02svn"`
+	Sgxtcbcomp03svn int	`json: "sgxtcbcomp03svn"`
+	Sgxtcbcomp04svn int	`json: "sgxtcbcomp04svn"`
+	Sgxtcbcomp05svn int	`json: "sgxtcbcomp05svn"`
+	Sgxtcbcomp06svn int	`json: "sgxtcbcomp06svn"`
+	Sgxtcbcomp07svn int	`json: "sgxtcbcomp07svn"`
+	Sgxtcbcomp08svn int	`json: "sgxtcbcomp08svn"`
+	Sgxtcbcomp09svn int	`json: "sgxtcbcomp09svn"`
+	Sgxtcbcomp10svn int	`json: "sgxtcbcomp10svn"`
+	Sgxtcbcomp11svn int	`json: "sgxtcbcomp11svn"`
+	Sgxtcbcomp12svn int	`json: "sgxtcbcomp12svn"`
+	Sgxtcbcomp13svn int	`json: "sgxtcbcomp13svn"`
+	Sgxtcbcomp14svn int	`json: "sgxtcbcomp14svn"`
+	Sgxtcbcomp15svn int	`json: "sgxtcbcomp15svn"`
+	Sgxtcbcomp16svn int	`json: "sgxtcbcomp16svn"`
+	PceSvn		int	`json: "pcesvn"`
 }
 
 type TcbLevelsType struct {
-	Tcb     	TcbType 	`json: "tcb"`
-	TcbDate		string		`json: "tcbDate"`
-	TcbStatus  	string  	`json: "tcbStatus"`
+	Tcb		TcbType	`json: "tcb"`
+	TcbDate		string	`json: "tcbDate"`
+	TcbStatus	string	`json: "tcbStatus"`
 }
 
 type TcbInfoType struct {
-	Version         	int             `json:"version"`
-        IssueDate       	string          `json:"issueDate"`
-        NextUpdate      	string          `json:"nextUpdate"`
-        Fmspc           	string          `json:"fmspc"`
-        PceId           	string          `json:"pceId"`
+	Version			int             `json:"version"`
+	IssueDate		string          `json:"issueDate"`
+	NextUpdate		string          `json:"nextUpdate"`
+	Fmspc			string          `json:"fmspc"`
+	PceId			string          `json:"pceId"`
 	TcbType			uint		`json: "tcbType"`
 	TcbEvaluationDataNumber	uint		`json: "tcbEvaluationDataNumber"`
-        TcbLevels       	[]TcbLevelsType `json: "tcbLevels"`
+	TcbLevels		[]TcbLevelsType `json: "tcbLevels"`
 }
 
 type TcbInfoJson struct {
-        TcbInfo 	TcbInfoType	`json: "tcbInfo"`
-        Signature 	string		`json: "signature"`
+	TcbInfo		TcbInfoType	`json: "tcbInfo"`
+	Signature	string		`json: "signature"`
 }
 
 type TcbInfoStruct struct {
 	TcbInfoData     TcbInfoJson
-	RootCA 		map[string]*x509.Certificate
-	IntermediateCA 	map[string]*x509.Certificate
+	RootCA		map[string]*x509.Certificate
+	IntermediateCA	map[string]*x509.Certificate
 	RawBlob		[]byte
 }
 type ECDSASignature struct {
-    R, S *big.Int
+	R, S *big.Int
 }
 
 func NewTCBInfo(fmspc string) (*TcbInfoStruct, error) {
@@ -192,7 +191,7 @@ func (e *TcbInfoStruct) GetTcbInfoStruct(fmspc string)(error) {
 	copy( e.RawBlob, content)
 
 	log.Debug("GetTcbInfoJson: blob[",resp.ContentLength,"]:", len(e.RawBlob))
-	
+
         certChainList, err := utils.GetCertObjListFromStr( string( resp.Header.Get("SGX-TCB-Info-Issuer-Chain") ))
         if err != nil {
                 return errors.Wrap(err, "GetTcbInfoStruct: failed to get object")
@@ -239,9 +238,9 @@ func (e *TcbInfoStruct) GetTcbInfoBlob()([]byte){
 	defer log.Trace("resource/parser/sgx_tcbinfo_parser:GetTcbInfoBlob() Leaving")
 
 	bytes, err := json.Marshal(e.TcbInfoData.TcbInfo)
-    	if err != nil {
-        	log.Info("GetTcbInfoBlob: Error in Marshal")
-    	}
+	if err != nil {
+		log.Info("GetTcbInfoBlob: Error in Marshal")
+	}
 	return bytes
 }
 
@@ -257,7 +256,7 @@ func (e *TcbInfoStruct) GetTcbInfoSignature()([]byte, error){
 	rBytes, sBytes  := signatureBytes[:32], signatureBytes[32:]
         bytes, err :=  asn1.Marshal(ECDSASignature{R : new(big.Int).SetBytes(rBytes), S:new(big.Int).SetBytes(sBytes)})
         if err!=nil {
-    		return nil, errors.Wrap(err,"GetTcbInfoSignature: asnl marshal fail")
+		return nil, errors.Wrap(err,"GetTcbInfoSignature: asnl marshal fail")
         }
         return bytes, nil
 }

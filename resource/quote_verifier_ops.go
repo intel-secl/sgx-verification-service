@@ -14,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"intel/isecl/svs/config"
 	"net/http"
-	"strings"
+//	"strings"
 
 	"intel/isecl/svs/resource/parser"
 	"intel/isecl/svs/resource/utils"
@@ -337,10 +337,10 @@ func VerifyTCBInfo(quoteObj *parser.SgxQuoteParsed, certObj *parser.PckCert, tcb
 		return errors.Wrap(err, "VerifyTCBInfo: failed to verify Tcbinfo Certchain")
 	}
 
-	if strings.Compare(tcbObj.GetTcbInfoStatus(), "UpToDate") != 0 {
+/*	if strings.Compare(tcbObj.GetTcbInfoStatus(), "UpToDate") != 0 {
 		return errors.New("VerifyTCBInfo: Invalid TcbInfo Stauts:" + tcbObj.GetTcbInfoStatus())
 	}
-
+*/
 	if utils.CheckDate(tcbObj.GetTcbInfoIssueDate(), tcbObj.GetTcbInfoNextUpdate()) == false {
 		return errors.New("VerifyTCBInfo: Date Check validation failed")
 	}

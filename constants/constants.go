@@ -56,7 +56,7 @@ const (
         DefaultSvsCertOrganization    = "INTEL"
         DefaultSvsCertCountry         = "US"
 	DefaultTokenDurationMins      = 240
-	DefaultIntelProvServerURL     = "https://sbx.api.trustedservices.intel.com/sgx/certification/v1/"
+	DefaultIntelProvServerURL     = "https://api.trustedservices.intel.com/sgx/certification/v2/"
 	Fmspc_Key                     = "fmspc"
 	Misc_Select                   = "miscselect"
 	Misc_SelectMask               = "miscselectMask"
@@ -68,7 +68,7 @@ const (
 	SGXCRLIssuerStr		      = "C=US,ST=CA,L=Santa Clara,O=Intel Corporation,CN=Intel SGX PCK Processor CA|C=US,ST=CA,L=Santa Clara,O=Intel Corporation,CN=Intel SGX PCK Platform CA"
 	SGXPCKCertificateSubjectStr   = "CN=Intel SGX PCK Certificate,O=Intel Corporation,L=Santa Clara,ST=CA,C=US"
 	SGXTCBInfoSubjectStr	      = "CN=Intel SGX TCB Signing,O=Intel Corporation,L=Santa Clara,ST=CA,C=US"
-	SGXQEInfoSubjectStr	      = "CN=Intel SGX TCB Signing,O=Intel Corporation,L=Santa Clara,ST=CA,C=US"	
+	SGXQEInfoSubjectStr	      = "CN=Intel SGX TCB Signing,O=Intel Corporation,L=Santa Clara,ST=CA,C=US"
 )
 
 // State represents whether or not a daemon is running or not
