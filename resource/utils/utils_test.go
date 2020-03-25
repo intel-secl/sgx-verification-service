@@ -39,7 +39,6 @@ func TestGetSgxQuote(t *testing.T) {
                         Assert : assert.New(t),
                         Test:t,
                         Url : "/svs/v1",
-                        //Url : "/svs/sgx/test/platforminfo/push",
                         StatusCode: http.StatusBadRequest,
                         PostData : nil,
                         Token:"invalidtoken",
@@ -47,4 +46,3 @@ func TestGetSgxQuote(t *testing.T) {
         }
         ExecuteSGXQuoteTest(input)
 }
-

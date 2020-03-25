@@ -49,11 +49,11 @@ type TcbLevelsType struct {
 }
 
 type TcbInfoType struct {
-	Version			int             `json:"version"`
-	IssueDate		string          `json:"issueDate"`
-	NextUpdate		string          `json:"nextUpdate"`
-	Fmspc			string          `json:"fmspc"`
-	PceId			string          `json:"pceId"`
+	Version			int             `json: "version"`
+	IssueDate		string          `json: "issueDate"`
+	NextUpdate		string          `json: "nextUpdate"`
+	Fmspc			string          `json: "fmspc"`
+	PceId			string          `json: "pceId"`
 	TcbType			uint		`json: "tcbType"`
 	TcbEvaluationDataNumber	uint		`json: "tcbEvaluationDataNumber"`
 	TcbLevels		[]TcbLevelsType `json: "tcbLevels"`
@@ -75,12 +75,9 @@ type ECDSASignature struct {
 }
 
 func NewTCBInfo(fmspc string) (*TcbInfoStruct, error) {
-	log.Trace("resource/parser/sgx_tcbinfo_parser:NewTCBInfo() Entering")
-	defer log.Trace("resource/parser/sgx_tcbinfo_parser:NewTCBInfo() Leaving")
-
 	var err error
 	if len(fmspc) < 0 {
-                return nil, errors.Wrap(err,"NewTCBInfo: FMSPC is Empty")
+                return nil, errors.Wrap(err,"NewTCBInfo: FMSPC value not found")
         }
 
 	tcbInfoStruct := new(TcbInfoStruct)
@@ -92,9 +89,6 @@ func NewTCBInfo(fmspc string) (*TcbInfoStruct, error) {
 }
 
 func (e *TcbInfoStruct) GetTCBInfoInterCAList()([]*x509.Certificate){
-	log.Trace("resource/parser/sgx_tcbinfo_parser:GetTCBInfoInterCAList() Entering")
-	defer log.Trace("resource/parser/sgx_tcbinfo_parser:GetTCBInfoInterCAList() Leaving")
-
         interMediateCAArr := make( []*x509.Certificate, len(e.IntermediateCA))
         var i  int=0
         for _, v := range e.IntermediateCA {
@@ -105,9 +99,6 @@ func (e *TcbInfoStruct) GetTCBInfoInterCAList()([]*x509.Certificate){
 }
 
 func (e *TcbInfoStruct) GetTCBInfoRootCAList()([]*x509.Certificate){
-	log.Trace("resource/parser/sgx_tcbinfo_parser:GetTCBInfoRootCAList() Entering")
-	defer log.Trace("resource/parser/sgx_tcbinfo_parser:GetTCBInfoRootCAList() Leaving")
-
         RootCAArr := make( []*x509.Certificate, len(e.RootCA))
         var i  int=0
         for _, v := range e.RootCA {
@@ -119,9 +110,6 @@ func (e *TcbInfoStruct) GetTCBInfoRootCAList()([]*x509.Certificate){
 }
 
 func (e *TcbInfoStruct) GetTCBInfoPublicKey()( *ecdsa.PublicKey){
-	log.Trace("resource/parser/sgx_tcbinfo_parser:GetTCBInfoPublicKey() Entering")
-	defer log.Trace("resource/parser/sgx_tcbinfo_parser:GetTCBInfoPublicKey() Leaving")
-
         for _, v := range e.IntermediateCA {
 		if strings.Compare( v.Subject.String(), constants.SGXTCBInfoSubjectStr ) == 0 {
 			return v.PublicKey.(*ecdsa.PublicKey)
@@ -133,28 +121,19 @@ func (e *TcbInfoStruct) GetTCBInfoPublicKey()( *ecdsa.PublicKey){
 }
 
 func (e *TcbInfoStruct) GetTcbInfoIssueDate()( string ){
-	log.Trace("resource/parser/sgx_tcbinfo_parser:GetTcbInfoIssueDate() Entering")
-	defer log.Trace("resource/parser/sgx_tcbinfo_parser:GetTcbInfoIssueDate() Leaving")
-
 	return e.TcbInfoData.TcbInfo.IssueDate
 }
 
 func (e *TcbInfoStruct) GetTcbInfoNextUpdate()( string ){
-	log.Trace("resource/parser/sgx_tcbinfo_parser:GetTcbInfoNextUpdate() Entering")
-	defer log.Trace("resource/parser/sgx_tcbinfo_parser:GetTcbInfoNextUpdate() Leaving")
-
 	return e.TcbInfoData.TcbInfo.NextUpdate
 }
 
 func (e *TcbInfoStruct) GetTcbInfoStruct(fmspc string)(error) {
-	log.Trace("resource/parser/sgx_tcbinfo_parser:GetTcbInfoStruct() Entering")
-	defer log.Trace("resource/parser/sgx_tcbinfo_parser:GetTcbInfoStruct() Leaving")
-
 	log.Debug("GetTcbInfoStruct: started processing")
 	client, conf, err := utils.GetHTTPClientObj()
         if err != nil {
 		log.Error("GetTcbInfoStruct: client object error")
-		return errors.Wrap(err, "GetTcbInfoStruct: Failed to Get client Obj")
+		return errors.Wrap(err, "GetTcbInfoStruct: Failed to Get HTTP client Obj")
         }
 
 	url := fmt.Sprintf("%s/tcb", conf.SCSBaseUrl)
@@ -163,7 +142,6 @@ func (e *TcbInfoStruct) GetTcbInfoStruct(fmspc string)(error) {
 		log.Error("GetTcbInfoStruct: req object error")
                 return errors.Wrap(err,"GetTcbInfoStruct: Failed to Get http NewRequest")
         }
-
 
         q := req.URL.Query()
         q.Add("fmspc", fmspc)
@@ -176,14 +154,14 @@ func (e *TcbInfoStruct) GetTcbInfoStruct(fmspc string)(error) {
 	log.Debug("GetTcbInfoStruct: Got status:", resp.StatusCode, ", content-len:", resp.ContentLength, " resp body:", resp.Body)
 
 	if resp.StatusCode !=  200 {
-                return errors.New(fmt.Sprintf("GetTcbInfoJson: Invalid Status code received: %d",resp.StatusCode))
+		return errors.New(fmt.Sprintf("GetTcbInfoJson: Invalid Status code received: %d",resp.StatusCode))
 	}
 
 	content, err := ioutil.ReadAll(resp.Body)
-        if err != nil {
-                        return errors.Wrap(err, "read Response failed ")
-        }
-        resp.Body.Close()
+	if err != nil {
+		return errors.Wrap(err, "read Response failed ")
+	}
+	resp.Body.Close()
 
 	e.RawBlob =  make( []byte, len(content))
 
@@ -192,51 +170,45 @@ func (e *TcbInfoStruct) GetTcbInfoStruct(fmspc string)(error) {
 
 	log.Debug("GetTcbInfoJson: blob[",resp.ContentLength,"]:", len(e.RawBlob))
 
-        certChainList, err := utils.GetCertObjListFromStr( string( resp.Header.Get("SGX-TCB-Info-Issuer-Chain") ))
-        if err != nil {
-                return errors.Wrap(err, "GetTcbInfoStruct: failed to get object")
-        }
-
-        if err := json.Unmarshal(content, &e.TcbInfoData); err != nil {
-                return errors.Wrap(err, "TCBInfo Unmarshal Failed")
+	certChainList, err := utils.GetCertObjListFromStr( string( resp.Header.Get("SGX-TCB-Info-Issuer-Chain") ))
+	if err != nil {
+		return errors.Wrap(err, "GetTcbInfoStruct: failed to get object")
 	}
 
-        e.RootCA = make( map[string]*x509.Certificate )
-        e.IntermediateCA = make( map[string]*x509.Certificate )
+	if err := json.Unmarshal(content, &e.TcbInfoData); err != nil {
+		return errors.Wrap(err, "TCBInfo Unmarshal Failed")
+	}
 
-        var IntermediateCACount int=0
-        var RootCACount int=0
-        for i:=0;i<len(certChainList);i++ {
-                cert := certChainList[i]
-                if strings.Contains(cert.Subject.String(), "CN=Intel SGX Root CA") {
-                        RootCACount += 1
-                        e.RootCA[cert.Subject.String()] = cert
-                }
-                if strings.Contains(cert.Subject.String(), "CN=Intel SGX TCB Signing"){
-                        IntermediateCACount += 1
-                        e.IntermediateCA[cert.Subject.String()] = cert
-                }
-                log.Debug("Cert[" ,i, "]Issuer:", cert.Issuer.String(), ", Subject:", cert.Subject.String())
-        }
+	e.RootCA = make( map[string]*x509.Certificate )
+	e.IntermediateCA = make( map[string]*x509.Certificate )
 
-        if IntermediateCACount == 0 || RootCACount == 0 {
-                return errors.Wrap(err, "TCB INFO - Root CA/Intermediate CA Invalid count")
-        }
+	var IntermediateCACount int=0
+	var RootCACount int=0
+	for i := 0; i < len(certChainList); i++ {
+		cert := certChainList[i]
+		if strings.Contains(cert.Subject.String(), "CN=Intel SGX Root CA") {
+			RootCACount += 1
+			e.RootCA[cert.Subject.String()] = cert
+
+	                if strings.Contains(cert.Subject.String(), "CN=Intel SGX TCB Signing") {
+				IntermediateCACount += 1
+				e.IntermediateCA[cert.Subject.String()] = cert
+	                }
+			log.Debug("Cert[" ,i, "]Issuer:", cert.Issuer.String(), ", Subject:", cert.Subject.String())
+		}
+	}
+	if IntermediateCACount == 0 || RootCACount == 0 {
+		return errors.Wrap(err, "TCB INFO - Root CA/Intermediate CA Invalid count")
+	}
 
 	return nil
 }
 
-func (e *TcbInfoStruct) GetTcbInfoFmspc()(string){
-	log.Trace("resource/parser/sgx_tcbinfo_parser:GetTcbInfoFmspc() Entering")
-	defer log.Trace("resource/parser/sgx_tcbinfo_parser:GetTcbInfoFmspc() Leaving")
-
+func (e *TcbInfoStruct) GetTcbInfoFmspc()(string) {
         return e.TcbInfoData.TcbInfo.Fmspc
 }
 
 func (e *TcbInfoStruct) GetTcbInfoBlob()([]byte){
-	log.Trace("resource/parser/sgx_tcbinfo_parser:GetTcbInfoBlob() Entering")
-	defer log.Trace("resource/parser/sgx_tcbinfo_parser:GetTcbInfoBlob() Leaving")
-
 	bytes, err := json.Marshal(e.TcbInfoData.TcbInfo)
 	if err != nil {
 		log.Info("GetTcbInfoBlob: Error in Marshal")
@@ -245,9 +217,6 @@ func (e *TcbInfoStruct) GetTcbInfoBlob()([]byte){
 }
 
 func (e *TcbInfoStruct) GetTcbInfoSignature()([]byte, error){
-	log.Trace("resource/parser/sgx_tcbinfo_parser:GetTcbInfoSignature() Entering")
-	defer log.Trace("resource/parser/sgx_tcbinfo_parser:GetTcbInfoSignature() Leaving")
-
 	signatureBytes, err := hex.DecodeString(e.TcbInfoData.Signature)
 	if err != nil {
 		return nil, errors.Wrap(err,"GetTcbInfoSignature: error in decode string")
@@ -262,16 +231,10 @@ func (e *TcbInfoStruct) GetTcbInfoSignature()([]byte, error){
 }
 
 func (e *TcbInfoStruct) GetTcbInfoStatus()(string){
-	log.Trace("resource/parser/sgx_tcbinfo_parser:GetTcbInfoStatus() Entering")
-	defer log.Trace("resource/parser/sgx_tcbinfo_parser:GetTcbInfoStatus() Leaving")
-
         return e.TcbInfoData.TcbInfo.TcbLevels[0].TcbStatus
 }
 
 func (e *TcbInfoStruct) DumpTcbInfo(){
-	log.Trace("resource/parser/sgx_tcbinfo_parser:DumpTcbInfo() Entering")
-	defer log.Trace("resource/parser/sgx_tcbinfo_parser:DumpTcbInfo() Leaving")
-
         log.Debug("============TCBInfo================")
         log.Printf("Version:         %v", e.TcbInfoData.TcbInfo.Version)
         log.Printf("IssueDate:       %v", e.TcbInfoData.TcbInfo.IssueDate)

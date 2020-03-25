@@ -4,7 +4,10 @@
  */
 package constants
 
-import "crypto"
+import (
+	"crypto"
+	"time"
+)
 
 const (
 	HomeDir                       = "/opt/svs/"
@@ -14,49 +17,34 @@ const (
 	RunDirPath                    = "/run/svs"
 	LogDir                        = "/var/log/svs/"
 	LogFile                       = LogDir + "svs.log"
-	SecurityLogFile		      = LogDir + "svs-security.log"
+	SecLogFile		      = LogDir + "svs-security.log"
 	HTTPLogFile                   = LogDir + "http.log"
 	ConfigFile                    = "config.yml"
-	TokenKeyFile                  = "svs-jwt-key.pem"
-	TLSKeyFile		      = "key.pem"
-	TLSCertFile		      = "cert.pem"
-	RootCADirPath                 = ConfigDir + "certs/trustedca/"
-        RootCAKeyPath                 = ConfigDir + "root-ca-key.pem"
-        TLSCertPath                   = ConfigDir + "tls-cert.pem"
-        TLSKeyPath                    = ConfigDir + "tls-key.pem"
-	SerialNumberPath              = ConfigDir + "serial-number"
-	TokenSignKeysAndCertDir       = ConfigDir + "certs/tokensign/"
-        TokenSignKeyFile              = TokenSignKeysAndCertDir + "jwt.key"
-        TokenSignCertFile             = TokenSignKeysAndCertDir + "jwtsigncert.pem"
-        TrustedJWTSigningCertsDir     = ConfigDir + "certs/trustedjwt/"
-        TrustedCAsStoreDir            = ConfigDir + "certs/trustedca/"
-        PIDFile                       = "svs.pid"
+	DefaultTLSCertFile            = ConfigDir + "tls-cert.pem"
+	DefaultTLSKeyFile             = ConfigDir + "tls.key"
+	TrustedJWTSigningCertsDir     = ConfigDir + "certs/trustedjwt/"
+	TrustedCAsStoreDir            = ConfigDir + "certs/trustedca/"
         ServiceRemoveCmd              = "systemctl disable svs"
         HashingAlgorithm              = crypto.SHA384
-        PasswordRandomLength          = 20
         DefaultAuthDefendMaxAttempts  = 5
         DefaultAuthDefendIntervalMins = 5
         DefaultAuthDefendLockoutMins  = 15
-        DefaultDBRotationMaxRowCnt    = 100000
-        DefaultDBRotationMaxTableCnt  = 10
-        DefaultSSLCertFilePath        = ConfigDir + "aasdbcert.pem"
         ServiceName                   = "SVS"
-        DefaultHttpPort               = 8445
+	SVSUserName                   = "svs"
+        DefaultHttpPort               = 12000
         DefaultKeyAlgorithm           = "rsa"
         DefaultKeyAlgorithmLength     = 3072
-        DefaultAasTlsSan              = "127.0.0.1,localhost"
+        DefaultSvsTlsSan              = "127.0.0.1,localhost"
         DefaultSvsTlsCn               = "SVS TLS Certificate"
-        DefaultSvsJwtCn               = "SVS JWT Signing Certificate"
-	CertApproverGroupName         = "CertApprover"
-	DefaultSvsCertProvince        = "SF"
-        DefaultSvsCertLocality        = "SC"
-        DefaultCACertValidiy          = 5
-	DefaultRootCACommonName       = "SVSCA"
-        DefaultPort                   = 8445
-        DefaultSvsCertOrganization    = "INTEL"
-        DefaultSvsCertCountry         = "US"
-	DefaultTokenDurationMins      = 240
 	DefaultIntelProvServerURL     = "https://api.trustedservices.intel.com/sgx/certification/v2/"
+	DefaultJwtValidateCacheKeyMins = 60
+	CmsTlsCertDigestEnv           = "CMS_TLS_CERT_SHA384"
+	DefaultReadTimeout             = 30 * time.Second
+	DefaultReadHeaderTimeout       = 10 * time.Second
+	DefaultWriteTimeout            = 10 * time.Second
+	DefaultIdleTimeout             = 10 * time.Second
+	DefaultMaxHeaderBytes          = 1 << 20
+	DefaultLogEntryMaxLength      = 300
 	Fmspc_Key                     = "fmspc"
 	Misc_Select                   = "miscselect"
 	Misc_SelectMask               = "miscselectMask"
@@ -82,25 +70,3 @@ const (
 	ProxyEnable   = true
 	ProxyDisable  = false
 )
-const (
-        // privileges granted: GET_ANY_HOST, DELETE_ANY_HOST, QUERY_REPORT, VERSION, CREATE_HOST
-        AdminGroupName = "Administrators"
-
-        // privileges granted: CREATE_HOST
-        RegisterHostGroupName = "RegisterHosts"
-
-        // privileges granted: GET_HOST, POST_REPORT
-        HostSelfUpdateGroupName = "HostSelfUpdate"
-
-        RoleAndUserManagerGroupName = "RoleAndUserManager"
-
-        RoleManagerGroupName = "RoleManager"
-
-        UserManagerGroupName = "UserManager"
-
-        UserRoleManagerGroupName = "UserRoleManager"
-)
-
-func GetDefaultAdministratorRoles() []string {
-        return []string{"RoleManager", "UserManager", "UserRoleManager"}
-}

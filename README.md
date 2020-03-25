@@ -1,21 +1,21 @@
-# Certificate Management Service
+# SGX Verification Service
 
-`Certificate Management Service` is a web service whose purpose is to manage all Certificates in ecosystem
+`SGX Verification Service` is a web service whose job is to verify SGX ECDSA Quotes
 
 ## Key features
-- Provides self signed Root CA
-- Sign rest of the certificates in ecosystem by Root CA
+- Verify if PCK Certificate in a quote is genuine
+- Verify TcbInfo, PCKCRL, QEIdentity for a platform
 - RESTful APIs for easy and versatile access to above features
 
 ## System Requirements
-- RHEL 7.5/7.6
-- Epel 7 Repo
+- RHEL 8.1
+- Epel 8 Repo
 - Proxy settings if applicable
 
 ## Software requirements
 - git
 - makeself
-- Go 11.4 or newer
+- Go 1.13.1 or newer
 
 # Step By Step Build Instructions
 
@@ -26,47 +26,41 @@
 sudo yum install -y git wget makeself
 ```
 
-### Install `go 1.11.4` or newer
-The `Certificate Management Service` requires Go version 11.4 that has support for `go modules`. The build was validated with version 11.4 version of `go`. It is recommended that you use a newer version of `go` - but please keep in mind that the product has been validated with 1.11.4 and newer versions of `go` may introduce compatibility issues. You can use the following to install `go`.
+### Install `go 1.14.1` or newer
+The `Certificate Management Service` requires Go version 11.4 that has support for `go modules`. The build was validated with version 14.1 version of `go`. It is recommended that you use a newer version of `go` - but please keep in mind that the product has been validated with 1.14.1 and newer versions of `go` may introduce compatibility issues. You can use the following to install `go`.
 ```shell
-wget https://dl.google.com/go/go1.11.4.linux-amd64.tar.gz
-tar -xzf go1.11.4.linux-amd64.tar.gz
+wget https://dl.google.com/go/go1.14.1.linux-amd64.tar.gz
+tar -xzf go1.14.1.linux-amd64.tar.gz
 sudo mv go /usr/local
 export GOROOT=/usr/local/go
 export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 ```
 
-## Build Certificate Management service
+## Build SGX Verification service
 
-- Git clone the Certificate Management service
-- Run scripts to build the Certificate Management service
+- Git clone the SGX Verification service
+- Run scripts to build the SGX Verification service
 
 ```shell
-git clone https://github.com/intel-secl/certificate-management-service.git
-cd certificate-management-service
+git clone https://github.com/intel-secl/sgx-verification-service.git
+cd sgx-verification-service
 make all
 ```
 
 ### Deploy
 ```console
-> ./cms-*.bin
-```
-
-OR
-
-```console
-> docker-compose -f dist/docker/docker-compose.yml up
+> ./svs-*.bin
 ```
 
 ### Manage service
 * Start service
-    * cms start
+    * svs start
 * Stop service
-    * cms stop
+    * svs stop
 * Restart service
-    * cms restart
+    * svs restart
 * Status of service
-    * cms status
+    * svs status
 
 # Third Party Dependencies
 
@@ -78,26 +72,26 @@ OR
 | ----------- | --------------------------- | :--------------------------------: |
 | uuid        | github.com/google/uuid      | v1.1.1                             |
 | context     | github.com/gorilla/context  | v1.1.1                             |
-| handlers    | github.com/gorilla/handlers | v1.4.0                             |
-| mux         | github.com/gorilla/mux      | v1.7.0                             |
-| gorm        | github.com/jinzhu/gorm      | v1.9.2                             |
-| logrus      | github.com/sirupsen/logrus  | v1.3.0                             |
-| testify     | github.com/stretchr/testify | v1.3.0                             |
-| crypto      | golang.org/x/crypto         | v0.0.0-20190219172222-a4c6cb3142f2 |
-| yaml.v2     | gopkg.in/yaml.v2            | v2.2.2                             |
-| time        | golang.org/x/time           | v0.0.0-20190308202827-9d24e82272b4 |
+| handlers    | github.com/gorilla/handlers | v1.4.2                             |
+| mux         | github.com/gorilla/mux      | v1.7.4                             |
 | jwt-go      | github.com/dgrijalva/jwt-go | v3.2.0+incompatible                |
-| authservice | intel/isecl/authservice     | v0.0.0	                         |
-| common      | intel/isecl/lib/common      | v1.0.0-Beta                        |
+| gorm        | github.com/jinzhu/gorm      | v1.9.12                            |
+| logrus      | github.com/sirupsen/logrus  | v1.4.2                             |
+| testify     | github.com/stretchr/testify | v1.5.1                             |
+| crypto      | golang.org/x/crypto         | v0.0.0-20200320181102-891825fb96df
+| time        | golang.org/x/time           | v0.0.0-20191024005414-555d28b269f0 |
+| yaml.v2     | gopkg.in/yaml.v2            | v2.2.2                             |
+| authservice | intel/isecl/authservice     | v2.1/develop                       |
+| common      | intel/isecl/lib/common      | v2.1/develo                        |
 
 ### Indirect Dependencies
 
 | Repo URL                     | Minimum version required           |
 | -----------------------------| :--------------------------------: |
-| github.com/jinzhu/inflection | v0.0.0-20180308033659-04140366298a |
+| github.com/jinzhu/inflection | v1.0.0                             |
 | github.com/lib/pq            | v1.0.0                             |
 
 *Note: All dependencies are listed in go.mod*
 
 # Links
-https://01.org/intel-secl/cms
+https://01.org/intel-secl/svs

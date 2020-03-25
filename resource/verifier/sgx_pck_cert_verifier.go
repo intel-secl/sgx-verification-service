@@ -13,12 +13,8 @@ import (
 	"intel/isecl/svs/constants"
 )
 
-
 func VerifyPCKCertificate(pckCert *x509.Certificate, interCA []*x509.Certificate, RootCA []*x509.Certificate,
-					crl []*pkix.CertificateList, trustedRootCA *x509.Certificate) (bool, error){
-	log.Trace("resource/verifier/sgx_pck_cert_verifier:VerifyPCKCertificate() Entering")
-	defer log.Trace("resource/verifier/sgx_pck_cert_verifier:VerifyPCKCertificate() Leaving")
-
+				crl []*pkix.CertificateList, trustedRootCA *x509.Certificate) (bool, error) {
 	if pckCert == nil || len(interCA) == 0 || len(RootCA) == 0 || len(crl)==0 {
 		return false, errors.New("VerifyPCKCertificate: Invalid Inter/Root ca certs, CRL data")
 	}
@@ -50,7 +46,7 @@ func VerifyPCKCertificate(pckCert *x509.Certificate, interCA []*x509.Certificate
 	}
 
 	if strings.Compare( string(trustedRootCA.Signature), string(RootCA[0].Signature)) != 0 {
-                return false, errors.New("VerifyTcbInfo: Trusted CA Verification Failed")
+		return false, errors.New("VerifyTcbInfo: Trusted CA Verification Failed")
         }
 
 	_, err := pckCert.Verify(opts)
@@ -59,7 +55,7 @@ func VerifyPCKCertificate(pckCert *x509.Certificate, interCA []*x509.Certificate
 		return false, errors.Wrap(err,"VerifyPCKCertificate: verify certificate")
 	}
 
-	for i:=0; i<len(crl); i++{
+	for i:=0; i<len(crl); i++ {
 		log.Debug("CRL Revoked Certifate Count:", len(crl[i].TBSCertList.RevokedCertificates))
 		for _, crlObj := range crl[i].TBSCertList.RevokedCertificates  {
 			if pckCert.SerialNumber.Cmp(crlObj.SerialNumber) ==  0  {

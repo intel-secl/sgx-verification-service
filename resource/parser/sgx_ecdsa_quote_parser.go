@@ -2,7 +2,6 @@
  * Copyright (C) 2019 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
 package parser
 
 import (
@@ -17,140 +16,131 @@ import (
 	"gopkg.in/restruct.v1"
 	clog "intel/isecl/lib/common/log"
 	"github.com/pkg/errors"
-
 )
 
 var log = clog.GetDefaultLogger()
 var slog = clog.GetSecurityLogger()
 
 const (
-        SgxReportBodyReserved1Bytes     = 12
-        SgxReportBodyReserved2Bytes     = 32
-        SgxReportBodyReserved3Bytes     = 32
-        SgxReportBodyReserved4Bytes     = 42
-        SgxIsvextProdIdSize             = 16
-        SgxIsvFamilyIdSize              = 16
-        SgxReportDataSize               = 64
-        SgxEpidGroupIdsize              = 4
-        SgxBaseNamesize                 = 32
-        SgxConfigIdSize                 = 64
-        SgxCpusvnSize                   = 16
-        SgxHashSize                     = 32
-        QuoteReservedBytes                 = 4
-        QuoteHeaderUuidSize                = 16
-        QuoteHeaderUserDataSize            = 20
-        QuoteReserved1Bytes                = 28
-        QuoteReserved2Bytes                = 32
-        QuoteReserved3Bytes                = 96
-        QuoteReserved4Bytes                = 60
-        QuoteEnclaveReportCpuSvnSize       = 16
-        QuoteEnclaveReportAttributesSize   = 16
-        QuoteEnclaveReportMrEnclaveSize    = 32
-        QuoteEnclaveReportMrSignerSize     = 32
-        QuoteEnclaveReportDataSize         = 64
-        QuoteEcdsa256BitSignatureSize      = 64
-        QuoteEcdsa256BitPubkeySize         = 64
+	SgxReportBodyReserved1Bytes     = 12
+	SgxReportBodyReserved2Bytes     = 32
+	SgxReportBodyReserved3Bytes     = 32
+	SgxReportBodyReserved4Bytes     = 42
+	SgxIsvextProdIdSize             = 16
+	SgxIsvFamilyIdSize              = 16
+	SgxReportDataSize               = 64
+	SgxEpidGroupIdsize              = 4
+	SgxBaseNamesize                 = 32
+	SgxConfigIdSize                 = 64
+	SgxCpusvnSize                   = 16
+	SgxHashSize                     = 32
+	QuoteReservedBytes                 = 4
+	QuoteHeaderUuidSize                = 16
+	QuoteHeaderUserDataSize            = 20
+	QuoteReserved1Bytes                = 28
+	QuoteReserved2Bytes                = 32
+	QuoteReserved3Bytes                = 96
+	QuoteReserved4Bytes                = 60
+	QuoteEnclaveReportCpuSvnSize       = 16
+	QuoteEnclaveReportAttributesSize   = 16
+	QuoteEnclaveReportMrEnclaveSize    = 32
+	QuoteEnclaveReportMrSignerSize     = 32
+	QuoteEnclaveReportDataSize         = 64
+	QuoteEcdsa256BitSignatureSize      = 64
+	QuoteEcdsa256BitPubkeySize         = 64
 )
 
 //Nested Structure of SgxQuote
-type BaseNameT struct{
-	Name [SgxBaseNamesize]uint8 
+type BaseNameT struct {
+	Name [SgxBaseNamesize]uint8
 }
 
 // Ecdsa Structure sequence - 1
 type SgxQuote struct {
-    Version               	uint16                                       /* 0   */
-    SignType                    uint16                                       /* 2   */
-    EpidGroupId                 [SgxEpidGroupIdsize]uint8          	     /* 4   */
-    QeSvn                       uint16                                       /* 8   */
-    PceSvn                      uint16                                       /* 10  */
-    Xeid                        uint32                                       /* 12  */
-    BaseName		 	BaseNameT				     /* 48  */
-    ReportBody 			ReportBodyT		
-    SignatureLen                uint32            			     /* 432 */ 
-    Signature			[]byte
+	Version		uint16				/* 0   */
+	SignType	uint16				/* 2   */
+	EpidGroupId	[SgxEpidGroupIdsize]uint8	/* 4   */
+	QeSvn		uint16				/* 8   */
+	PceSvn		uint16				/* 10  */
+	Xeid		uint32				/* 12  */
+	BaseName	BaseNameT			/* 48  */
+	ReportBody	ReportBodyT
+	SignatureLen	uint32				/* 432 */
+	Signature	[]byte
 }
 
 //Nested Structure of SgxQuote
 type ReportBodyT struct {
-	CpuSvn       		[SgxCpusvnSize]uint8                  /* (0) Security Version of the CPU */
-        MiscSelect   		uint32                                /* (16) Which fields defined in SSA.MISC */
-        Reserved1    		[SgxReportBodyReserved1Bytes]uint8    /* (20) */
-        SgxIsvextProdId   	[SgxIsvextProdIdSize]uint8            /* (32) ISV assigned Extended Product ID */
-        SgxAttributes  struct {                                	      /* (48) Any special Capabilities the Enclave possess */
-		Flags     uint64
-               	Xfrm      uint64
-        }
-        MrEnclave        	[SgxHashSize]uint8                    /* ( 64) The value of the enclave's ENCLAVE measurement */
-        Reserved2        	[SgxReportBodyReserved2Bytes]uint8    /* ( 96) */
-        MrSigner         	[SgxHashSize]uint8                    /* (128) The value of the enclave's SIGNER measurement */
-        Reserved3        	[SgxReportBodyReserved3Bytes]uint8    /* (160) */
-        ConfigId         	[SgxConfigIdSize]uint8                /* (192) CONFIGID */
-        SgxIsvProdId     	uint16                                /* (256) Product ID of the Enclave */
-        SgxIsvSvn        	uint16                                /* (258) Security Version of the Enclave */
-        SgxConfigSvn     	uint16                                /* (260) CONFIGSVN */
-        Reserved4        	[SgxReportBodyReserved4Bytes]uint8    /* (262) */
-        SgxIsvFamilyId   	[SgxIsvFamilyIdSize]uint8             /* (304) ISV assigned Family ID */
-        SgxReportData    	[SgxReportDataSize]uint8              /* (320) Data provided by the user */
-}                                                                       
-
-
+	CpuSvn			[SgxCpusvnSize]uint8			/* (0) Security Version of the CPU */
+	MiscSelect		uint32					/* (16) Which fields defined in SSA.MISC */
+	Reserved1		[SgxReportBodyReserved1Bytes]uint8	/* (20) */
+	SgxIsvextProdId		[SgxIsvextProdIdSize]uint8		/* (32) ISV assigned Extended Product ID */
+	SgxAttributes  struct {						/* (48) Any special Capabilities the Enclave possess */
+		Flags	uint64
+		Xfrm	uint64
+	}
+	MrEnclave		[SgxHashSize]uint8                    /* ( 64) The value of the enclave's ENCLAVE measurement */
+	Reserved2		[SgxReportBodyReserved2Bytes]uint8    /* ( 96) */
+	MrSigner		[SgxHashSize]uint8                    /* (128) The value of the enclave's SIGNER measurement */
+	Reserved3		[SgxReportBodyReserved3Bytes]uint8    /* (160) */
+	ConfigId		[SgxConfigIdSize]uint8                /* (192) CONFIGID */
+	SgxIsvProdId		uint16                                /* (256) Product ID of the Enclave */
+	SgxIsvSvn		uint16                                /* (258) Security Version of the Enclave */
+	SgxConfigSvn		uint16                                /* (260) CONFIGSVN */
+	Reserved4		[SgxReportBodyReserved4Bytes]uint8    /* (262) */
+	SgxIsvFamilyId		[SgxIsvFamilyIdSize]uint8             /* (304) ISV assigned Family ID */
+	SgxReportData		[SgxReportDataSize]uint8              /* (320) Data provided by the user */
+}
 
 // Ecdsa Structure sequence - 2
 type SgxEcdsaSignatureData struct {
 	Signature		[64]uint8
 	PublicKey		[64]uint8
-	ReportBody      	ReportBodyT
-	ReportSignature 	[64]uint8
-	AuthCertificateData 	[]uint8 //3588
+	ReportBody		ReportBodyT
+	ReportSignature		[64]uint8
+	AuthCertificateData	[]uint8 //3588
 }
-
 
 // Ecdsa Structure sequence - 3
 type QeAuthData struct {
-        ParsedDataSize   uint16
-        Data             []byte
+	ParsedDataSize   uint16
+	Data             []byte
 }
 
 // Ecdsa Structure sequence - 4
 type QeCertData struct {
-        Type           uint16
-        ParsedDataSize uint32
-        Data           []byte
+	Type           uint16
+	ParsedDataSize uint32
+	Data           []byte
 }
 
-
-type SgxQuoteParsed struct{
-	Header 		     	SgxQuote
-	Ecdsa256SignatureData 	SgxEcdsaSignatureData
-	QuoteAuthData 	     	QeAuthData
-	QuoteCertData 	     	QeCertData
-	RawQuoteFull  		[]byte
-	RawQuoteLen   		int
-	EcdsaBlob1   		[]byte
-	EcdsaBlob2   		[]byte
+type SgxQuoteParsed struct {
+	Header			SgxQuote
+	Ecdsa256SignatureData	SgxEcdsaSignatureData
+	QuoteAuthData		QeAuthData
+	QuoteCertData		QeCertData
+	RawQuoteFull		[]byte
+	RawQuoteLen		int
+	EcdsaBlob1		[]byte
+	EcdsaBlob2		[]byte
 	PCKCert			*x509.Certificate
 	RootCA			map[string]*x509.Certificate
 	InterMediateCA		map[string]*x509.Certificate
 }
 
-
-func ParseEcdsaEncodedQuoteBlob( rawQuote []byte) ( *SgxQuoteParsed ){
-	log.Trace("resource/parser/sgx_ecdsa_quote_parser:ParseEcdsaEncodedQuoteBlob() Entering")
-	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:ParseEcdsaEncodedQuoteBlob() Leaving")
-
+func ParseEcdsaEncodedQuoteBlob( rawQuote []byte) (*SgxQuoteParsed) {
 	if len(rawQuote) < 1 {
 		log.Info("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote is Empty")
 		return nil
 	}
 
-	parsedObj := new( SgxQuoteParsed )
+	parsedObj := new(SgxQuoteParsed)
 	decodedQuote, err := base64.StdEncoding.DecodeString(string(rawQuote))
-        if err != nil {
-                log.Info("Failed to Decode Quote")
+	if err != nil {
+		log.Info("Failed to Decode Quote")
 		return nil
-        }
-	_, err = parsedObj.ParseRawECDSAQuote( decodedQuote )
+	}
+	_, err = parsedObj.ParseRawECDSAQuote(decodedQuote)
 	if err != nil {
 		log.Info("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote parsing error", err.Error())
 		return nil
@@ -158,10 +148,7 @@ func ParseEcdsaEncodedQuoteBlob( rawQuote []byte) ( *SgxQuoteParsed ){
 	return parsedObj
 }
 
-func ParseEcdsaQuoteBlob( rawBlob []byte) ( *SgxQuoteParsed ){
-	log.Trace("resource/parser/sgx_ecdsa_quote_parser:ParseEcdsaQuoteBlob() Entering")
-	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:ParseEcdsaQuoteBlob() Leaving")
-
+func ParseEcdsaQuoteBlob( rawBlob []byte) (*SgxQuoteParsed) {
 	if len(rawBlob) < 1 {
 		log.Info("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote is Empty")
 		return nil
@@ -175,12 +162,7 @@ func ParseEcdsaQuoteBlob( rawBlob []byte) ( *SgxQuoteParsed ){
 	return parsedObj
 }
 
-
-
-func SwapByte32(val uint32 ) ( uint32 ) {
-	log.Trace("resource/parser/sgx_ecdsa_quote_parser:SwapByte32() Entering")
-	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:SwapByte32() Leaving")
-
+func SwapByte32(val uint32 ) (uint32) {
 	return val
 
 	log.Printf("Before wapping 32 :0x%04x", val)
@@ -190,11 +172,7 @@ func SwapByte32(val uint32 ) ( uint32 ) {
 	return swapped
 }
 
-
-func SwapByte16(val uint16 ) ( uint16 ) {
-	log.Trace("resource/parser/sgx_ecdsa_quote_parser:SwapByte16() Entering")
-	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:SwapByte16() Leaving")
-
+func SwapByte16(val uint16 ) (uint16) {
 	return val
 	log.Printf("Before wapping 16 :0x%02x", val)
 	var swapped uint16 = ((val << 8) | (val >> 8))
@@ -202,12 +180,9 @@ func SwapByte16(val uint16 ) ( uint16 ) {
 	return swapped
 }
 
-func (e *SgxQuoteParsed) GetRawBlob1() ([]byte, error){
-	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetRawBlob1() Entering")
-	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetRawBlob1() Leaving")
-
+func (e *SgxQuoteParsed) GetRawBlob1() ([]byte, error) {
 	var err error
-	BlobLen := len(e.EcdsaBlob1)	
+	BlobLen := len(e.EcdsaBlob1)
 	if BlobLen < 1 {
 		return nil, errors.Wrap(err, "GetRawBlob1: Invalid Raw Blob1 Len")
 	}
@@ -215,10 +190,8 @@ func (e *SgxQuoteParsed) GetRawBlob1() ([]byte, error){
 	copy( Blob1, e.EcdsaBlob1 )
 	return Blob1, nil
 }
-func (e *SgxQuoteParsed) GetSHA256Hash() ([]byte){
-	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetSHA256Hash() Entering")
-	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetSHA256Hash() Leaving")
 
+func (e *SgxQuoteParsed) GetSHA256Hash() ([]byte) {
 	HashValue := make( []byte, sha256.Size  )
 	for i:=0; i<sha256.Size; i++ {
 		HashValue[i] = e.Header.ReportBody.SgxReportData[i]
@@ -226,10 +199,7 @@ func (e *SgxQuoteParsed) GetSHA256Hash() ([]byte){
 	return HashValue
 }
 
-func (e *SgxQuoteParsed) GenerateRawBlob2() ( error){
-	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GenerateRawBlob2() Entering")
-	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GenerateRawBlob2() Leaving")
-
+func (e *SgxQuoteParsed) GenerateRawBlob2() (error) {
 	var err error
 	var rawBlobSize2 =  48 + 384
 	if e.RawQuoteFull == nil || len(e.RawQuoteFull) < rawBlobSize2 {
@@ -242,10 +212,7 @@ func (e *SgxQuoteParsed) GenerateRawBlob2() ( error){
 	return nil
 }
 
-func (e *SgxQuoteParsed) GenerateRawBlob1() ( error){
-	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GenerateRawBlob1() Entering")
-	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GenerateRawBlob1() Leaving")
-
+func (e *SgxQuoteParsed) GenerateRawBlob1() (error) {
 	var offset int = 0
 	report := e.Ecdsa256SignatureData.ReportBody
 	e.EcdsaBlob1 = make( []byte, 384)
@@ -268,7 +235,6 @@ func (e *SgxQuoteParsed) GenerateRawBlob1() ( error){
 		e.EcdsaBlob1[ offset ]=report.Reserved1[i]
 		offset += 1
 	}
-
 
 	for i:=0; i<len(report.SgxIsvextProdId); i++ {
 		e.EcdsaBlob1[ offset ]=report.SgxIsvextProdId[i]
@@ -316,7 +282,6 @@ func (e *SgxQuoteParsed) GenerateRawBlob1() ( error){
 		offset += 1
 	}
 
-
 	sgxIsvProdId := SwapByte16( report.SgxIsvProdId )
 	sgxIsvProdIdArr := make([]byte, 2)
 	binary.LittleEndian.PutUint16(sgxIsvProdIdArr, sgxIsvProdId)
@@ -334,7 +299,6 @@ func (e *SgxQuoteParsed) GenerateRawBlob1() ( error){
 		e.EcdsaBlob1[ offset ]=sgxIsvSvnArr[i]
 		offset += 1
 	}
-
 
 	sgxConfigSvnArr := make([]byte, 2)
 	binary.LittleEndian.PutUint16(sgxConfigSvnArr, report.SgxConfigSvn)
@@ -364,12 +328,9 @@ func (e *SgxQuoteParsed) GenerateRawBlob1() ( error){
 	return nil
 }
 
-func (e *SgxQuoteParsed) GetRawBlob2() ([]byte, error){
-	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetRawBlob2() Entering")
-	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetRawBlob2() Leaving")
-
+func (e *SgxQuoteParsed) GetRawBlob2() ([]byte, error) {
 	var err error
-	BlobLen := len(e.EcdsaBlob2)	
+	BlobLen := len(e.EcdsaBlob2)
 	if BlobLen < 1 {
 		return nil, errors.Wrap(err, "GetRawBlob2: Invalid Raw Blob-2Len")
 	}
@@ -378,10 +339,7 @@ func (e *SgxQuoteParsed) GetRawBlob2() ([]byte, error){
 	return Blob2, nil
 }
 
-func (e *SgxQuoteParsed) GetQEReportAttributes() ([2]uint64 ){
-	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetQEReportAttributes() Entering")
-	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetQEReportAttributes() Leaving")
-
+func (e *SgxQuoteParsed) GetQEReportAttributes() ([2]uint64) {
        report := e.Ecdsa256SignatureData.ReportBody.SgxAttributes
        ReportAttributes := [2]uint64{}
        ReportAttributes[0] = report.Flags
@@ -389,29 +347,27 @@ func (e *SgxQuoteParsed) GetQEReportAttributes() ([2]uint64 ){
        return ReportAttributes
 }
 
-func (e *SgxQuoteParsed) GetQEReportMiscSelect() ( uint32 ){
+func (e *SgxQuoteParsed) GetQEReportMiscSelect() (uint32) {
        return e.Ecdsa256SignatureData.ReportBody.MiscSelect
 }
-func (e *SgxQuoteParsed) GetQEReportMiscMrEnclave() ( [SgxHashSize]uint8 ){
+
+func (e *SgxQuoteParsed) GetQEReportMiscMrEnclave() ([SgxHashSize]uint8) {
        return e.Ecdsa256SignatureData.ReportBody.MrEnclave
 }
-func (e *SgxQuoteParsed) GetQEReportMrSigner() ( [SgxHashSize]uint8 ){
+
+func (e *SgxQuoteParsed) GetQEReportMrSigner() ([SgxHashSize]uint8) {
        return e.Ecdsa256SignatureData.ReportBody.MrSigner
 }
 
-func (e *SgxQuoteParsed) GetQEReportProdId() ( uint16 ){
+func (e *SgxQuoteParsed) GetQEReportProdId() (uint16) {
        return e.Ecdsa256SignatureData.ReportBody.SgxIsvProdId
 }
 
-func (e *SgxQuoteParsed) GetQEReportIsvSvn() ( uint16 ){
+func (e *SgxQuoteParsed) GetQEReportIsvSvn() (uint16) {
        return e.Ecdsa256SignatureData.ReportBody.SgxIsvSvn
 }
 
-
 func (e *SgxQuoteParsed) DumpSGXQuote(){
-	log.Trace("resource/parser/sgx_ecdsa_quote_parser:DumpSGXQuote() Entering")
-	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:DumpSGXQuote() Leaving")
-
 	log.Debug("Version = ",e.Header.Version)
         log.Debug("SignType = ",e.Header.SignType)
         log.Debug("EpidGroupId = ",e.Header.EpidGroupId)
@@ -451,37 +407,24 @@ func (e *SgxQuoteParsed) DumpSGXQuote(){
 }
 
 func  (e *SgxQuoteParsed) GetECDSASignature1()([]byte){
-	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetECDSASignature1() Entering")
-	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetECDSASignature1() Leaving")
-	
-	Signature1 := make( []byte, len(e.Ecdsa256SignatureData.ReportSignature))
+	Signature1 := make([]byte, len(e.Ecdsa256SignatureData.ReportSignature))
 	copy( Signature1, e.Ecdsa256SignatureData.ReportSignature[:])
 	return Signature1
 }
 
 func  (e *SgxQuoteParsed) GetECDSASignature2()([]byte){
-	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetECDSASignature2() Entering")
-	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetECDSASignature2() Leaving")
-	
-	Signature2 := make( []byte, len(e.Ecdsa256SignatureData.Signature))
+	Signature2 := make([]byte, len(e.Ecdsa256SignatureData.Signature))
 	copy( Signature2, e.Ecdsa256SignatureData.Signature[:])
 	return Signature2
 }
 
 func  (e *SgxQuoteParsed) GetECDSAPublicKey2()([]byte){
-	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetECDSAPublicKey2() Entering")
-	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetECDSAPublicKey2() Leaving")
-
-	
-	PublicKey2 := make( []byte, len(e.Ecdsa256SignatureData.PublicKey))
+	PublicKey2 := make([]byte, len(e.Ecdsa256SignatureData.PublicKey))
 	copy( PublicKey2, e.Ecdsa256SignatureData.PublicKey[:])
 	return PublicKey2
 }
 
 func (e *SgxQuoteParsed) GetQuotePckCertObj()(*x509.Certificate){
-	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetQuotePckCertObj() Entering")
-	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetQuotePckCertObj() Leaving")
-
 	var copyPCKCert *x509.Certificate
 	copyPCKCert = e.PCKCert
 	return copyPCKCert
@@ -489,40 +432,31 @@ func (e *SgxQuoteParsed) GetQuotePckCertObj()(*x509.Certificate){
 
 
 func (e *SgxQuoteParsed) GetQuotePckCertInterCAList()([]*x509.Certificate){
-	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetQuotePckCertInterCAList() Entering")
-	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetQuotePckCertInterCAList() Leaving")
-
-	interMediateCAArr := make( []*x509.Certificate, len(e.InterMediateCA))
-	var i  int=0	
-	for _, v := range e.InterMediateCA { 
+	interMediateCAArr := make([]*x509.Certificate, len(e.InterMediateCA))
+	var i  int=0
+	for _, v := range e.InterMediateCA {
 		interMediateCAArr[i] = v
 		i += 1
-	}	
+	}
 	return interMediateCAArr
 }
 
 func (e *SgxQuoteParsed) GetQuotePckCertRootCAList()([]*x509.Certificate){
-	log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetQuotePckCertRootCAList() Entering")
-	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:GetQuotePckCertRootCAList() Leaving")
-
-	RootCAArr := make( []*x509.Certificate, len(e.RootCA))
-	var i  int=0	
-	for _, v := range e.RootCA { 
+	RootCAArr := make([]*x509.Certificate, len(e.RootCA))
+	var i  int=0
+	for _, v := range e.RootCA {
 		RootCAArr[i] = v
 		i += 1
-	}	
+	}
 	return RootCAArr
 }
 
 func  (e *SgxQuoteParsed) ParseQuoteCertificates()(error){
-	log.Trace("resource/parser/sgx_ecdsa_quote_parser:ParseQuoteCertificates() Entering")
-	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:ParseQuoteCertificates() Leaving")
-
 	if e.QuoteCertData.Type != 5 {
 		return errors.New(fmt.Sprintf("Invalid Certificate type in Quote Info: %d", e.QuoteCertData.Type))
 	}
 
-	certs := strings.SplitAfterN(string(e.QuoteCertData.Data), "-----END CERTIFICATE-----",  
+	certs := strings.SplitAfterN(string(e.QuoteCertData.Data), "-----END CERTIFICATE-----",
 			strings.Count(string(e.QuoteCertData.Data), "-----END CERTIFICATE-----"))
 
 	var PckCertCount int=0
@@ -533,14 +467,14 @@ func  (e *SgxQuoteParsed) ParseQuoteCertificates()(error){
 	e.RootCA = make(map[string]*x509.Certificate)
 	e.InterMediateCA = make(map[string]*x509.Certificate)
 	for i:=0; i<len(certs); i++{
-		block, _ := pem.Decode( []byte( certs[i] ))
+		block, _ := pem.Decode([]byte( certs[i]))
 		if block == nil{
-			log.Info("Error in pem decode")
-			return errors.Wrap(err,"ParseQuoteCertificates: error in pem decode")
+			log.Info("Error while decoding PCK Cert Chain in Quote")
+			return errors.Wrap(err,"ParseQuoteCertificates: error while decoding PCK Certchain in Quote")
 		}
-		cert, err := x509.ParseCertificate( block.Bytes )
+		cert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
-                	log.Error("ParseCertificate error")
+			log.Error("ParseCertificate error")
 			return errors.Wrap(err, "ParseQuoteCertificates: ParseCertificate error")
 		}
 
@@ -554,7 +488,7 @@ func  (e *SgxQuoteParsed) ParseQuoteCertificates()(error){
 			e.RootCA[cert.Subject.String()] = cert
 		}
 
-		if strings.Contains(cert.Subject.String(), "CN=Intel SGX PCK Processor CA") || 
+		if strings.Contains(cert.Subject.String(), "CN=Intel SGX PCK Processor CA") ||
 			strings.Contains(cert.Subject.String(), "CN=Intel SGX PCK Platform CA"){
 			IntermediateCACount += 1
 			e.InterMediateCA[cert.Subject.String()] = cert
@@ -563,7 +497,7 @@ func  (e *SgxQuoteParsed) ParseQuoteCertificates()(error){
 		log.Debug("Cert[" ,i, "]Issuer:", cert.Issuer.String(), ", Subject:", cert.Subject.String())
 	}
 
-	if PckCertCount == 0 || RootCACount == 0 || IntermediateCACount == 0 {
+	if (PckCertCount == 0 || RootCACount == 0 || IntermediateCACount == 0) {
 		return errors.New( fmt.Sprintf("Quote Certificate Data invalid count: Pck Cert Count:%d, IntermediateCA Count:%d, RootCA Count:%d", PckCertCount, IntermediateCACount, RootCACount))
 	}
 
@@ -571,34 +505,30 @@ func  (e *SgxQuoteParsed) ParseQuoteCertificates()(error){
 	return nil
 }
 
-
 func (e *SgxQuoteParsed) ParseRawECDSAQuote(decodedQuote []byte) (bool, error){
-	log.Trace("resource/parser/sgx_ecdsa_quote_parser:ParseRawECDSAQuote() Entering")
-	defer log.Trace("resource/parser/sgx_ecdsa_quote_parser:ParseRawECDSAQuote() Leaving")
-
 	e.RawQuoteFull = make( []byte, len(decodedQuote))
 	e.RawQuoteLen  = len(decodedQuote)
 	copy(e.RawQuoteFull, decodedQuote)
 
 
 	restruct.Unpack(e.RawQuoteFull, binary.LittleEndian, &e.Header)
-	
+
 	log.Debug("Version = ",e.Header.Version)
         log.Debug("SignType = ",e.Header.SignType)
 	restruct.Unpack(decodedQuote[436:], binary.LittleEndian, &e.Ecdsa256SignatureData)
 
-	err := e.GenerateRawBlob1()	
+	err := e.GenerateRawBlob1()
 	if err != nil {
                 log.Info("GenerateRawBlob1 ended with error")
 		return false, errors.Wrap(err, "resource/parser/sgx_ecdsa_quote_parser:ParseRawECDSAQuote() Failed to GenerateRawBlob1")
 	}
 
-	err = e.GenerateRawBlob2()	
+	err = e.GenerateRawBlob2()
 	restruct.Unpack(decodedQuote[1012:], binary.LittleEndian, &e.QuoteAuthData)
 
         restruct.Unpack(decodedQuote[1046:], binary.LittleEndian, &e.QuoteCertData)
-	e.QuoteCertData.Data= make( []byte, e.QuoteCertData.ParsedDataSize)
-	copy( e.QuoteCertData.Data, decodedQuote[1052:])
+	e.QuoteCertData.Data= make([]byte, e.QuoteCertData.ParsedDataSize)
+	copy(e.QuoteCertData.Data, decodedQuote[1052:])
 
 	err = e.ParseQuoteCertificates()
 	if err != nil {
@@ -606,4 +536,3 @@ func (e *SgxQuoteParsed) ParseRawECDSAQuote(decodedQuote []byte) (bool, error){
 	}
 	return true, nil
 }
-

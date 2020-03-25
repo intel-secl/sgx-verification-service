@@ -2,7 +2,6 @@
  * Copyright (C) 2019 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
 package verifier
 
 import (
@@ -12,117 +11,92 @@ import (
 	"encoding/binary"
 	"github.com/pkg/errors"
 	"intel/isecl/svs/constants"
-
 )
 
-
-func VerifyQEIdentityCertChain( interCA []*x509.Certificate, rootCA []*x509.Certificate, trustedRootCA *x509.Certificate)(bool, error){
-	log.Trace("resource/verifier/sgx_qeidentity_verifier:VerifyQEIdentityCertChain() Entering")
-	defer log.Trace("resource/verifier/sgx_qeidentity_verifier:VerifyQEIdentityCertChain() Leaving")
-
+func VerifyQEIdentityCertChain( interCA []*x509.Certificate, rootCA []*x509.Certificate, trustedRootCA *x509.Certificate)(bool, error) {
 	if len(interCA) == 0 || len(rootCA) == 0 {
 		return false, errors.New("VerifyQEIdentityCertChain: InterCA/RootCA is empty")
 	}
 
-        for i:=0; i<len(interCA);i++ {
-                _, err := VerifyInterCACertificate( interCA[i], rootCA, constants.SGXQEInfoSubjectStr)
-                if err != nil {
-                        return false, errors.Wrap(err, "VerifyQEIdentityCertChain: VerifyInterCACertificate failed")
-                }
-        }
-        for i:=0; i<len(rootCA);i++ {
-                _, err := VerifyRootCACertificate( rootCA[i], constants.SGXRootCACertSubjectStr)
-                if err != nil {
-                        return false, errors.Wrap(err, "VerifyQEIdentityCertChain: VerifyRootCACertificate failed")
-                }
-        }
+	for i := 0; i < len(interCA); i++ {
+		_, err := VerifyInterCACertificate( interCA[i], rootCA, constants.SGXQEInfoSubjectStr)
+		if err != nil {
+			return false, errors.Wrap(err, "VerifyQEIdentityCertChain: VerifyInterCACertificate failed")
+		}
+	}
+	for i := 0; i < len(rootCA); i++ {
+		_, err := VerifyRootCACertificate( rootCA[i], constants.SGXRootCACertSubjectStr)
+		if err != nil {
+			return false, errors.Wrap(err, "VerifyQEIdentityCertChain: VerifyRootCACertificate failed")
+		}
+	}
 
 	if strings.Compare( string(trustedRootCA.Signature), string(rootCA[0].Signature)) != 0 {
-                return false, errors.New("VerifyQEIdentityCertChain: Trusted CA Verification Failed")
-        }
+		return false, errors.New("VerifyQEIdentityCertChain: Trusted CA Verification Failed")
+	}
 	log.Info("Verify QEIdentity CertChain is succesfull")
 	return true, nil
 }
 
-
 func VerifyReportAttributeSize32(QeReportAttribute [32]uint8, attributeName string, attribute string) ( bool, error ) {
-	log.Trace("resource/verifier/sgx_qeidentity_verifier:VerifyReportAttributeSize32() Entering")
-	defer log.Trace("resource/verifier/sgx_qeidentity_verifier:VerifyReportAttributeSize32() Leaving")
-
-        attrArr, err := hex.DecodeString(attribute)
-        if  err != nil {
-                return false,errors.Wrap(err, "VerifyReportAttributeSize32: "+ attributeName +": hex decode failed:")
-        }
-
-	if len(attrArr) != 32 {
-                return false,errors.New("VerifyReportAttributeSize32: "+ attributeName +": Invalid Report attribute") 
+	attrArr, err := hex.DecodeString(attribute)
+	if  err != nil {
+		return false,errors.Wrap(err, "VerifyReportAttributeSize32: "+ attributeName +": hex decode failed:")
 	}
 
-        //attributeInt :=  binary.LittleEndian.Uint32(attrArr)
-	//log.Printf( "VerifyReportAttributeSize32: %s: ReportAttr: 0x%04x, Attr: 0x%04x", attributeName, QeReportAttribute, attributeInt)
+	if len(attrArr) != 32 {
+		return false,errors.New("VerifyReportAttributeSize32: "+ attributeName +": Invalid Report attribute")
+	}
 
-	for i:=0; i<len(attrArr); i++{
+	for i := 0; i < len(attrArr); i++ {
 		if byte(QeReportAttribute[i]) != attrArr[i] {
-                	return false,errors.New("VerifyReportAttributeSize32: "+ attributeName +" validation failed")
+			return false,errors.New("VerifyReportAttributeSize32: "+ attributeName +" validation failed")
 		}
-		//log.Printf("VerifyReportAttributeSize32: val1:0x%02x, val2:0x%02x", QeReportAttribute[i], attrArr[i])
-		
 	}
 	log.Debug("VerifyReportAttributeSize32: "+  attributeName + ": validation passed")
 	return true, nil
 }
 
 func VerifyMiscSelect(reportMiscSelect uint32, miscSelect string, miscSelectMask string) ( bool, error ) {
-	log.Trace("resource/verifier/sgx_qeidentity_verifier:VerifyMiscSelect() Entering")
-	defer log.Trace("resource/verifier/sgx_qeidentity_verifier:VerifyMiscSelect() Leaving")
+	miscSelectQeArr, err := hex.DecodeString(miscSelect)
 
-        //log.Printf("VerifyTCBInfo: reportMiscSelect: %v, mask: %v, reportMisc:%v", reportMiscSelect, miscSelectMask, miscSelect)
-        miscSelectQeArr, err := hex.DecodeString(miscSelect)
-        if  err != nil {
-                return false,errors.Wrap(err, "VerifyMiscSelect: hex decode failed(1)")
-        }
-        miscSelectQe :=  binary.LittleEndian.Uint32(miscSelectQeArr)
+	if  err != nil {
+		return false,errors.Wrap(err, "VerifyMiscSelect: hex decode failed(1)")
+	}
+	miscSelectQe :=  binary.LittleEndian.Uint32(miscSelectQeArr)
 
-        miscSelectMaskQeArr, err := hex.DecodeString(miscSelectMask)
-        if  err != nil {
-                return false, errors.Wrap(err, "VerifyMiscSelect: hex decode failed(1)")
-        }
-        miscSelectMaskQe :=  binary.LittleEndian.Uint32(miscSelectMaskQeArr)
+	miscSelectMaskQeArr, err := hex.DecodeString(miscSelectMask)
+	if  err != nil {
+		return false, errors.Wrap(err, "VerifyMiscSelect: hex decode failed(1)")
+	}
+	miscSelectMaskQe :=  binary.LittleEndian.Uint32(miscSelectMaskQeArr)
 
-
-        //log.Printf("VerifyTCBInfo: reportMiscSelect: 0x%04x, reportMiscSelectQe: 0x%04x, reportMiscSelectMaskQe:0x%04x",
-                                //reportMiscSelect, miscSelectQe, miscSelectMaskQe)
-        if (miscSelectMaskQe & reportMiscSelect) == miscSelectQe {
-                return true, nil
-        }
-        return false, errors.New("VerifyMiscSelect: failed")
+	if (miscSelectMaskQe & reportMiscSelect) == miscSelectQe {
+		return true, nil
+	}
+	return false, errors.New("VerifyMiscSelect: failed")
 }
 
-func VerifyAttributes( reportAttribute [2]uint64, QeAttributes string, QeAttributeMask string) ( bool, error ){
-	log.Trace("resource/verifier/sgx_qeidentity_verifier:VerifyAttributes() Entering")
-	defer log.Trace("resource/verifier/sgx_qeidentity_verifier:VerifyAttributes() Leaving")
-
-
+func VerifyAttributes( reportAttribute [2]uint64, QeAttributes string, QeAttributeMask string) ( bool, error ) {
 	QeAttributeArr, err := hex.DecodeString(QeAttributes)
-        if err != nil {
-                return false, errors.Wrap(err, "VerifyAttributes: QeAttributeArr")
-        }
+	if err != nil {
+		return false, errors.Wrap(err, "VerifyAttributes: QeAttributeArr")
+	}
 
 	if len(QeAttributeArr) != 16 {
-                return false, errors.New("VerifyAttributes: Invalid QeAttribute data")
+		return false, errors.New("VerifyAttributes: Invalid QeAttribute data")
 	}
-	
+
 	QeAttributeFlagsInt :=  binary.LittleEndian.Uint64(QeAttributeArr[:8])
 	QeAttributeXfrmInt :=  binary.LittleEndian.Uint64(QeAttributeArr[8:])
 
-
 	QeAttributeMaskArr, err := hex.DecodeString(QeAttributeMask)
-        if err != nil {
-                return false, errors.Wrap(err, "VerifyAttributes: QeAttributeMaskArr")
-        }
+	if err != nil {
+		return false, errors.Wrap(err, "VerifyAttributes: QeAttributeMaskArr")
+	}
 
 	if len(QeAttributeMaskArr) != 16 {
-                return false, errors.New("VerifyAttributes: Invalid QeAttributeMask data")
+		return false, errors.New("VerifyAttributes: Invalid QeAttributeMask data")
 	}
 
 	QeAttributeMaskFlagsInt :=  binary.LittleEndian.Uint64(QeAttributeMaskArr[:8])
@@ -132,5 +106,5 @@ func VerifyAttributes( reportAttribute [2]uint64, QeAttributes string, QeAttribu
 		(( reportAttribute[1] & QeAttributeMaskXfrmInt ) ==  QeAttributeXfrmInt) {
 		return true, nil
 	}
-        return false, errors.New("VerifyAttributes: failed")
+	return false, errors.New("VerifyAttributes: failed")
 }

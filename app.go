@@ -8,19 +8,25 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509/pkix"
+	"crypto/x509"
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
+	"os/user"
 	"os/signal"
 	"strings"
+	"strconv"
 	"syscall"
 	"time"
-	"path"
 	stdlog "log"
-
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
+	"intel/isecl/lib/common/middleware"
 	"intel/isecl/lib/common/setup"
 	"intel/isecl/lib/common/validation"
 	"intel/isecl/svs/config"
@@ -28,14 +34,12 @@ import (
 	"intel/isecl/svs/resource"
 	"intel/isecl/svs/tasks"
 	"intel/isecl/svs/version"
+	"intel/isecl/lib/common/crypt"
 	e "intel/isecl/lib/common/exec"
 	cos "intel/isecl/lib/common/os"
 	commLog "intel/isecl/lib/common/log"
+	commLogMsg "intel/isecl/lib/common/log/message"
 	commLogInt "intel/isecl/lib/common/log/setup"
-
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
 )
 
 type App struct {
@@ -49,6 +53,7 @@ type App struct {
 	ConsoleWriter  io.Writer
 	LogWriter      io.Writer
 	HTTPLogWriter  io.Writer
+	SecLogWriter   io.Writer
 }
 
 func (a *App) printUsage() {
@@ -58,16 +63,23 @@ func (a *App) printUsage() {
 	fmt.Fprintln(w, "    svs <command> [arguments]")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "Avaliable Commands:")
-	fmt.Fprintln(w, "    help|-h|-help    Show this help message")
-	fmt.Fprintln(w, "    setup [task]     Run setup task")
-	fmt.Fprintln(w, "    start            Start svs")
-	fmt.Fprintln(w, "    status           Show the status of svs")
-	fmt.Fprintln(w, "    stop             Stop svs")
-	fmt.Fprintln(w, "    tlscertsha384    Show the SHA384 of the certificate used for TLS")
-	fmt.Fprintln(w, "    uninstall        Uninstall svs")
-	fmt.Fprintln(w, "    version          Show the version of svs")
+	fmt.Fprintln(w, "    -h|--help			Show this help message")
+	fmt.Fprintln(w, "    setup [task]		Run setup task")
+	fmt.Fprintln(w, "    start			Start svs")
+	fmt.Fprintln(w, "    status			Show the status of svs")
+	fmt.Fprintln(w, "    stop			Stop svs")
+	fmt.Fprintln(w, "    tlscertsha384		Show the SHA384 of the certificate used for TLS")
+	fmt.Fprintln(w, "    uninstall [--purge]	Uninstall SVS. --purge option needs to be applied to remove configuration and data files")
+	fmt.Fprintln(w, "    -v|--version		Show the version of svs")
 	fmt.Fprintln(w, "")
+        fmt.Fprintln(w, "Setup command usage:     scs setup [task] [--arguments=<argument_value>] [--force]")
+        fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "Avaliable Tasks for setup:")
+        fmt.Fprintln(w, "                              Required env variables:")
+        fmt.Fprintln(w, "                                  - get required env variables from all the setup tasks")
+        fmt.Fprintln(w, "                              Optional env variables:")
+        fmt.Fprintln(w, "                                  - get optional env variables from all the setup tasks")
+        fmt.Fprintln(w, "")
         fmt.Fprintln(w, "    svs setup server [--port=<port>]")
         fmt.Fprintln(w, "        - Setup http server on <port>")
         fmt.Fprintln(w, "        - Environment variable SVS_PORT=<port> can be set alternatively")
@@ -84,6 +96,24 @@ func (a *App) printUsage() {
         fmt.Fprintln(w, "        - Environment variable SVS_REG_HOST_USERNAME=<username> can be set alternatively")
         fmt.Fprintln(w, "        - Environment variable SVS_REG_HOST_PASSWORD=<password> can be set alternatively")
         fmt.Fprintln(w, "")
+	fmt.Fprintln(w, "    download_ca_cert      Download CMS root CA certificate")
+	fmt.Fprintln(w, "                          - Option [--force] overwrites any existing files, and always downloads new root CA cert")
+	fmt.Fprintln(w, "                          Required env variables specific to setup task are:")
+	fmt.Fprintln(w, "                              - CMS_BASE_URL=<url>                                : for CMS API url")
+	fmt.Fprintln(w, "                              - CMS_TLS_CERT_SHA384=<CMS TLS cert sha384 hash>    : to ensure that AAS is talking to the right CMS instance")
+	fmt.Fprintln(w, "")
+	fmt.Fprintln(w, "    download_cert TLS     Generates Key pair and CSR, gets it signed from CMS")
+	fmt.Fprintln(w, "                          - Option [--force] overwrites any existing files, and always downloads newly signed TLS cert")
+	fmt.Fprintln(w, "                          Required env variable if SCS_NOSETUP=true or variable not set in config.yml:")
+	fmt.Fprintln(w, "                              - CMS_TLS_CERT_SHA384=<CMS TLS cert sha384 hash>      : to ensure that AAS is talking to the right CMS instance")
+	fmt.Fprintln(w, "                          Required env variables specific to setup task are:")
+	fmt.Fprintln(w, "                              - CMS_BASE_URL=<url>               : for CMS API url")
+	fmt.Fprintln(w, "                              - BEARER_TOKEN=<token>             : for authenticating with CMS")
+	fmt.Fprintln(w, "                              - SAN_LIST=<san>                   : list of hosts which needs access to service")
+	fmt.Fprintln(w, "                          Optional env variables specific to setup task are:")
+	fmt.Fprintln(w, "                              - KEY_PATH=<key_path>              : Path of file where TLS key needs to be stored")
+	fmt.Fprintln(w, "                              - CERT_PATH=<cert_path>            : Path of file/directory where TLS certificate needs to be stored")
+	fmt.Fprintln(w, "")
 }
 
 func (a *App) consoleWriter() io.Writer {
@@ -165,24 +195,25 @@ func (a *App) runDirPath() string {
 var log = commLog.GetDefaultLogger()
 var slog = commLog.GetSecurityLogger()
 
-var secLogFile *os.File
-var defaultLogFile *os.File
+func (a *App) configureLogs(stdOut, logFile bool) {
+	var ioWriterDefault io.Writer
+	ioWriterDefault = a.LogWriter
+	if stdOut {
+		if logFile {
+			ioWriterDefault = io.MultiWriter(os.Stdout, a.LogWriter)
+	} else {
+			ioWriterDefault = os.Stdout
+		}
+	}
 
-func (a *App) configureLogs(isStdOut bool, isFileOut bool) {
-        var ioWriterDefault io.Writer
-        ioWriterDefault = defaultLogFile
-        if isStdOut && isFileOut {
-                ioWriterDefault = io.MultiWriter(os.Stdout, defaultLogFile)
-        } else if isStdOut && !isFileOut {
-                ioWriterDefault = os.Stdout
-        }
+	ioWriterSecurity := io.MultiWriter(ioWriterDefault, a.SecLogWriter)
 
-        ioWriterSecurity := io.MultiWriter(ioWriterDefault, secLogFile)
-        commLogInt.SetLogger(commLog.DefaultLoggerName, a.configuration().LogLevel, nil, ioWriterDefault, false)
-        commLogInt.SetLogger(commLog.SecurityLoggerName, a.configuration().LogLevel, nil, ioWriterSecurity, false)
+	f := commLog.LogFormatter{MaxLength: a.configuration().LogMaxLength}
+	commLogInt.SetLogger(commLog.DefaultLoggerName, a.configuration().LogLevel, &f, ioWriterDefault, false)
+	commLogInt.SetLogger(commLog.SecurityLoggerName, a.configuration().LogLevel, &f, ioWriterSecurity, false)
 
-        slog.Trace("sec log initiated")
-        log.Trace("loggers setup finished")
+	slog.Info(commLogMsg.LogInit)
+	log.Info(commLogMsg.LogInit)
 }
 
 func (a *App) Run(args []string) error {
@@ -191,68 +222,54 @@ func (a *App) Run(args []string) error {
 		a.printUsage()
 		os.Exit(1)
 	}
-        var err error
-        secLogFile, err = os.OpenFile(constants.SecurityLogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0755)
-        if err != nil {
-                log.Errorf("Could not open Security log file")
-        }
-        os.Chmod(constants.SecurityLogFile, 0664)
-        defaultLogFile, err = os.OpenFile(constants.LogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0755)
-        if err != nil {
-                log.Errorf("Could not open default log file")
-        }
-        os.Chmod(constants.LogFile, 0664)
 
-        defer secLogFile.Close()
-        defer defaultLogFile.Close()
-
-        //bin := args[0]
-        isStdOut := false
-        isCMSConsoleEnabled := os.Getenv("SVS_ENABLE_CONSOLE_LOG")
-        if isCMSConsoleEnabled == "true" {
-                isStdOut = true
-        }
-        a.configureLogs(isStdOut, true)
-        cmd := args[1]
+	cmd := args[1]
 	switch cmd {
 	default:
 		a.printUsage()
-		return errors.New("Unrecognized command: " + args[1])	
+		return errors.New("Unrecognized command: " + args[1])
 	case "list":
                 if len(args) < 3 {
                         a.printUsage()
                         os.Exit(1)
                 }
                 return a.PrintDirFileContents(args[2])
+	case "tlscertsha384":
+		a.configureLogs(false, true)
+		hash, err := crypt.GetCertHexSha384(config.Global().TLSCertFile)
+		if err != nil {
+			fmt.Println(err.Error())
+			return err
+		}
+		fmt.Println(hash)
+		return nil
 	case "run":
+		a.configureLogs(config.Global().LogEnableStdout, true)
 		if err := a.startServer(); err != nil {
 			fmt.Fprintln(os.Stderr, "Error: daemon did not start - ", err.Error())
 			// wait some time for logs to flush - otherwise, there will be no entry in syslog
 			time.Sleep(10 * time.Millisecond)
-			return errors.Wrap(err, "app:Run() Error starting SVS service")
+			return err
 		}
-	case "-help":
-		fallthrough
-	case "--h":
-		fallthrough
-	case "--help":
-		fallthrough
-	case "help":
+	case "-h", "--help":
 		a.printUsage()
 	case "start":
+		a.configureLogs(false, true)
 		return a.start()
 	case "stop":
+		a.configureLogs(false, true)
 		return a.stop()
 	case "status":
+		a.configureLogs(false, true)
 		return a.status()
 	case "uninstall":
-		var keepConfig bool
-		flag.CommandLine.BoolVar(&keepConfig, "keep-config", false, "keep config when uninstalling")
+		var purge bool
+		flag.CommandLine.BoolVar(&purge, "purge", false, "purge config when uninstalling")
 		flag.CommandLine.Parse(args[2:])
-		a.uninstall(keepConfig)
+		a.uninstall(purge)
 		os.Exit(0)
-	case "version":
-		fmt.Fprintf(a.consoleWriter(), "sgx verification service %s-%s\n", version.Version, version.GitHash)
+	case "--version", "-v":
+		fmt.Fprintf(a.consoleWriter(), "SGX Verification Service %s-%s\nBuilt %s\n", version.Version, version.GitHash, version.BuildDate)
 	case "setup":
 		a.configureLogs(false, true)
 		var context setup.Context
@@ -265,26 +282,29 @@ func (a *App) Run(args []string) error {
 			args[2] != "download_cert" &&
 			args[2] != "server" &&
 			args[2] != "all" &&
-			args[2] != "tls" &&
-			args[2] != "jwt" {
+			args[2] != "tls" {
 			a.printUsage()
 			return errors.New("No such setup task")
 		}
 
-		valid_err := validateSetupArgs(args[2], args[3:])
-		if valid_err != nil {
-			return errors.Wrap(valid_err, "app:Run() Invalid setup task arguments")
+		err := validateSetupArgs(args[2], args[3:])
+		if err != nil {
+			return err
 		}
 
 		a.Config = config.Global()
-		err := a.Config.SaveConfiguration(context)
+		err = a.Config.SaveConfiguration(context)
 		if err != nil {
 			fmt.Println("Error saving configuration: " + err.Error())
 			os.Exit(1)
 		}
 		task := strings.ToLower(args[2])
 		flags := args[3:]
-		
+
+		if args[2] == "download_cert" && len(args) > 3 {
+			flags = args[4:]
+		}
+
 		a.Config = config.Global()
 		setupRunner := &setup.Runner{
 			Tasks: []setup.Task{
@@ -292,23 +312,20 @@ func (a *App) Run(args []string) error {
                                         Flags:         args,
 					CmsBaseURL:    a.Config.CMSBaseUrl,
                                         CaCertDirPath: constants.TrustedCAsStoreDir,
+					TrustedTlsCertDigest: a.Config.CmsTlsCertDigest,
                                         ConsoleWriter: os.Stdout,
                                 },
 				setup.Download_Cert{
 					Flags:              flags,
-					KeyFile:            path.Join(a.configDir(), constants.TLSKeyFile),
-					CertFile:           path.Join(a.configDir(), constants.TLSCertFile),
+					KeyFile:            a.Config.TLSKeyFile,
+					CertFile:           a.Config.TLSCertFile,
 					KeyAlgorithm:       constants.DefaultKeyAlgorithm,
 					KeyAlgorithmLength: constants.DefaultKeyAlgorithmLength,
 					CmsBaseURL:         a.Config.CMSBaseUrl,
 					Subject: pkix.Name{
-						Country:      []string{a.Config.Subject.Country},
-						Organization: []string{a.Config.Subject.Organization},
-						Locality:     []string{a.Config.Subject.Locality},
-						Province:     []string{a.Config.Subject.Province},
 						CommonName:   a.Config.Subject.TLSCertCommonName,
 					},
-					SanList:       constants.DefaultAasTlsSan,
+					SanList:	a.Config.CertSANList,
 					CertType:      "TLS",
 					CaCertsDir:    constants.TrustedCAsStoreDir,
 					BearerToken:   "",
@@ -322,7 +339,6 @@ func (a *App) Run(args []string) error {
 			},
 			AskInput: false,
 		}
-		a.configureLogs(true, true)
 		if task == "all" {
 			err = setupRunner.RunTasks()
 		} else {
@@ -333,28 +349,57 @@ func (a *App) Run(args []string) error {
 			fmt.Println("Error running setup: ", err)
 			return err
 		}
+		svsUser, err := user.Lookup(constants.SVSUserName)
+		if err != nil {
+			return errors.Wrapf(err,"Could not find user '%s'", constants.SVSUserName)
+		}
+
+		uid, err := strconv.Atoi(svsUser.Uid)
+		if err != nil {
+			return errors.Wrapf(err,"Could not parse scs user uid '%s'", svsUser.Uid)
+		}
+
+		gid, err := strconv.Atoi(svsUser.Gid)
+		if err != nil {
+			return errors.Wrapf(err,"Could not parse scs user gid '%s'", svsUser.Gid)
+		}
+
+		//Change the fileownership to scs user
+
+		err = cos.ChownR(constants.ConfigDir, uid, gid)
+		if err != nil {
+			return errors.Wrap(err,"Error while changing file ownership")
+		}
+		if task == "download_cert" {
+			err = os.Chown(a.Config.TLSKeyFile, uid, gid)
+			if err != nil {
+				return errors.Wrap(err, "Error while changing ownership of TLS Key file")
+			}
+
+			err = os.Chown(a.Config.TLSCertFile, uid, gid)
+			if err != nil {
+				return errors.Wrap(err, "Error while changing ownership of TLS Cert file")
+			}
+		}
 	}
 	return nil
 }
 
-func (a *App) retrieveJWTSigningCerts() error {
-	return nil
-}
-
 func (a *App) startServer() error {
-	log.Trace("app:startServer() Entering")
-	defer log.Trace("app:startServer() Leaving")
-
 	c := a.configuration()
+	log.Info("Starting SVS Server")
 	// Create Router, set routes
 	r := mux.NewRouter()
+	r.SkipClean(true)
 	sr := r.PathPrefix("/svs/v1/").Subrouter()
-        //sr.Use(cmw.NewTokenAuth(constants.TrustedJWTSigningCertsDir, constants.TrustedCAsStoreDir, a.retrieveJWTSigningCerts))
-        func(setters ...func(*mux.Router,*config.Configuration)) {
-                for _, setter := range setters {
-                        setter(sr,c)
-                }
-        }(resource.QuoteVerifyCB)
+	sr.Use(middleware.NewTokenAuth(constants.TrustedJWTSigningCertsDir,
+					constants.TrustedCAsStoreDir, fnGetJwtCerts,
+					constants.DefaultJwtValidateCacheKeyMins))
+	func(setters ...func(*mux.Router,*config.Configuration)) {
+		for _, setter := range setters {
+			setter(sr,c)
+		}
+	}(resource.QuoteVerifyCB)
 
 	tlsconfig := &tls.Config{
 		MinVersion: tls.VersionTLS12,
@@ -372,19 +417,24 @@ func (a *App) startServer() error {
 		Handler:   handlers.RecoveryHandler(handlers.RecoveryLogger(httpLog), handlers.PrintRecoveryStack(true))(handlers.CombinedLoggingHandler(a.httpLogWriter(), r)),
 		ErrorLog:  httpLog,
 		TLSConfig: tlsconfig,
+		ReadTimeout:       c.ReadTimeout,
+		ReadHeaderTimeout: c.ReadHeaderTimeout,
+		WriteTimeout:      c.WriteTimeout,
+		IdleTimeout:       c.IdleTimeout,
+		MaxHeaderBytes:    c.MaxHeaderBytes,
 	}
 
 	// dispatch web server go routine
 	go func() {
-		tlsCert := path.Join(a.configDir(), constants.TLSCertFile)
-		tlsKey := path.Join(a.configDir(), constants.TLSKeyFile)
+		tlsCert := config.Global().TLSCertFile
+		tlsKey := config.Global().TLSKeyFile
 		if err := h.ListenAndServeTLS(tlsCert, tlsKey); err != nil {
 			log.WithError(err).Info("Failed to start HTTPS server")
 			stop <- syscall.SIGTERM
 		}
 	}()
 
-	fmt.Fprintln(a.consoleWriter(), "SGX Verification Service is running")
+	slog.Info(commLogMsg.ServiceStart)
 	// TODO dispatch Service status checker goroutine
 	<-stop
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -393,13 +443,11 @@ func (a *App) startServer() error {
 		log.WithError(err).Info("Failed to gracefully shutdown webserver")
 		return err
 	}
+	slog.Info(commLogMsg.ServiceStop)
 	return nil
 }
 
 func (a *App) start() error {
-	log.Trace("app:start() Entering")
-	defer log.Trace("app:start() Leaving")
-
 	fmt.Fprintln(a.consoleWriter(), `Forwarding to "systemctl start svs"`)
 	systemctl, err := exec.LookPath("systemctl")
 	if err != nil {
@@ -409,9 +457,6 @@ func (a *App) start() error {
 }
 
 func (a *App) stop() error {
-	log.Trace("app:stop() Entering")
-	defer log.Trace("app:stop() Leaving")
-
 	fmt.Fprintln(a.consoleWriter(), `Forwarding to "systemctl stop svs"`)
 	systemctl, err := exec.LookPath("systemctl")
 	if err != nil {
@@ -421,9 +466,6 @@ func (a *App) stop() error {
 }
 
 func (a *App) status() error {
-	log.Trace("app:status() Entering")
-	defer log.Trace("app:status() Leaving")
-
 	fmt.Fprintln(a.consoleWriter(), `Forwarding to "systemctl status svs"`)
 	systemctl, err := exec.LookPath("systemctl")
 	if err != nil {
@@ -432,10 +474,7 @@ func (a *App) status() error {
 	return syscall.Exec(systemctl, []string{"systemctl", "status", "svs"}, os.Environ())
 }
 
-func (a *App) uninstall(keepConfig bool) {
-	log.Trace("app:uninstall() Entering")
-	defer log.Trace("app:uninstall() Leaving")
-
+func (a *App) uninstall(purge bool) {
 	fmt.Println("Uninstalling sgx Verification Service")
 	removeService()
 
@@ -456,7 +495,7 @@ func (a *App) uninstall(keepConfig bool) {
 		log.WithError(err).Error("error removing ", a.execLinkPath())
 	}
 
-	if !keepConfig {
+	if purge {
 		fmt.Println("removing : ", a.configDir())
 		err = os.RemoveAll(a.configDir())
 		if err != nil {
@@ -477,9 +516,6 @@ func (a *App) uninstall(keepConfig bool) {
 	a.stop()
 }
 func removeService() {
-	log.Trace("app:removeService() Entering")
-	defer log.Trace("app:removeService() Leaving")
-
 	_, _, err := e.RunCommandWithTimeout(constants.ServiceRemoveCmd, 5)
 	if err != nil {
 		fmt.Println("Could not remove sgx Verification Service")
@@ -488,19 +524,16 @@ func removeService() {
 }
 
 func validateCmdAndEnv(env_names_cmd_opts map[string]string, flags *flag.FlagSet) error {
-	log.Trace("app:validateCmdAndEnv() Entering")
-	defer log.Trace("app:validateCmdAndEnv() Leaving")
-
 	env_names := make([]string, 0)
 	for k, _ := range env_names_cmd_opts {
 		env_names = append(env_names, k)
 	}
 
-	missing, valid_err := validation.ValidateEnvList(env_names)
-	if valid_err != nil && missing != nil {
+	missing, err := validation.ValidateEnvList(env_names)
+	if err != nil && missing != nil {
 		for _, m := range missing {
 			if cmd_f := flags.Lookup(env_names_cmd_opts[m]); cmd_f == nil {
-				return errors.Wrap(valid_err, "app:validateCmdAndEnv() Insufficient arguments")
+				return errors.New("Insufficient arguments")
 			}
 		}
 	}
@@ -508,9 +541,6 @@ func validateCmdAndEnv(env_names_cmd_opts map[string]string, flags *flag.FlagSet
 }
 
 func validateSetupArgs(cmd string, args []string) error {
-	log.Trace("app:validateSetupArgs() Entering")
-	defer log.Trace("app:validateSetupArgs() Leaving")
-
 	var fs *flag.FlagSet
 
 	switch cmd {
@@ -524,7 +554,6 @@ func validateSetupArgs(cmd string, args []string) error {
 		return nil
 
 	case "admin":
-
                 env_names_cmd_opts := map[string]string{
                         "SVS_ADMIN_USERNAME": "user",
                         "SVS_ADMIN_PASSWORD": "pass",
@@ -540,62 +569,38 @@ func validateSetupArgs(cmd string, args []string) error {
                 }
                 return validateCmdAndEnv(env_names_cmd_opts, fs)
 
-        case "reghost":
-
-                env_names_cmd_opts := map[string]string{
-                        "SVS_REG_HOST_USERNAME": "user",
-                        "SVS_REG_HOST_PASSWORD": "pass",
-                }
-
-                fs = flag.NewFlagSet("reghost", flag.ContinueOnError)
-                fs.String("user", "", "Username for host registration")
-                fs.String("pass", "", "Password for host registration")
-
-                err := fs.Parse(args)
-                if err != nil {
-                        return fmt.Errorf("Fail to parse arguments: %s", err.Error())
-                }
-                return validateCmdAndEnv(env_names_cmd_opts, fs)
-
 	case "server":
 		return nil
 
 	case "tls":
-
 		env_names_cmd_opts := map[string]string{
 			"SVS_TLS_HOST_NAMES": "host_names",
 		}
 
 		fs = flag.NewFlagSet("tls", flag.ContinueOnError)
 		fs.String("host_names", "", "comma separated list of hostnames to add to TLS cert")
-		fs.Bool("force", false, "force run of setup task")
 
 		err := fs.Parse(args)
 		if err != nil {
-			return errors.Wrap(err, "app:validateCmdAndEnv() Fail to parse arguments")
+			return errors.Wrap(err, "Fail to parse arguments")
 		}
 		return validateCmdAndEnv(env_names_cmd_opts, fs)
 
 	case "all":
 		if len(args) != 0 {
-			return errors.New("app:validateCmdAndEnv() Please setup the arguments with env")
+			return errors.New("Please setup the arguments with env")
 		}
-	case "jwt":
-		return nil
 	}
-
 	return nil
 }
-func (a* App) PrintDirFileContents(dir string) error {
-	log.Trace("app:PrintDirFileContents() Entering")
-	defer log.Trace("app:PrintDirFileContents() Leaving")
 
+func (a* App) PrintDirFileContents(dir string) error {
         if dir == "" {
                 return fmt.Errorf("PrintDirFileContents needs a directory path to look for files")
         }
         data, err := cos.GetDirFileContents(dir, "")
         if err != nil {
-                return errors.Wrap(err, "app:PrintDirFileContents() Fail to get file content")
+                return err
         }
         for i, fileData := range data {
                 fmt.Println("File :", i)
@@ -604,3 +609,53 @@ func (a* App) PrintDirFileContents(dir string) error {
         return nil
 }
 
+//To be implemented if JWT certificate is needed from any other services
+func fnGetJwtCerts() error {
+	conf := config.Global()
+
+	if !strings.HasSuffix(conf.AuthServiceUrl, "/") {
+		conf.AuthServiceUrl = conf.AuthServiceUrl + "/"
+	}
+	url := conf.AuthServiceUrl + "noauth/jwt-certificates"
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return errors.Wrap(err, "Could not create http request")
+	}
+	req.Header.Add("accept", "application/x-pem-file")
+	rootCaCertPems, err := cos.GetDirFileContents(constants.TrustedCAsStoreDir, "*.pem")
+	if err != nil {
+		return errors.Wrap(err, "Could not read root CA certificate")
+	}
+
+	// Get the SystemCertPool, continue with an empty pool on error
+	rootCAs, _ := x509.SystemCertPool()
+	if rootCAs == nil {
+		rootCAs = x509.NewCertPool()
+	}
+	for _, rootCACert := range rootCaCertPems {
+		if ok := rootCAs.AppendCertsFromPEM(rootCACert); !ok {
+			return err
+		}
+	}
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: false,
+				RootCAs:            rootCAs,
+			},
+		},
+	}
+
+	res, err := httpClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "Could not retrieve jwt certificate")
+	}
+	defer res.Body.Close()
+	body, _ := ioutil.ReadAll(res.Body)
+	err = crypt.SavePemCertWithShortSha1FileName(body, constants.TrustedJWTSigningCertsDir)
+	if err != nil {
+		return errors.Wrap(err, "Could not store Certificate")
+	}
+
+	return nil
+}

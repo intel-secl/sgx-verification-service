@@ -23,7 +23,7 @@ import (
 
 type QeIdentityJson struct {
 	EnclaveIdentity	EnclaveIdentityType	`json: "enclaveIdentity"`
-	Signature	string          	`json: "signature"`
+	Signature	string			`json: "signature"`
 }
 
 type QeIdentityData struct {
@@ -40,23 +40,20 @@ type TcbInfo struct {
 }
 
 type EnclaveIdentityType struct {
-	Version         	uint8   	`json: "version"`
-	IssueDate       	string  	`json: "issueDate"`
-	NextUpdate      	string  	`json: "nextUpdate"`
+	Version			uint8		`json: "version"`
+	IssueDate		string		`json: "issueDate"`
+	NextUpdate		string		`json: "nextUpdate"`
 	TcbEvaluationDataNumber uint8		`json: "tcbEvaluationDataNumber"`
-	MiscSelect      	string  	`json: "miscselect"`
-	MiscSelectMask  	string  	`json: "miscselectMask"`
-	Attributes     		string  	`json: "attributes"`
-	AttributesMask  	string  	`json: "attributesMask"`
-	MrSigner       		string  	`json: "mrsigner"`
-	IsvProdId       	uint8   	`json: "isvprodid"`
+	MiscSelect		string		`json: "miscselect"`
+	MiscSelectMask		string		`json: "miscselectMask"`
+	Attributes		string		`json: "attributes"`
+	AttributesMask		string		`json: "attributesMask"`
+	MrSigner		string		`json: "mrsigner"`
+	IsvProdId		uint8		`json: "isvprodid"`
 	Tcb                    []TcbInfo	`json: "tcb"`
 }
 
 func NewQeIdentity() (*QeIdentityData, error) {
-	log.Trace("resource/parser/sgx_qeidentity_parser:NewQeIdentity() Entering")
-	defer log.Trace("resource/parser/sgx_qeidentity_parser:NewQeIdentity() Leaving")
-
 	obj := new( QeIdentityData )
 
 	client, conf, err := utils.GetHTTPClientObj()
@@ -133,9 +130,6 @@ func NewQeIdentity() (*QeIdentityData, error) {
 }
 
 func (e *QeIdentityData) GetQEInfoInterCAList()([]*x509.Certificate){
-	log.Trace("resource/parser/sgx_qeidentity_parser:GetQEInfoInterCAList() Entering")
-	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQEInfoInterCAList() Leaving")
-
         interMediateCAArr := make( []*x509.Certificate, len(e.IntermediateCA))
         var i  int=0
         for _, v := range e.IntermediateCA {
@@ -147,9 +141,6 @@ func (e *QeIdentityData) GetQEInfoInterCAList()([]*x509.Certificate){
 }
 
 func (e *QeIdentityData) GetQEInfoRootCAList()([]*x509.Certificate){
-	log.Trace("resource/parser/sgx_qeidentity_parser:GetQEInfoRootCAList() Entering")
-	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQEInfoRootCAList() Leaving")
-
         RootCAArr := make( []*x509.Certificate, len(e.RootCA))
         var i  int=0
         for _, v := range e.RootCA {
@@ -161,9 +152,6 @@ func (e *QeIdentityData) GetQEInfoRootCAList()([]*x509.Certificate){
 }
 
 func (e *QeIdentityData) GetQEInfoPublicKey()( *ecdsa.PublicKey){
-	log.Trace("resource/parser/sgx_qeidentity_parser:GetQEInfoPublicKey() Entering")
-	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQEInfoPublicKey() Leaving")
-
         for _, v := range e.IntermediateCA {
                 if strings.Compare( v.Subject.String(), constants.SGXQEInfoSubjectStr ) == 0 {
                         return v.PublicKey.(*ecdsa.PublicKey)
@@ -173,21 +161,15 @@ func (e *QeIdentityData) GetQEInfoPublicKey()( *ecdsa.PublicKey){
 }
 
 func (e *QeIdentityData) GetQEInfoBlob()([]byte){
-	log.Trace("resource/parser/sgx_qeidentity_parser:GetQEInfoBlob() Entering")
-	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQEInfoBlob() Leaving")
-
         return e.RawBlob
 }
 
 func (e *QeIdentityData) GetQeIdentityStatus() (bool){
-	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdentityStatus() Entering")
-	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdentityStatus() Leaving")
-
 	sign, _ :=   e.GetQeIdSignature()
 	if  !utils.IntToBool(int(e.GetQeIdVersion()))    || !utils.IntToBool(len(e.GetQeIdIssueDate()))      ||
-	    !utils.IntToBool(len(e.GetQeIdMiscSelect())) || !utils.IntToBool(len(e.GetQeIdMiscSelectMask())) || 
-	    !utils.IntToBool(len(e.GetQeIdAttributes())) || !utils.IntToBool(len(e.GetQeIdAttributesMask())) || 
-	    !utils.IntToBool(len(e.GetQeIdMrSigner()))   || !utils.IntToBool(int(e.GetQeIdIsvProdId()))      || 
+	    !utils.IntToBool(len(e.GetQeIdMiscSelect())) || !utils.IntToBool(len(e.GetQeIdMiscSelectMask())) ||
+	    !utils.IntToBool(len(e.GetQeIdAttributes())) || !utils.IntToBool(len(e.GetQeIdAttributesMask())) ||
+	    !utils.IntToBool(len(e.GetQeIdMrSigner()))   || !utils.IntToBool(int(e.GetQeIdIsvProdId()))      ||
 	    //!utils.IntToBool(int(e.GetQeIdIsvSvn()))     || !utils.IntToBool(len(sign)) {
 	    !utils.IntToBool(len(sign)) {
 		return false
@@ -196,99 +178,63 @@ func (e *QeIdentityData) GetQeIdentityStatus() (bool){
 }
 
 func (e *QeIdentityData) GetQeIdVersion()(uint8){
-	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdVersion() Entering")
-	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdVersion() Leaving")
-
 	return e.QEJson.EnclaveIdentity.Version
 }
 
 func (e *QeIdentityData) GetQeIdIssueDate()(string){
-	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdIssueDate() Entering")
-	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdIssueDate() Leaving")
-
         return e.QEJson.EnclaveIdentity.IssueDate
 }
 
-func (e *QeIdentityData) GetQeIdNextUpdate()(string){
-	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdNextUpdate() Entering")
-	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdNextUpdate() Leaving")
-
+func (e *QeIdentityData) GetQeIdNextUpdate()(string) {
         return e.QEJson.EnclaveIdentity.NextUpdate
 }
 
-func (e *QeIdentityData) GetQeIdMiscSelect()(string){
-	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdMiscSelect() Entering")
-	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdMiscSelect() Leaving")
-
-        return e.QEJson.EnclaveIdentity.MiscSelect
+func (e *QeIdentityData) GetQeIdMiscSelect()(string) {
+	return e.QEJson.EnclaveIdentity.MiscSelect
 }
 
-func (e *QeIdentityData) GetQeIdMiscSelectMask()(string){
-	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdMiscSelectMask() Entering")
-	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdMiscSelectMask() Leaving")
-
-        return e.QEJson.EnclaveIdentity.MiscSelectMask
+func (e *QeIdentityData) GetQeIdMiscSelectMask()(string) {
+	return e.QEJson.EnclaveIdentity.MiscSelectMask
 }
 
-func (e *QeIdentityData) GetQeIdAttributes()(string){
-	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdAttributes() Entering")
-	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdAttributes() Leaving")
-
+func (e *QeIdentityData) GetQeIdAttributes()(string) {
 	return e.QEJson.EnclaveIdentity.Attributes
 }
 
-func (e *QeIdentityData) GetQeIdAttributesMask()(string){
-	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdAttributesMask() Entering")
-	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdAttributesMask() Leaving")
-
+func (e *QeIdentityData) GetQeIdAttributesMask()(string) {
 	return e.QEJson.EnclaveIdentity.AttributesMask
 }
 
-func (e *QeIdentityData) GetQeIdMrSigner()(string){
-	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdMrSigner() Entering")
-	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdMrSigner() Leaving")
-
-        return e.QEJson.EnclaveIdentity.MrSigner
+func (e *QeIdentityData) GetQeIdMrSigner()(string) {
+	return e.QEJson.EnclaveIdentity.MrSigner
 }
 
-func (e *QeIdentityData) GetQeIdIsvProdId()(uint8){
-	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdIsvProdId() Entering")
-	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdIsvProdId() Leaving")
-
-        return e.QEJson.EnclaveIdentity.IsvProdId
+func (e *QeIdentityData) GetQeIdIsvProdId()(uint8) {
+	return e.QEJson.EnclaveIdentity.IsvProdId
 }
 
-/*func (e *QeIdentityData) GetQeIdIsvSvn()(uint8){
-	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdIsvSvn() Entering")
-	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdIsvSvn() Leaving")
-
-        return e.QEJson.QeIdentity.IsvSvn
+/*func (e *QeIdentityData) GetQeIdIsvSvn()(uint8) {
+	return e.QEJson.QeIdentity.IsvSvn
 }*/
 
-func (e *QeIdentityData) GetQeIdSignature()([]byte, error){
-	log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdSignature() Entering")
-	defer log.Trace("resource/parser/sgx_qeidentity_parser:GetQeIdSignature() Leaving")
-
- 	data, err := hex.DecodeString(e.QEJson.Signature)
-        if err != nil {
-                return nil, errors.Wrap(err, "GetQeIdSignature: error in decode string")
-        }
-        return data, nil
+func (e *QeIdentityData) GetQeIdSignature()([]byte, error) {
+	data, err := hex.DecodeString(e.QEJson.Signature)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetQeIdSignature: error in decode string")
+	}
+	return data, nil
 }
 
-func (e *QeIdentityData) DumpQeIdentity(){
-	log.Trace("resource/parser/sgx_qeidentity_parser:DumpQeIdentity() Entering")
-	defer log.Trace("resource/parser/sgx_qeidentity_parser:DumpQeIdentity() Leaving")
-
-        log.Debug("===========QEIdentity==============")
-        log.Printf("Version: %v", e.QEJson.EnclaveIdentity.Version)
-        log.Printf("IssueDate: %v", e.QEJson.EnclaveIdentity.IssueDate)
-        log.Printf("NextUpdate: %v", e.QEJson.EnclaveIdentity.NextUpdate)
-        log.Printf("miscselect: %v", e.QEJson.EnclaveIdentity.MiscSelect)
-        log.Printf("miscselectMask: %v", e.QEJson.EnclaveIdentity.MiscSelectMask)
-        log.Printf("attributes: %v", e.QEJson.EnclaveIdentity.Attributes)
-        log.Printf("attributesMask: %v", e.QEJson.EnclaveIdentity.AttributesMask)
-        log.Printf("mrsigner: %v", e.QEJson.EnclaveIdentity.MrSigner)
-        log.Printf("isvprodid: %v", e.QEJson.EnclaveIdentity.IsvProdId)
-        log.Printf("Signature: %v", e.QEJson.Signature)
+func (e *QeIdentityData) DumpQeIdentity() {
+	log.Debug("===========QEIdentity==============")
+	log.Printf("Version: %v", e.QEJson.EnclaveIdentity.Version)
+	log.Printf("IssueDate: %v", e.QEJson.EnclaveIdentity.IssueDate)
+	log.Printf("NextUpdate: %v", e.QEJson.EnclaveIdentity.NextUpdate)
+	log.Printf("miscselect: %v", e.QEJson.EnclaveIdentity.MiscSelect)
+	log.Printf("miscselectMask: %v", e.QEJson.EnclaveIdentity.MiscSelectMask)
+	log.Printf("attributes: %v", e.QEJson.EnclaveIdentity.Attributes)
+	log.Printf("attributesMask: %v", e.QEJson.EnclaveIdentity.AttributesMask)
+	log.Printf("mrsigner: %v", e.QEJson.EnclaveIdentity.MrSigner)
+	log.Printf("isvprodid: %v", e.QEJson.EnclaveIdentity.IsvProdId)
+	log.Printf("Signature: %v", e.QEJson.Signature)
 }

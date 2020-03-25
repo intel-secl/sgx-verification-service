@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"time"
 	"strings"
-	"strconv"
 	"net/url"
 	"net/http"
 	"crypto/tls"
@@ -27,24 +26,17 @@ import (
 
 var log = commLog.GetDefaultLogger()
 
-func DumpDataInHex( label string, data []byte, len int){
-	log.Trace("resource/utils/utils:DumpDataInHex() Entering")
-	defer log.Trace("resource/utils/utils:DumpDataInHex() Leaving")
-
+func DumpDataInHex(label string, data []byte, len int){
 	log.Printf("%s[%d]:", label, len)
 	dumper := hex.Dumper(os.Stderr)
 	defer dumper.Close()
 	dumper.Write(data)
 }
 
-func GetHTTPClientObj()(*http.Client, *config.Configuration, error){
-	log.Trace("resource/utils/utils:GetHTTPClientObj() Entering")
-	defer log.Trace("resource/utils/utils:GetHTTPClientObj() Leaving")
-	
-	var err error
-	conf:= config.Global()
+func GetHTTPClientObj()(*http.Client, *config.Configuration, error) {
+	conf := config.Global()
 	if conf == nil {
-		return nil, nil, errors.Wrap(err, "Configuration pointer is null")
+		return nil, nil, errors.New("Configuration pointer is null")
 	}
 
 	timeout := time.Duration(5 * time.Second)
@@ -52,55 +44,35 @@ func GetHTTPClientObj()(*http.Client, *config.Configuration, error){
 		Timeout: timeout,
 	}
 
-	proxy, _ := strconv.ParseBool(conf.ProxyEnable)
-	if len(conf.ProxyUrl) > 0 && proxy {
-		log.Debug("ProxyUrl: ",conf.ProxyUrl)
-		proxyUrl, err := url.Parse(conf.ProxyUrl)
-		if err != nil {
-			return nil, nil, errors.Wrap(err, "failed to get proxy url")
-		}
-		client.Transport = &http.Transport{ Proxy: http.ProxyURL(proxyUrl)}
-		log.WithField("Proxy URL", conf.ProxyUrl).Debug("Intel Prov Client OPS")
-	} else {
-		rootCaCertPems, err := cos.GetDirFileContents(constants.RootCADirPath, "*.pem" )
-		if err != nil {
-			return  nil, nil, errors.Wrap(err, "failed to get file contents")
-		}
+	rootCaCertPems, err := cos.GetDirFileContents(constants.TrustedCAsStoreDir, "*.pem")
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "Could not read root CA certificate")
+	}
 
-		// Get the SystemCertPool, continue with an empty pool on error
-		rootCAs, _ := x509.SystemCertPool()
-		if rootCAs == nil {
-			rootCAs = x509.NewCertPool()
-		}
+	// Get the SystemCertPool, continue with an empty pool on error
+	rootCAs, _ := x509.SystemCertPool()
+	if rootCAs == nil {
+		rootCAs = x509.NewCertPool()
+	}
 
-		for _, rootCACert := range rootCaCertPems{
-			if ok := rootCAs.AppendCertsFromPEM(rootCACert); !ok {
-				return  nil, nil, errors.Wrap(err, "failed to append certs from pem")
-			}
+	for _, rootCACert := range rootCaCertPems{
+		if ok := rootCAs.AppendCertsFromPEM(rootCACert); !ok {
+			return  nil, nil, errors.Wrap(err, "failed to append certs from pem")
 		}
+	}
 
-		log.Debug("SCSBaseUrl: ",conf.SCSBaseUrl)
-		_, err = url.Parse(conf.SCSBaseUrl)
-		if err != nil {
-			return nil, nil, errors.Wrap(err,"failed to get caching service url")
-		}
-		client = &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: false,
-					RootCAs: rootCAs,
-				},
+	client = &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: false,
+				RootCAs: rootCAs,
 			},
-		}
-		log.WithField("SCS URL", conf.SCSBaseUrl).Debug("SCS prov Client")
+		},
 	}
 	return client, conf, nil
 }
 
-func GetCertPemData( obj *x509.Certificate ) ( []byte, error ){
-	log.Trace("resource/utils/utils:GetCertPemData() Entering")
-	defer log.Trace("resource/utils/utils:GetCertPemData() Leaving")
-
+func GetCertPemData(obj *x509.Certificate) ([]byte, error) {
 	var err error
 	if obj == nil {
 		return nil, errors.Wrap(err, "Certificate Object is empty")
@@ -111,14 +83,11 @@ func GetCertPemData( obj *x509.Certificate ) ( []byte, error ){
 		Bytes: obj.Raw,
 	}
 
-	pemData := pem.EncodeToMemory(block) 
+	pemData := pem.EncodeToMemory(block)
 	return pemData, nil
 }
 
-func GetCertObjListFromStr( certChainStr string ) ( []*x509.Certificate, error ){
-	log.Trace("resource/utils/utils:GetCertObjListFromStr() Entering")
-	defer log.Trace("resource/utils/utils:GetCertObjListFromStr() Leaving")
-
+func GetCertObjListFromStr(certChainStr string) ([]*x509.Certificate, error){
 	certChainEscapedStr, err := url.QueryUnescape(certChainStr)
 	if err != nil{
 		return nil, errors.Wrap(err, "GetCertObjListFromStr: Error parsing Cert Chain QueryUnescape")
@@ -138,7 +107,7 @@ func GetCertObjListFromStr( certChainStr string ) ( []*x509.Certificate, error )
 		block, _ := pem.Decode([]byte(certs[i]))
 		if block == nil{
 			return nil, errors.Wrap(err, "GetCertObjListFromStr: Pem Decode error")
-		}	
+		}
 		certChainObjList[i], err = x509.ParseCertificate( block.Bytes )
 		if err != nil {
 			return nil, errors.Wrap(err, "GetCertObjListFromStr: Parse Certificate error")
@@ -149,9 +118,6 @@ func GetCertObjListFromStr( certChainStr string ) ( []*x509.Certificate, error )
 }
 
 func BoolToInt(b bool) (int) {
-	log.Trace("resource/utils/utils:BoolToInt() Entering")
-	defer log.Trace("resource/utils/utils:BoolToInt() Leaving")
-
         n := 0
         if b {
           n = 1
@@ -160,9 +126,6 @@ func BoolToInt(b bool) (int) {
 }
 
 func IntToBool(i int) (bool) {
-	log.Trace("resource/utils/utils:IntToBool() Entering")
-	defer log.Trace("resource/utils/utils:IntToBool() Leaving")
-
         if i != 0 {
           return true
         } else {
@@ -171,9 +134,6 @@ func IntToBool(i int) (bool) {
 }
 
 func CheckDate(issueDate string, nextUpdate string) bool {
-	log.Trace("resource/utils/utils:CheckDate() Entering")
-	defer log.Trace("resource/utils/utils:CheckDate() Leaving")
-
         universalTime := time.Now().UTC()
 
         iDate, err := time.Parse(time.RFC3339, issueDate)
@@ -199,4 +159,3 @@ func CheckDate(issueDate string, nextUpdate string) bool {
                 return true
         }
 }
-

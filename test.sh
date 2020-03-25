@@ -1,7 +1,6 @@
 #!/bin/bash
-unset http_proxy
-unset https_proxy
+quote_content=$(cat ./tmp/sgx_ecdsa_quote_dump.txt)
 
-quote_content=$( cat ./tmp/sgx_ecdsa_quote_dump.txt )
+Bearer_token="eyJhbGciOiJSUzM4NCIsImtpZCI6ImM3NjEyZmZjZGVlNTEwZjAyYzlkZWU0ZjM1MjFkMGE3ODAyMzE3YzciLCJ0eXAiOiJKV1QifQ.eyJyb2xlcyI6W3sic2VydmljZSI6IkNNUyIsIm5hbWUiOiJDZXJ0QXBwcm92ZXIiLCJjb250ZXh0IjoiQ049U1ZTIFRMUyBDZXJ0aWZpY2F0ZTtTQU49MTAuMTA1LjE2Ny4xODQsMTI3LjAuMC4xLGxvY2FsaG9zdDtDRVJUVFlQRT1UTFMifV0sImV4cCI6MTU4NTI5OTkwNSwiaWF0IjoxNTg1MTI3MDc1LCJpc3MiOiJBQVMgSldUIElzc3VlciIsInN1YiI6InN2c3VzZXJAc3ZzIn0.uWPvNkJXCnaABXibXdx2_UVXdgb4UmMgztMMtqKXTTT3ZjjG0RL0R-FPG-F4NnXhXiAVtgCaxj-WpNDX42tirk48PziwxuT2g17EfFLPBb20-QwJ2h4-rZtNFfXTqgMNrQzUTX_KpVQ0_Ehx0AMCZA4k-oDZ7if4ew_fRD-JMAn4taVkNmhGnZd4jVmYQxA6QTgr1gq0OOvW2mwkqG7CcOxvhz-9hAosyMgLLToC7nGQAIpNvL8hTsQF6L4mPErDU5HWWGMnPG52CkCW_bTQI-H7enr9aa--SecTX-vC3ZvERhwGQj7HD03SA6QtdQZtmfSXWbYIghoSC1kBcc9wa_jH6CGB2i3AXqkH20UeBm5jDqYwphtrdpjO49teIody6IQkYEhpfBm1QK9MqQL9mgy0ckct_khadisJn1jJeXUlz6m0qUyu0QdU2awKugp0dCVmLyF8LsXMKxnVJShDpOOQTkXDBBqpOhq-rjIHsof-m_DrFkbO5bM2tP_40Le2"
 
-curl -vvv --insecure -H "Content-Type: application/json" -X POST "https://localhost:12000/svs/v1/verifyQuote" --data "{ \"quote\": \"$quote_content\"}"
+curl -k -H "Content-Type: application/json" "https://localhost:12000/svs/v1/verifyQuote" -H "Authorization: Bearer ${Bearer_token}" --data "{\"quote\": \"$quote_content\"}"

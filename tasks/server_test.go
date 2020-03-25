@@ -8,27 +8,25 @@ import (
 	"intel/isecl/lib/common/setup"
 	"intel/isecl/svs/config"
 	"os"
-
 	"testing"
-
 	"github.com/stretchr/testify/assert"
 )
 
 func TestServerSetup(t *testing.T) {
 	c := config.Configuration{}
 	s := Server{
-		Flags:         []string{"-port=1337"},
+		Flags:         []string{"-port=12000"},
 		Config:        &c,
 		ConsoleWriter: os.Stdout,
 	}
 	ctx := setup.Context{}
 	err := s.Run(ctx)
 	assert.Equal(t, config.ErrNoConfigFile, err)
-	assert.Equal(t, 1337, c.Port)
+	assert.Equal(t, 12000, c.Port)
 }
 
 func TestServerSetupEnv(t *testing.T) {
-	os.Setenv("SVS_PORT", "1337")
+	os.Setenv("SVS_PORT", "12000")
 	c := config.Configuration{}
 	s := Server{
 		Flags:         nil,
@@ -38,5 +36,5 @@ func TestServerSetupEnv(t *testing.T) {
 	ctx := setup.Context{}
 	err := s.Run(ctx)
 	assert.Equal(t, config.ErrNoConfigFile, err)
-	assert.Equal(t, 1337, c.Port)
+	assert.Equal(t, 12000, c.Port)
 }

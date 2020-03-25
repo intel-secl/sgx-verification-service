@@ -2,7 +2,6 @@
  * Copyright (C) 2019 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
 package verifier
 
 import (
@@ -16,58 +15,48 @@ import (
 )
 
 func CheckExpiry(crl *pkix.CertificateList)(bool){
-	log.Trace("resource/verifier/sgx_pck_crl_verifier:CheckExpiry() Entering")
-	defer log.Trace("resource/verifier/sgx_pck_crl_verifier:CheckExpiry() Leaving")
-
 	if crl.HasExpired(time.Now()){
-		log.Error("CRL Expired")
+		log.Error("Certificate Revocation List Has Expired")
 		return false
 	}
 	return true
 }
 
 func VerifyPCKCRLIssuer( crl *pkix.CertificateList) (bool){
-	log.Trace("resource/verifier/sgx_pck_crl_verifier:VerifyPCKCRLIssuer() Entering")
-	defer log.Trace("resource/verifier/sgx_pck_crl_verifier:VerifyPCKCRLIssuer() Leaving")
-
 	issuer := crl.TBSCertList.Issuer.String()
 	return VerifyString( issuer, constants.SGXCRLIssuerStr)
 }
 
 func VerifyPCKCRL (crlUrl []string, crlList []*pkix.CertificateList, interCA []*x509.Certificate,
 				rootCA []*x509.Certificate, trustedRootCA *x509.Certificate)(bool, error){
-	log.Trace("resource/verifier/sgx_pck_crl_verifier:VerifyPCKCRL() Entering")
-	defer log.Trace("resource/verifier/sgx_pck_crl_verifier:VerifyPCKCRL() Leaving")
-
 	if len(crlList) == 0 || len(interCA) == 0 || len(rootCA) == 0 {
 		return false, errors.New("VerifyPCKCRL: CRL List/InterCA/RootCA is empty")
 	}
 
-        for i:=0; i<len(interCA);i++ {
-                _, err := VerifyInterCACertificate( interCA[i], rootCA, constants.SGXInterCACertSubjectStr)
-                if err != nil {
-                        return false, errors.Wrap(err, "VerifyPCKCRL: VerifyInterCACertificate failed")
-                }
-        }
-        for i:=0; i<len(rootCA);i++ {
-                _, err := VerifyRootCACertificate( rootCA[i], constants.SGXRootCACertSubjectStr)
-                if err != nil {
-                        return false, errors.Wrap(err, "VerifyPCKCRL: VerifyRootCACertificate failed ")
-                }
-        }
+	for i := 0; i < len(interCA); i++ {
+		_, err := VerifyInterCACertificate( interCA[i], rootCA, constants.SGXInterCACertSubjectStr)
+		if err != nil {
+			return false, errors.Wrap(err, "VerifyPCKCRL: VerifyInterCACertificate failed")
+		}
+	}
+	for i := 0; i < len(rootCA); i++ {
+		 _, err := VerifyRootCACertificate( rootCA[i], constants.SGXRootCACertSubjectStr)
+		if err != nil {
+			return false, errors.Wrap(err, "VerifyPCKCRL: VerifyRootCACertificate failed ")
+		}
+	}
 
 	log.Debug("CRL List:", len(crlUrl))
-	var signPassCount int=0
-	for i:=0; i<len(crlList); i++{
+	var signPassCount int = 0
+	for i := 0; i < len(crlList); i++ {
 		ret := CheckExpiry(crlList[i])
 		if ret != true {
-			return false, errors.New("VerifyPCKCRL: CRL is Expired"+crlUrl[i])
+			return false, errors.New("VerifyPCKCRL: Revocation List has Expired"+crlUrl[i])
 		}
 		ret = VerifyPCKCRLIssuer(crlList[i])
 		if ret != true {
-			return false, errors.New("VerifyPCKCRL: CRL Issuer is Invalid: "+crlUrl[i])
+			return false, errors.New("VerifyPCKCRL: CRL Issuer info is Invalid: "+crlUrl[i])
 		}
-
 
 		for j:=0;j<len(interCA);j++{
 			err :=  interCA[i].CheckCRLSignature( crlList[i] )
@@ -75,7 +64,7 @@ func VerifyPCKCRL (crlUrl []string, crlList []*pkix.CertificateList, interCA []*
 				signPassCount += 1
 			}
 		}
-	
+
 		if signPassCount == 0 {
 			return false, errors.New("VerifyPCKCRL: Signature Verification failed")
 		}
