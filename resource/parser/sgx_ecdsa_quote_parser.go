@@ -75,7 +75,7 @@ type ReportBodyT struct {
 	MiscSelect		uint32					/* (16) Which fields defined in SSA.MISC */
 	Reserved1		[SgxReportBodyReserved1Bytes]uint8	/* (20) */
 	SgxIsvextProdId		[SgxIsvextProdIdSize]uint8		/* (32) ISV assigned Extended Product ID */
-	SgxAttributes  struct {						/* (48) Any special Capabilities the Enclave possess */
+	SgxAttributes struct {						/* (48) Any special Capabilities the Enclave possess */
 		Flags	uint64
 		Xfrm	uint64
 	}
@@ -130,19 +130,19 @@ type SgxQuoteParsed struct {
 
 func ParseEcdsaEncodedQuoteBlob( rawQuote []byte) (*SgxQuoteParsed) {
 	if len(rawQuote) < 1 {
-		log.Info("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote is Empty")
+		log.Error("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote is Empty")
 		return nil
 	}
 
 	parsedObj := new(SgxQuoteParsed)
 	decodedQuote, err := base64.StdEncoding.DecodeString(string(rawQuote))
 	if err != nil {
-		log.Info("Failed to Decode Quote")
+		log.Error("Failed to Decode Quote")
 		return nil
 	}
 	_, err = parsedObj.ParseRawECDSAQuote(decodedQuote)
 	if err != nil {
-		log.Info("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote parsing error", err.Error())
+		log.Error("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote parsing error", err.Error())
 		return nil
 	}
 	return parsedObj
@@ -150,13 +150,13 @@ func ParseEcdsaEncodedQuoteBlob( rawQuote []byte) (*SgxQuoteParsed) {
 
 func ParseEcdsaQuoteBlob( rawBlob []byte) (*SgxQuoteParsed) {
 	if len(rawBlob) < 1 {
-		log.Info("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote is Empty")
+		log.Error("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote is Empty")
 		return nil
 	}
 	parsedObj := new( SgxQuoteParsed )
 	_, err := parsedObj.ParseRawECDSAQuote( rawBlob )
 	if err != nil {
-		log.Info("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote parsing error", err.Error())
+		log.Error("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote parsing error", err.Error())
 		return nil
 	}
 	return parsedObj
@@ -164,19 +164,13 @@ func ParseEcdsaQuoteBlob( rawBlob []byte) (*SgxQuoteParsed) {
 
 func SwapByte32(val uint32 ) (uint32) {
 	return val
-
-	log.Printf("Before wapping 32 :0x%04x", val)
 	var swapped uint32 = ((val << 24) & 0xff000000) | ((val <<  8) & 0x00ff0000) | ((val >>  8) & 0x0000ff00) | ((val >> 24) & 0x000000ff)
-
-	log.Printf("After wapping 32 :0x%04x", swapped)
 	return swapped
 }
 
 func SwapByte16(val uint16 ) (uint16) {
 	return val
-	log.Printf("Before wapping 16 :0x%02x", val)
 	var swapped uint16 = ((val << 8) | (val >> 8))
-	log.Printf("After wapping 16 :0x%02x", uint16(swapped))
 	return swapped
 }
 
@@ -187,13 +181,13 @@ func (e *SgxQuoteParsed) GetRawBlob1() ([]byte, error) {
 		return nil, errors.Wrap(err, "GetRawBlob1: Invalid Raw Blob1 Len")
 	}
 	Blob1 := make( []byte, len(e.EcdsaBlob1))
-	copy( Blob1, e.EcdsaBlob1 )
+	copy(Blob1, e.EcdsaBlob1)
 	return Blob1, nil
 }
 
 func (e *SgxQuoteParsed) GetSHA256Hash() ([]byte) {
-	HashValue := make( []byte, sha256.Size  )
-	for i:=0; i<sha256.Size; i++ {
+	HashValue := make([]byte, sha256.Size)
+	for i := 0; i < sha256.Size; i++ {
 		HashValue[i] = e.Header.ReportBody.SgxReportData[i]
 	}
 	return HashValue
@@ -205,8 +199,8 @@ func (e *SgxQuoteParsed) GenerateRawBlob2() (error) {
 	if e.RawQuoteFull == nil || len(e.RawQuoteFull) < rawBlobSize2 {
 		return errors.Wrap(err, "GenerateRawBlob2: Invalid raw blob2 data")
 	}
-	e.EcdsaBlob2 = make ( []byte, rawBlobSize2 )
-	for i:=0;i<rawBlobSize2; i++ {
+	e.EcdsaBlob2 = make([]byte, rawBlobSize2)
+	for i := 0; i < rawBlobSize2; i++ {
 		e.EcdsaBlob2[i] = e.RawQuoteFull[i]
 	}
 	return nil
@@ -215,28 +209,28 @@ func (e *SgxQuoteParsed) GenerateRawBlob2() (error) {
 func (e *SgxQuoteParsed) GenerateRawBlob1() (error) {
 	var offset int = 0
 	report := e.Ecdsa256SignatureData.ReportBody
-	e.EcdsaBlob1 = make( []byte, 384)
+	e.EcdsaBlob1 = make([]byte, 384)
 
-	for i:=0;  i<len(report.CpuSvn); i++ {
+	for i := 0;  i < len(report.CpuSvn); i++ {
 		e.EcdsaBlob1[ offset ]=report.CpuSvn[i]
 		offset += 1
 	}
 
-	miscSelect := SwapByte32( report.MiscSelect )
+	miscSelect := SwapByte32(report.MiscSelect)
 	miscSelectArr := make([]byte, 4)
 	binary.LittleEndian.PutUint32(miscSelectArr, miscSelect)
 
-	for i:=0; i<len(miscSelectArr); i++ {
+	for i := 0; i < len(miscSelectArr); i++ {
 		e.EcdsaBlob1[ offset ]=miscSelectArr[i]
 		offset += 1
 	}
 
-	for i:=0; i<len(report.Reserved1); i++ {
+	for i := 0; i < len(report.Reserved1); i++ {
 		e.EcdsaBlob1[ offset ]=report.Reserved1[i]
 		offset += 1
 	}
 
-	for i:=0; i<len(report.SgxIsvextProdId); i++ {
+	for i := 0; i < len(report.SgxIsvextProdId); i++ {
 		e.EcdsaBlob1[ offset ]=report.SgxIsvextProdId[i]
 		offset += 1
 	}
@@ -244,7 +238,7 @@ func (e *SgxQuoteParsed) GenerateRawBlob1() (error) {
 	sgxAttrFlagsArr := make([]byte, 8)
 	binary.LittleEndian.PutUint64(sgxAttrFlagsArr, report.SgxAttributes.Flags)
 
-	for i:=0; i<len(sgxAttrFlagsArr); i++ {
+	for i := 0; i < len(sgxAttrFlagsArr); i++ {
 		e.EcdsaBlob1[ offset ]=sgxAttrFlagsArr[i]
 		offset += 1
 	}
@@ -252,75 +246,75 @@ func (e *SgxQuoteParsed) GenerateRawBlob1() (error) {
 	sgxAttrXfrmArr := make([]byte, 8)
 	binary.LittleEndian.PutUint64(sgxAttrXfrmArr, report.SgxAttributes.Xfrm)
 
-	for i:=0; i<len(sgxAttrXfrmArr); i++ {
+	for i := 0; i < len(sgxAttrXfrmArr); i++ {
 		e.EcdsaBlob1[ offset ]=sgxAttrXfrmArr[i]
 		offset += 1
 	}
 
-	for i:=0; i<len(report.MrEnclave); i++ {
+	for i := 0; i < len(report.MrEnclave); i++ {
 		e.EcdsaBlob1[ offset ]=report.MrEnclave[i]
 		offset += 1
 	}
 
-	for i:=0; i<len(report.Reserved2); i++ {
+	for i := 0; i < len(report.Reserved2); i++ {
 		e.EcdsaBlob1[ offset ]=report.Reserved2[i]
 		offset += 1
 	}
 
-	for i:=0; i<len(report.MrSigner); i++ {
+	for i := 0; i < len(report.MrSigner); i++ {
 		e.EcdsaBlob1[ offset ]=report.MrSigner[i]
 		offset += 1
 	}
 
-	for i:=0; i<len(report.Reserved3); i++ {
+	for i := 0; i < len(report.Reserved3); i++ {
 		e.EcdsaBlob1[ offset ]=report.Reserved3[i]
 		offset += 1
 	}
 
-	for i:=0; i<len(report.ConfigId); i++ {
+	for i := 0; i < len(report.ConfigId); i++ {
 		e.EcdsaBlob1[ offset ]=report.ConfigId[i]
 		offset += 1
 	}
 
-	sgxIsvProdId := SwapByte16( report.SgxIsvProdId )
+	sgxIsvProdId := SwapByte16(report.SgxIsvProdId)
 	sgxIsvProdIdArr := make([]byte, 2)
 	binary.LittleEndian.PutUint16(sgxIsvProdIdArr, sgxIsvProdId)
 
 	for i:=0; i<len(sgxIsvProdIdArr); i++ {
-		e.EcdsaBlob1[ offset ]=sgxIsvProdIdArr[i]
+		e.EcdsaBlob1[offset] = sgxIsvProdIdArr[i]
 		offset += 1
 	}
 
-	sgxIsvSvn := SwapByte16( report.SgxIsvSvn )
+	sgxIsvSvn := SwapByte16(report.SgxIsvSvn)
 	sgxIsvSvnArr := make([]byte, 2)
 	binary.LittleEndian.PutUint16(sgxIsvSvnArr, sgxIsvSvn)
 
 	for i:=0; i<len(sgxIsvSvnArr); i++ {
-		e.EcdsaBlob1[ offset ]=sgxIsvSvnArr[i]
+		e.EcdsaBlob1[offset] = sgxIsvSvnArr[i]
 		offset += 1
 	}
 
 	sgxConfigSvnArr := make([]byte, 2)
 	binary.LittleEndian.PutUint16(sgxConfigSvnArr, report.SgxConfigSvn)
 
-	for i:=0; i<len(sgxConfigSvnArr); i++ {
-		e.EcdsaBlob1[ offset ]=sgxConfigSvnArr[i]
+	for i := 0; i < len(sgxConfigSvnArr); i++ {
+		e.EcdsaBlob1[offset] = sgxConfigSvnArr[i]
 		offset += 1
 	}
 
 
-	for i:=0; i<len(report.Reserved4); i++ {
-		e.EcdsaBlob1[ offset ]=report.Reserved4[i]
+	for i := 0; i < len(report.Reserved4); i++ {
+		e.EcdsaBlob1[offset] = report.Reserved4[i]
 		offset += 1
 	}
 
-	for i:=0; i<len(report.SgxIsvFamilyId); i++ {
-		e.EcdsaBlob1[ offset ]=report.SgxIsvFamilyId[i]
+	for i := 0; i < len(report.SgxIsvFamilyId); i++ {
+		e.EcdsaBlob1[offset] = report.SgxIsvFamilyId[i]
 		offset += 1
 	}
 
-	for i:=0; i<len(report.SgxReportData); i++ {
-		e.EcdsaBlob1[ offset ]=report.SgxReportData[i]
+	for i := 0; i < len(report.SgxReportData); i++ {
+		e.EcdsaBlob1[offset] = report.SgxReportData[i]
 		offset += 1
 	}
 
@@ -332,9 +326,9 @@ func (e *SgxQuoteParsed) GetRawBlob2() ([]byte, error) {
 	var err error
 	BlobLen := len(e.EcdsaBlob2)
 	if BlobLen < 1 {
-		return nil, errors.Wrap(err, "GetRawBlob2: Invalid Raw Blob-2Len")
+		return nil, errors.Wrap(err, "GetRawBlob2: zero len blob2")
 	}
-	Blob2 := make( []byte, len(e.EcdsaBlob2))
+	Blob2 := make([]byte, len(e.EcdsaBlob2))
 	copy( Blob2, e.EcdsaBlob2 )
 	return Blob2, nil
 }
@@ -403,7 +397,6 @@ func (e *SgxQuoteParsed) DumpSGXQuote(){
         log.Printf("AuthdataSize = %v",e.QuoteAuthData.ParsedDataSize)
         log.Printf("CertType = %v", e.QuoteCertData.Type)
         log.Printf("CertDat = %v", string(e.QuoteCertData.Data))
-
 }
 
 func  (e *SgxQuoteParsed) GetECDSASignature1()([]byte){
@@ -430,7 +423,6 @@ func (e *SgxQuoteParsed) GetQuotePckCertObj()(*x509.Certificate){
 	return copyPCKCert
 }
 
-
 func (e *SgxQuoteParsed) GetQuotePckCertInterCAList()([]*x509.Certificate){
 	interMediateCAArr := make([]*x509.Certificate, len(e.InterMediateCA))
 	var i  int=0
@@ -451,7 +443,7 @@ func (e *SgxQuoteParsed) GetQuotePckCertRootCAList()([]*x509.Certificate){
 	return RootCAArr
 }
 
-func  (e *SgxQuoteParsed) ParseQuoteCertificates()(error){
+func (e *SgxQuoteParsed) ParseQuoteCertificates() (error) {
 	if e.QuoteCertData.Type != 5 {
 		return errors.New(fmt.Sprintf("Invalid Certificate type in Quote Info: %d", e.QuoteCertData.Type))
 	}
@@ -462,15 +454,13 @@ func  (e *SgxQuoteParsed) ParseQuoteCertificates()(error){
 	var PckCertCount int=0
 	var IntermediateCACount int=0
 	var RootCACount int=0
-	var err error
 
 	e.RootCA = make(map[string]*x509.Certificate)
 	e.InterMediateCA = make(map[string]*x509.Certificate)
-	for i:=0; i<len(certs); i++{
-		block, _ := pem.Decode([]byte( certs[i]))
-		if block == nil{
-			log.Info("Error while decoding PCK Cert Chain in Quote")
-			return errors.Wrap(err,"ParseQuoteCertificates: error while decoding PCK Certchain in Quote")
+	for i := 0; i < len(certs); i++{
+		block, _ := pem.Decode([]byte(certs[i]))
+		if block == nil {
+			return errors.New("ParseQuoteCertificates: error while decoding PCK Certchain in Quote")
 		}
 		cert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
@@ -498,28 +488,26 @@ func  (e *SgxQuoteParsed) ParseQuoteCertificates()(error){
 	}
 
 	if (PckCertCount == 0 || RootCACount == 0 || IntermediateCACount == 0) {
-		return errors.New( fmt.Sprintf("Quote Certificate Data invalid count: Pck Cert Count:%d, IntermediateCA Count:%d, RootCA Count:%d", PckCertCount, IntermediateCACount, RootCACount))
+		return errors.New(fmt.Sprintf("Quote Certificate Data invalid count: Pck Cert Count:%d, IntermediateCA Count:%d, RootCA Count:%d", PckCertCount, IntermediateCACount, RootCACount))
 	}
 
-	log.Debug( fmt.Sprintf("Quote Certificate Data Info: Pck Cert Count:%d, IntermediateCA Count:%d, RootCA Count:%d", PckCertCount, IntermediateCACount, RootCACount))
+	log.Debug(fmt.Sprintf("Quote Certificate Data Info: Pck Cert Count:%d, IntermediateCA Count:%d, RootCA Count:%d", PckCertCount, IntermediateCACount, RootCACount))
 	return nil
 }
 
 func (e *SgxQuoteParsed) ParseRawECDSAQuote(decodedQuote []byte) (bool, error){
-	e.RawQuoteFull = make( []byte, len(decodedQuote))
+	e.RawQuoteFull = make([]byte, len(decodedQuote))
 	e.RawQuoteLen  = len(decodedQuote)
 	copy(e.RawQuoteFull, decodedQuote)
 
-
 	restruct.Unpack(e.RawQuoteFull, binary.LittleEndian, &e.Header)
 
-	log.Debug("Version = ",e.Header.Version)
-        log.Debug("SignType = ",e.Header.SignType)
+	log.Debug("Version = ", e.Header.Version)
+        log.Debug("SignType = ", e.Header.SignType)
 	restruct.Unpack(decodedQuote[436:], binary.LittleEndian, &e.Ecdsa256SignatureData)
 
 	err := e.GenerateRawBlob1()
 	if err != nil {
-                log.Info("GenerateRawBlob1 ended with error")
 		return false, errors.Wrap(err, "resource/parser/sgx_ecdsa_quote_parser:ParseRawECDSAQuote() Failed to GenerateRawBlob1")
 	}
 

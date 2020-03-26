@@ -79,23 +79,17 @@ func (a *App) printUsage() {
         fmt.Fprintln(w, "                                  - get required env variables from all the setup tasks")
         fmt.Fprintln(w, "                              Optional env variables:")
         fmt.Fprintln(w, "                                  - get optional env variables from all the setup tasks")
-        fmt.Fprintln(w, "")
-        fmt.Fprintln(w, "    svs setup server [--port=<port>]")
-        fmt.Fprintln(w, "        - Setup http server on <port>")
-        fmt.Fprintln(w, "        - Environment variable SVS_PORT=<port> can be set alternatively")
-        fmt.Fprintln(w, "    svs setup tls [--force] [--host_names=<host_names>]")
-        fmt.Fprintln(w, "        - Use the key and certificate provided in /etc/threat-detection if files exist")
-        fmt.Fprintln(w, "        - Otherwise create its own self-signed TLS keypair in /etc/svs for quality of life")
-        fmt.Fprintln(w, "        - Option [--force] overwrites any existing files, and always generate self-signed keypair")
-        fmt.Fprintln(w, "        - Argument <host_names> is a list of host names used by local machine, seperated by comma")
-        fmt.Fprintln(w, "        - Environment variable SVS_TLS_HOST_NAMES=<host_names> can be set alternatively")
-        fmt.Fprintln(w, "    svs setup admin [--user=<username>] [--pass=<password>]")
-        fmt.Fprintln(w, "        - Environment variable SVS_ADMIN_USERNAME=<username> can be set alternatively")
-        fmt.Fprintln(w, "        - Environment variable SVS_ADMIN_PASSWORD=<password> can be set alternatively")
-        fmt.Fprintln(w, "    svs setup reghost [--user=<username>] [--pass=<password>]")
-        fmt.Fprintln(w, "        - Environment variable SVS_REG_HOST_USERNAME=<username> can be set alternatively")
-        fmt.Fprintln(w, "        - Environment variable SVS_REG_HOST_PASSWORD=<password> can be set alternatively")
-        fmt.Fprintln(w, "")
+	fmt.Fprintln(w, "")
+	fmt.Fprintln(w, "    svs setup server [--port=<port>]")
+	fmt.Fprintln(w, "        - Setup http server on <port>")
+	fmt.Fprintln(w, "        - Environment variable SVS_PORT=<port> can be set alternatively")
+	fmt.Fprintln(w, "    svs setup tls [--force] [--host_names=<host_names>]")
+	fmt.Fprintln(w, "        - Use the key and certificate provided in /etc/threat-detection if files exist")
+	fmt.Fprintln(w, "        - Otherwise create its own self-signed TLS keypair in /etc/svs for quality of life")
+	fmt.Fprintln(w, "        - Option [--force] overwrites any existing files, and always generate self-signed keypair")
+	fmt.Fprintln(w, "        - Argument <host_names> is a list of host names used by local machine, seperated by comma")
+	fmt.Fprintln(w, "        - Environment variable SVS_TLS_HOST_NAMES=<host_names> can be set alternatively")
+	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "    download_ca_cert      Download CMS root CA certificate")
 	fmt.Fprintln(w, "                          - Option [--force] overwrites any existing files, and always downloads new root CA cert")
 	fmt.Fprintln(w, "                          Required env variables specific to setup task are:")
@@ -227,7 +221,8 @@ func (a *App) Run(args []string) error {
 	switch cmd {
 	default:
 		a.printUsage()
-		return errors.New("Unrecognized command: " + args[1])
+		fmt.Fprintf(os.Stderr, "Unrecognized command: %s\n", args[1])
+		os.Exit(1)
 	case "list":
                 if len(args) < 3 {
                         a.printUsage()
@@ -235,11 +230,11 @@ func (a *App) Run(args []string) error {
                 }
                 return a.PrintDirFileContents(args[2])
 	case "tlscertsha384":
-		a.configureLogs(false, true)
+		a.configureLogs(a.configuration().LogEnableStdout, true)
 		hash, err := crypt.GetCertHexSha384(config.Global().TLSCertFile)
 		if err != nil {
 			fmt.Println(err.Error())
-			return err
+			return errors.Wrap(err, "app:Run() Could not derive tls certificate digest")
 		}
 		fmt.Println(hash)
 		return nil
@@ -249,36 +244,38 @@ func (a *App) Run(args []string) error {
 			fmt.Fprintln(os.Stderr, "Error: daemon did not start - ", err.Error())
 			// wait some time for logs to flush - otherwise, there will be no entry in syslog
 			time.Sleep(10 * time.Millisecond)
-			return err
+			return errors.Wrap(err, "app:Run() Error starting SCS service")
 		}
 	case "-h", "--help":
 		a.printUsage()
+		return nil
 	case "start":
-		a.configureLogs(false, true)
+		a.configureLogs(a.configuration().LogEnableStdout, true)
 		return a.start()
 	case "stop":
-		a.configureLogs(false, true)
+		a.configureLogs(a.configuration().LogEnableStdout, true)
 		return a.stop()
 	case "status":
-		a.configureLogs(false, true)
+		a.configureLogs(a.configuration().LogEnableStdout, true)
 		return a.status()
 	case "uninstall":
 		var purge bool
 		flag.CommandLine.BoolVar(&purge, "purge", false, "purge config when uninstalling")
 		flag.CommandLine.Parse(args[2:])
 		a.uninstall(purge)
+		log.Info("app:Run() Uninstalled SGX Verification Service")
 		os.Exit(0)
 	case "--version", "-v":
 		fmt.Fprintf(a.consoleWriter(), "SGX Verification Service %s-%s\nBuilt %s\n", version.Version, version.GitHash, version.BuildDate)
+		return nil
 	case "setup":
-		a.configureLogs(false, true)
+		a.configureLogs(a.configuration().LogEnableStdout, true)
 		var context setup.Context
 		if len(args) <= 2 {
 			a.printUsage()
 			os.Exit(1)
 		}
-		if args[2] != "admin" &&
-			args[2] != "download_ca_cert" &&
+		if args[2] != "download_ca_cert" &&
 			args[2] != "download_cert" &&
 			args[2] != "server" &&
 			args[2] != "all" &&
@@ -289,7 +286,7 @@ func (a *App) Run(args []string) error {
 
 		err := validateSetupArgs(args[2], args[3:])
 		if err != nil {
-			return err
+			return errors.Wrap(err, "app:Run() Invalid setup task arguments")
 		}
 
 		a.Config = config.Global()
@@ -347,7 +344,7 @@ func (a *App) Run(args []string) error {
 		if err != nil {
 			log.WithError(err).Error("Error running setup")
 			fmt.Println("Error running setup: ", err)
-			return err
+			return errors.Wrap(err, "app:Run() Error running setup")
 		}
 		svsUser, err := user.Lookup(constants.SVSUserName)
 		if err != nil {
@@ -364,8 +361,7 @@ func (a *App) Run(args []string) error {
 			return errors.Wrapf(err,"Could not parse scs user gid '%s'", svsUser.Gid)
 		}
 
-		//Change the fileownership to scs user
-
+		//Change the fileownership to svs user
 		err = cos.ChownR(constants.ConfigDir, uid, gid)
 		if err != nil {
 			return errors.Wrap(err,"Error while changing file ownership")
@@ -515,6 +511,7 @@ func (a *App) uninstall(purge bool) {
 	fmt.Fprintln(a.consoleWriter(), "sgx Verification Service uninstalled")
 	a.stop()
 }
+
 func removeService() {
 	_, _, err := e.RunCommandWithTimeout(constants.ServiceRemoveCmd, 5)
 	if err != nil {
@@ -552,22 +549,6 @@ func validateSetupArgs(cmd string, args []string) error {
 
 	case "download_cert":
 		return nil
-
-	case "admin":
-                env_names_cmd_opts := map[string]string{
-                        "SVS_ADMIN_USERNAME": "user",
-                        "SVS_ADMIN_PASSWORD": "pass",
-                }
-
-                fs = flag.NewFlagSet("admin", flag.ContinueOnError)
-                fs.String("user", "", "Username for admin authentication")
-                fs.String("pass", "", "Password for admin authentication")
-
-                err := fs.Parse(args)
-                if err != nil {
-                        return fmt.Errorf("Fail to parse arguments: %s", err.Error())
-                }
-                return validateCmdAndEnv(env_names_cmd_opts, fs)
 
 	case "server":
 		return nil
@@ -609,10 +590,8 @@ func (a* App) PrintDirFileContents(dir string) error {
         return nil
 }
 
-//To be implemented if JWT certificate is needed from any other services
 func fnGetJwtCerts() error {
 	conf := config.Global()
-
 	if !strings.HasSuffix(conf.AuthServiceUrl, "/") {
 		conf.AuthServiceUrl = conf.AuthServiceUrl + "/"
 	}
@@ -626,7 +605,6 @@ func fnGetJwtCerts() error {
 	if err != nil {
 		return errors.Wrap(err, "Could not read root CA certificate")
 	}
-
 	// Get the SystemCertPool, continue with an empty pool on error
 	rootCAs, _ := x509.SystemCertPool()
 	if rootCAs == nil {
@@ -648,6 +626,7 @@ func fnGetJwtCerts() error {
 
 	res, err := httpClient.Do(req)
 	if err != nil {
+		log.Warn("Failed to fetch JWT cert")
 		return errors.Wrap(err, "Could not retrieve jwt certificate")
 	}
 	defer res.Body.Close()

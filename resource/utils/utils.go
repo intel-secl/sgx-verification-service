@@ -2,7 +2,6 @@
  * Copyright (C) 2019 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
 package utils
 
 import (
@@ -148,12 +147,14 @@ func CheckDate(issueDate string, nextUpdate string) bool {
 		return false
         }
 
-	cond1 := universalTime.After(iDate)
-	cond2 := universalTime.Before(nUpdate)
+	curTimeAfterIssDate := universalTime.After(iDate)
+	curTimeBeforeNextUpdate := universalTime.Before(nUpdate)
 
-	log.Debug("CheckDate: issuedate:", issueDate, ", nextUpdate:", nextUpdate, ", Current Date:", universalTime)
-        if (cond1 == false || cond2 == false) {
-                log.Error(fmt.Sprintf("CheckDate: Validataion Failed, conditon1:%v, condition:%v", cond1, cond2))
+	log.Debug("Issuedate:", issueDate, ", nextUpdate:", nextUpdate,
+			", Current Date:", universalTime)
+        if (curTimeAfterIssDate == false || curTimeBeforeNextUpdate == false) {
+                log.Error(fmt.Sprintf("CheckDate: CheckDate Validataion Failed,SysTime After IssueDate : %v, SysTime Before NextUpdate : %v",
+				curTimeAfterIssDate, curTimeBeforeNextUpdate))
                 return false
         }else {
                 return true

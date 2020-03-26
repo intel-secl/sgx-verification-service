@@ -28,7 +28,6 @@ var ExtSgxFMSPCOid                      asn1.ObjectIdentifier   = asn1.ObjectIde
 var ExtSgxSGXTypeOid                    asn1.ObjectIdentifier   = asn1.ObjectIdentifier{1,2,840,113741,1,13,1,5}
 
 var log = clog.GetDefaultLogger()
-var slog = clog.GetSecurityLogger()
 
 func VerifyRequiredExtensions(cert *x509.Certificate, requiredExtDict map[string]asn1.ObjectIdentifier) (bool, error) {
 	if cert == nil || len(requiredExtDict) == 0 {
@@ -37,7 +36,7 @@ func VerifyRequiredExtensions(cert *x509.Certificate, requiredExtDict map[string
 
 	var ext pkix.Extension
 	var present int = 0
-	for i:=0; i< len(cert.Extensions); i++ {
+	for i := 0; i < len(cert.Extensions); i++ {
 		ext = cert.Extensions[i]
 		if _, ok := requiredExtDict[ext.Id.String()]; ok {
 			present += 1
@@ -60,12 +59,12 @@ func GetRootCARequiredExtMap() (map[string]asn1.ObjectIdentifier) {
 }
 
 func VerifyString(input string, cmpStr string ) (bool) {
-	if len(input)==0 || len(cmpStr)==0 {
+	if (len(input) == 0 || len(cmpStr) == 0) {
 		return false
 	}
-	cmpStrArr := strings.Split( cmpStr, "|")
+	cmpStrArr := strings.Split(cmpStr, "|")
 
-	for i:=0; i<len(cmpStrArr);i++ {
+	for i := 0; i < len(cmpStrArr);i++ {
 		if strings.Compare(cmpStrArr[i],  input) == 0 {
 			return true
 		}
@@ -76,7 +75,7 @@ func VerifyString(input string, cmpStr string ) (bool) {
 }
 
 func VerifyInterCACertificate(interCA *x509.Certificate, rootCA []*x509.Certificate, subjectStr string) (bool, error) {
-	if rootCA == nil || len(subjectStr) == 0 {
+	if (rootCA == nil || len(subjectStr) == 0) {
 		return false, errors.New("VerifyInterCACertificate: Certificate Object is nul or requiredExtDict is Empty")
 	}
 
@@ -84,14 +83,14 @@ func VerifyInterCACertificate(interCA *x509.Certificate, rootCA []*x509.Certific
 		return false, errors.New("VerifyInterCACertificate: Invalid Certificate Subject: "+ interCA.Subject.String()+
 						 "not matched with "+  subjectStr )
 	}
-	_, err := VerifyRequiredExtensions( interCA, GetRootCARequiredExtMap())
+	_, err := VerifyRequiredExtensions(interCA, GetRootCARequiredExtMap())
 	if err != nil {
 		return false, errors.Wrap(err, "VerifyInterCACertificate: ")
 	}
 
 	var opts x509.VerifyOptions
 	opts.Roots = x509.NewCertPool()
-	for i:=0; i< len(rootCA); i++ {
+	for i := 0; i < len(rootCA); i++ {
 		opts.Roots.AddCert(rootCA[i])
 	}
 	_, err = interCA.Verify(opts)
@@ -102,7 +101,7 @@ func VerifyInterCACertificate(interCA *x509.Certificate, rootCA []*x509.Certific
 }
 
 func VerifyRootCACertificate(rootCA *x509.Certificate, subjectStr string) (bool, error) {
-	if rootCA == nil || len(subjectStr) == 0 {
+	if (rootCA == nil || len(subjectStr) == 0) {
 		return false, errors.New("VerifyRootCACertificate: Certificate Object is nul or requiredExtDict is Empty")
 	}
 
@@ -116,7 +115,7 @@ func VerifyRootCACertificate(rootCA *x509.Certificate, subjectStr string) (bool,
 		return false, errors.New("VerifyRootCACertificate: Invalid Certificate Subject/Verifier differed: "+ rootCA.Subject.String())
 	}
 
-	_, err := VerifyRequiredExtensions( rootCA, GetRootCARequiredExtMap())
+	_, err := VerifyRequiredExtensions(rootCA, GetRootCARequiredExtMap())
 	if err != nil {
 		return false, errors.Wrap(err, "VerifyRootCACertificate: ")
 	}
@@ -145,7 +144,7 @@ func VerifyRequiredSGXExtensions(cert *x509.Certificate, requiredExtDict map[str
 	var ext, sgxExt pkix.Extension
 	var sgxExtensions []asn1.RawValue
 
-	for i:=0; i< len(cert.Extensions); i++ {
+	for i := 0; i < len(cert.Extensions); i++ {
 		ext = cert.Extensions[i]
 		if ExtSgxOid.Equal(ext.Id) == true {
 			_, err := asn1.Unmarshal(ext.Value, &sgxExtensions)
@@ -154,7 +153,7 @@ func VerifyRequiredSGXExtensions(cert *x509.Certificate, requiredExtDict map[str
 			}
 
 			log.Debug("Required Extension Dictionary", requiredExtDict)
-			for j:=0; j<len(sgxExtensions); j++ {
+			for j := 0; j < len(sgxExtensions); j++ {
 				_, err = asn1.Unmarshal(sgxExtensions[j].FullBytes, &sgxExt)
 				log.Debug("SGXExtension[",j,"]:", sgxExt.Id.String())
 				if _, ok := requiredExtDict[sgxExt.Id.String()]; ok {
@@ -190,6 +189,6 @@ func VerifiySHA256Hash(hash []byte, blob []byte) (bool, error) {
 			return false, errors.New("VerifiySHA256Hash: Public 256 validation failed")
 		}
 	}
-	log.Debug("Verifiy SHA256 Hash Passed...")
+	log.Debug("Verify SHA256 Hash Passed...")
 	return true, nil
 }

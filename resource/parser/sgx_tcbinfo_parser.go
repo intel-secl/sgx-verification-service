@@ -211,7 +211,7 @@ func (e *TcbInfoStruct) GetTcbInfoFmspc()(string) {
 func (e *TcbInfoStruct) GetTcbInfoBlob()([]byte){
 	bytes, err := json.Marshal(e.TcbInfoData.TcbInfo)
 	if err != nil {
-		log.Info("GetTcbInfoBlob: Error in Marshal")
+		log.Error("GetTcbInfoBlob: Error in Marshal")
 	}
 	return bytes
 }

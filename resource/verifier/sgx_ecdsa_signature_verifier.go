@@ -2,7 +2,6 @@
  * Copyright (C) 2019 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
 package verifier
 
 import (
@@ -38,15 +37,15 @@ func VerifyECDSA256Signature( data []byte, pubkey *ecdsa.PublicKey, signatureByt
 	//utils.DumpDataInHex("VerifyEcdsa256Signature-Signature", signatureBytes, len(signatureBytes))
 
 	if valid {
-		log.Info("Signature Verification is Passed")
+		log.Info("ECDSA Signature Verification Passed")
 	}else {
-		log.Info("Signature Verification is Failed")
+		log.Error("ecdsa Signature Verification Failed")
 	}
 	return valid
 }
 
 func VerifySGXECDSASignature1(sigBlob []byte, blob []byte, pubKey *ecdsa.PublicKey) (bool, error){
-	if len(sigBlob) < 1 || len(blob) < 1  || pubKey == nil {
+	if (len(sigBlob) < 1 || len(blob) < 1  || pubKey == nil) {
 		return false, errors.New("SGXECDSASignature1: Invalid input data")
 	}
 	ret := VerifyECDSA256Signature(blob, pubKey, sigBlob)
@@ -57,7 +56,7 @@ func VerifySGXECDSASignature1(sigBlob []byte, blob []byte, pubKey *ecdsa.PublicK
 }
 
 func VerifySGXECDSASignature2(sigBlob []byte, blob []byte, pubKeyBlob []byte) (bool, error){
-	if len(sigBlob) < 1 || len(blob) < 1  || len(pubKeyBlob) < 1 {
+	if (len(sigBlob) < 1 || len(blob) < 1  || len(pubKeyBlob) < 1) {
 		return false, errors.New("SGXECDSASignature2: Invalid input data")
 	}
 

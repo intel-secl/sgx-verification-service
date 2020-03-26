@@ -66,7 +66,6 @@ func openLogFiles() (logFile *os.File, httpLogFile *os.File, secLogFile *os.File
         }
 
         return
-
 }
 
 func main() {

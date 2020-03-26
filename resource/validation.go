@@ -19,7 +19,7 @@ var regExMap = map[string]*regexp.Regexp{
 
 func ValidateInputString(key string, inString string) bool {
 	regEx := regExMap[key]
-	if len(key)<=0 || !regEx.MatchString(inString) {
+	if len(key) <= 0 || !regEx.MatchString(inString) {
 		log.WithField(key, inString).Error("Input Validation")
 		return false
 	}

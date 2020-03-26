@@ -22,7 +22,6 @@ import (
 )
 
 // Configuration is the global configuration struct that is marshalled/unmarshaled to a persisted yaml file
-// Probably should embed a config generic struct
 type Configuration struct {
 	configFile       string
 	Port             int
@@ -42,8 +41,9 @@ type Configuration struct {
 		IncludeKid        bool
 		TokenDurationMins int
 	}
-	CMSBaseUrl string
-	SCSBaseUrl string
+	CMSBaseUrl	string
+	AuthServiceUrl	string
+	SCSBaseUrl	string
 	Subject struct {
 		TLSCertCommonName string
 	}
@@ -51,7 +51,6 @@ type Configuration struct {
 	TLSKeyFile	string
 	TLSCertFile	string
 	CertSANList	string
-	AuthServiceUrl	string
 	ReadTimeout       time.Duration
 	ReadHeaderTimeout time.Duration
 	WriteTimeout      time.Duration
@@ -80,7 +79,7 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 		conf.CmsTlsCertDigest = tlsCertDigest
 	} else if conf.CmsTlsCertDigest == "" {
 		commLog.GetDefaultLogger().Error("CMS_TLS_CERT_SHA384 is not defined in environment")
-		return errorLog.Wrap(errors.New("CMS_TLS_CERT_SHA384 is not defined in environment"), "config/config:SaveConfiguration() ENV variable not found")
+		return errorLog.Wrap(errors.New("CMS_TLS_CERT_SHA384 is not defined in environment"), "SaveConfiguration() ENV variable not found")
 	}
 
 	cmsBaseUrl, err := c.GetenvString("CMS_BASE_URL", "CMS Base URL")
@@ -88,7 +87,7 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
                 conf.CMSBaseUrl = cmsBaseUrl
         } else if conf.CMSBaseUrl == "" {
 		commLog.GetDefaultLogger().Error("CMS_BASE_URL is not defined in environment")
-		return errorLog.Wrap(errors.New("CMS_BASE_URL is not defined in environment"), "config/config:SaveConfiguration() ENV variable not found")
+		return errorLog.Wrap(errors.New("CMS_BASE_URL is not defined in environment"), "SaveConfiguration() ENV variable not found")
         }
 
 	aasApiUrl, err := c.GetenvString("AAS_API_URL", "AAS API URL")
@@ -96,7 +95,7 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 		conf.AuthServiceUrl = aasApiUrl
 	} else if conf.AuthServiceUrl == "" {
 		commLog.GetDefaultLogger().Error("AAS_API_URL is not defined in environment")
-		return errorLog.Wrap(errors.New("AAS_API_URL is not defined in environment"), "config/config:SaveConfiguration() ENV variable not found")
+		return errorLog.Wrap(errors.New("AAS_API_URL is not defined in environment"), "SaveConfiguration() ENV variable not found")
 	}
 
 	scsBaseUrl, err := c.GetenvString("SCS_BASE_URL", "SGX Caching Service URL")
@@ -104,7 +103,7 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 		conf.SCSBaseUrl = scsBaseUrl
 	} else if conf.SCSBaseUrl == "" {
 		commLog.GetDefaultLogger().Error("SCS_BASE_URL is not defined in environment")
-		return errorLog.Wrap(errors.New("SCS_BASE_URL is not defined in environment"), "config/config:SaveConfiguration() ENV variable not found")
+		return errorLog.Wrap(errors.New("SCS_BASE_URL is not defined in environment"), "SaveConfiguration() ENV variable not found")
 	}
 
         tlsCertCN, err := c.GetenvString("SVS_TLS_CERT_CN", "SVS TLS Certificate Common Name")
@@ -121,7 +120,7 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 		conf.TLSKeyFile = constants.DefaultTLSKeyFile
 	}
 
-	tlsCertPath, err := c.GetenvString("CERT_PATH", "Path of file/directory where TLS certificate needs to be stored")
+	tlsCertPath, err := c.GetenvString("CERT_PATH", "Path of file where TLS certificate needs to be stored")
 	if err == nil && tlsCertPath != "" {
 		conf.TLSCertFile = tlsCertPath
 	} else if conf.TLSCertFile == "" {

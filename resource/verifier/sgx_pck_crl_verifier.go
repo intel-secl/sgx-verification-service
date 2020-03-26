@@ -34,13 +34,13 @@ func VerifyPCKCRL (crlUrl []string, crlList []*pkix.CertificateList, interCA []*
 	}
 
 	for i := 0; i < len(interCA); i++ {
-		_, err := VerifyInterCACertificate( interCA[i], rootCA, constants.SGXInterCACertSubjectStr)
+		_, err := VerifyInterCACertificate(interCA[i], rootCA, constants.SGXInterCACertSubjectStr)
 		if err != nil {
 			return false, errors.Wrap(err, "VerifyPCKCRL: VerifyInterCACertificate failed")
 		}
 	}
 	for i := 0; i < len(rootCA); i++ {
-		 _, err := VerifyRootCACertificate( rootCA[i], constants.SGXRootCACertSubjectStr)
+		 _, err := VerifyRootCACertificate(rootCA[i], constants.SGXRootCACertSubjectStr)
 		if err != nil {
 			return false, errors.Wrap(err, "VerifyPCKCRL: VerifyRootCACertificate failed ")
 		}
@@ -59,7 +59,7 @@ func VerifyPCKCRL (crlUrl []string, crlList []*pkix.CertificateList, interCA []*
 		}
 
 		for j:=0;j<len(interCA);j++{
-			err :=  interCA[i].CheckCRLSignature( crlList[i] )
+			err :=  interCA[i].CheckCRLSignature(crlList[i])
 			if err == nil {
 				signPassCount += 1
 			}

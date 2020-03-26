@@ -330,22 +330,21 @@ func VerifyTCBInfo(quoteObj *parser.SgxQuoteParsed, certObj *parser.PckCert, tcb
 	/*
 	   	pubKey := tcbObj.GetTCBInfoPublicKey()
 	   	if pubKey == nil{
-	   		slog.Info("resource/quote_verifier_ops:VerifyTCBInfo() ECDSA Public Key not found")
+	   		log.Error("resource/quote_verifier_ops:VerifyTCBInfo() ECDSA Public Key not found")
 	   		return errors.New("VerifyTCBInfo: ECDSA Public Key not found")
 	   	}
 
 	   	data, err := tcbObj.GetTcbInfoSignature()
-	           if err!=nil {
-	   		slog.Info(resource/quote_verifier_ops:VerifyTCBInfo()Failed to get Tcbinfo Signature)
+	           if err != nil {
+	   		log.Error(resource/quote_verifier_ops:VerifyTCBInfo()Failed to get Tcbinfo Signature)
 	   		return errors.Wrap(err, "VerifyTCBInfo: failed to get Tcbinfo Signature", )
 	           }
 	   	//utils.DumpDataInHex("TCB Info Signature", data, len(data))
 	   	//utils.DumpDataInHex("TCB Info Blob", tcbObj.GetTcbInfoBlob(), len(tcbObj.GetTcbInfoBlob()))
 
-
 	   	_, err = verifier.VerifySGXECDSASignature1(data, tcbObj.GetTcbInfoBlob(), tcbObj.GetTCBInfoPublicKey())
-	           if err!=nil {
-	   		slog.Info("resource/quote_verifier_ops:VerifyTCBInfo()Failed to verify SGXECDSASignature1")
+	           if err != nil {
+	   		log.Error("resource/quote_verifier_ops:VerifyTCBInfo()Failed to verify SGXECDSASignature1")
 	   		return errors.Wrap(err, "VerifyTCBInfo: "failed to verify SGXECDSASignature1)
 	           }
 	*/

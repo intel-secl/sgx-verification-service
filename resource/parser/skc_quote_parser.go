@@ -2,7 +2,6 @@
  * Copyright (C) 2019 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
 package parser
 
 import (
@@ -17,6 +16,7 @@ import (
 	"github.com/pkg/errors"
 
 )
+
 type EcdsaQuoteData struct {
 	PckCertSize uint32
 }
@@ -108,7 +108,7 @@ func (e *SkcBlobParsed) GetPubKeyBlob() ([]byte) {
 func (e *SkcBlobParsed) ParseSkcBlobData( blob string) (bool, error) {
 	decodedBlob, err := base64.StdEncoding.DecodeString(blob)
         if err != nil {
-                log.Info("Failed to Decode Quote")
+                log.Error("Failed to Decode Quote")
 		return false, errors.Wrap(err, "ParseSkcBlob: Failed to Decode Quote")
         }
 
@@ -190,7 +190,7 @@ func (e *SkcBlobParsed) DumpSkcBlobHeader() {
 	if e.GetKeyType() == KeyTypeRsa {
 		log.Debug("RSAKeyDetails->ModulusLen = ", e.RsaKeyDetails.ModulusLen)
 		log.Debug("RSAKeyDetails->ExponentLen = ", e.RsaKeyDetails.ExponentLen)
-	}else {
+	} else {
 		log.Debug("ECKeyDetails->ModulusLen = ", e.ECKeyDetails.Dummy)
 	}
 
@@ -207,7 +207,7 @@ func (e *SkcBlobParsed) GetRSAModulusLen() (uint32) {
 	if e.GetKeyType() == KeyTypeRsa {
 		return e.RsaKeyDetails.ModulusLen
 	}
-	log.Error("GetRSAModulusLen:  Invalid Key type")
+	log.Error("GetRSAModulusLen: Invalid Key type")
 	return 0
 }
 
@@ -215,7 +215,7 @@ func (e *SkcBlobParsed) GetRSAExponentLen() (uint32) {
 	if e.GetKeyType() == KeyTypeRsa {
 		return e.RsaKeyDetails.ExponentLen
 	}
-	log.Error("GetRSAModulusLen:  Invalid Key type")
+	log.Error("GetRSAModulusLen: Invalid Key type")
 	return 0
 }
 
@@ -244,7 +244,7 @@ func (e *SkcBlobParsed) GetRSAPubKeyObj()([]byte, error) {
 		return nil, errors.Wrap(err, "GetRSAPubKeyObj: Strconv to int")
 	}
 
-	pubKey := rsa.PublicKey { N: &n, E: int(ex)}
+	pubKey := rsa.PublicKey {N: &n, E: int(ex)}
 
 	pubKeyBytes, err := x509.MarshalPKIXPublicKey(&pubKey)
 	if err != nil {
