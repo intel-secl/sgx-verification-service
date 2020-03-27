@@ -72,14 +72,14 @@ const (
 
 func ParseSkcQuoteBlob( rawBlob string) (*SkcBlobParsed) {
 	if len(rawBlob) < 1 {
-		log.Debug("ParseSkcBlob Object Spawn: Raw SKC Blob is Empty")
+		log.Error("ParseSkcBlob Object Spawn: Raw SKC Blob is Empty")
 		return nil
 	}
 
 	parsedObj := new(SkcBlobParsed)
 	_, err := parsedObj.ParseSkcBlobData(rawBlob)
 	if err != nil {
-		log.Debug("ParseSkcBlob Object Spawn: Raw SKC Parsing Error: ", err.Error())
+		log.Error("ParseSkcBlob Object Spawn: Raw SKC Parsing Error: ", err.Error())
 		return nil
 	}
 	return parsedObj
@@ -123,11 +123,9 @@ func (e *SkcBlobParsed) ParseSkcBlobData( blob string) (bool, error) {
 	restruct.Unpack(e.RawBlob, binary.LittleEndian, &e.Header)
 
 	if e.GetKeyType() == KeyTypeRsa {
-		log.Debug("ParseSkcBlobData: Rsa Key")
 		restruct.Unpack(e.RawBlob[20:], binary.LittleEndian, &e.RsaKeyDetails)
 		keyDetailsLen = 8
 	}else if e.GetKeyType() == KeyTypeEc {
-		log.Debug("ParseSkcBlobData: ECKey Key")
 		restruct.Unpack(e.RawBlob[20:], binary.LittleEndian, &e.ECKeyDetails)
 		keyDetailsLen = 4
 	}else {

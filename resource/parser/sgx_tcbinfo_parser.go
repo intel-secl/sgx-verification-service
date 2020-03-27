@@ -147,7 +147,7 @@ func (e *TcbInfoStruct) GetTcbInfoStruct(fmspc string)(error) {
         q.Add("fmspc", fmspc)
 
         req.URL.RawQuery = q.Encode()
-        resp, err := client.Do( req )
+        resp, err := client.Do(req)
         if err != nil {
                 return errors.Wrap(err,"GetTcbInfoStruct: Failed to Get http client")
         }
@@ -163,14 +163,13 @@ func (e *TcbInfoStruct) GetTcbInfoStruct(fmspc string)(error) {
 	}
 	resp.Body.Close()
 
-	e.RawBlob =  make( []byte, len(content))
+	e.RawBlob =  make([]byte, len(content))
 
-	log.Debug("GetTcbInfoStruct: debug 4:")
-	copy( e.RawBlob, content)
+	copy(e.RawBlob, content)
 
 	log.Debug("GetTcbInfoJson: blob[",resp.ContentLength,"]:", len(e.RawBlob))
 
-	certChainList, err := utils.GetCertObjListFromStr( string( resp.Header.Get("SGX-TCB-Info-Issuer-Chain") ))
+	certChainList, err := utils.GetCertObjListFromStr(string(resp.Header.Get("SGX-TCB-Info-Issuer-Chain")))
 	if err != nil {
 		return errors.Wrap(err, "GetTcbInfoStruct: failed to get object")
 	}
@@ -189,13 +188,12 @@ func (e *TcbInfoStruct) GetTcbInfoStruct(fmspc string)(error) {
 		if strings.Contains(cert.Subject.String(), "CN=Intel SGX Root CA") {
 			RootCACount += 1
 			e.RootCA[cert.Subject.String()] = cert
-
-	                if strings.Contains(cert.Subject.String(), "CN=Intel SGX TCB Signing") {
-				IntermediateCACount += 1
-				e.IntermediateCA[cert.Subject.String()] = cert
-	                }
-			log.Debug("Cert[" ,i, "]Issuer:", cert.Issuer.String(), ", Subject:", cert.Subject.String())
 		}
+		if strings.Contains(cert.Subject.String(), "CN=Intel SGX TCB Signing") {
+			IntermediateCACount += 1
+			e.IntermediateCA[cert.Subject.String()] = cert
+		}
+		log.Debug("Cert[" ,i, "]Issuer:", cert.Issuer.String(), ", Subject:", cert.Subject.String())
 	}
 	if IntermediateCACount == 0 || RootCACount == 0 {
 		return errors.Wrap(err, "TCB INFO - Root CA/Intermediate CA Invalid count")

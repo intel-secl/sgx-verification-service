@@ -26,7 +26,7 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
-	"intel/isecl/lib/common/middleware"
+	//"intel/isecl/lib/common/middleware"
 	"intel/isecl/lib/common/setup"
 	"intel/isecl/lib/common/validation"
 	"intel/isecl/svs/config"
@@ -388,9 +388,9 @@ func (a *App) startServer() error {
 	r := mux.NewRouter()
 	r.SkipClean(true)
 	sr := r.PathPrefix("/svs/v1/").Subrouter()
-	sr.Use(middleware.NewTokenAuth(constants.TrustedJWTSigningCertsDir,
+/*	sr.Use(middleware.NewTokenAuth(constants.TrustedJWTSigningCertsDir,
 					constants.TrustedCAsStoreDir, fnGetJwtCerts,
-					constants.DefaultJwtValidateCacheKeyMins))
+					constants.DefaultJwtValidateCacheKeyMins))*/
 	func(setters ...func(*mux.Router,*config.Configuration)) {
 		for _, setter := range setters {
 			setter(sr,c)
@@ -626,7 +626,7 @@ func fnGetJwtCerts() error {
 
 	res, err := httpClient.Do(req)
 	if err != nil {
-		log.Warn("Failed to fetch JWT cert")
+		log.Error("Failed to fetch JWT cert")
 		return errors.Wrap(err, "Could not retrieve jwt certificate")
 	}
 	defer res.Body.Close()

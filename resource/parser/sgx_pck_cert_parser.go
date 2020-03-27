@@ -39,37 +39,37 @@ type PckCert struct {
 
 func NewPCKCertObj(certBlob []byte) (*PckCert) {
 	if len(certBlob) < 1 {
-		log.Debug("PckCertParsed Object Spawn: Pck Cert Blob is Empty")
+		log.Error("PckCertParsed Object Spawn: Pck Cert Blob is Empty")
 		return nil
 	}
 
 	parsedPck := new(PckCert)
-	err := parsedPck.GenCertObj( certBlob )
+	err := parsedPck.GenCertObj(certBlob)
 	if err != nil {
-		log.Debug("NewPCKCertObj: Generate Certificate Object Error", err.Error())
+		log.Error("NewPCKCertObj: Generate Certificate Object Error", err.Error())
 		return nil
 	}
 	parsedPck.GeneratePckCertRequiredExtMap()
 	_, err = verifier.VerifyRequiredExtensions( parsedPck.PckCertObj, parsedPck.GetPckCertRequiredExtMap())
 	if err != nil {
-		log.Debug("NewPCKCertObj: VerifyRequiredExtensions not found", err.Error())
+		log.Error("NewPCKCertObj: VerifyRequiredExtensions not found", err.Error())
 		return nil
 	}
 	parsedPck.GeneratePckCertRequiredSgxExtMap()
-	_, err = verifier.VerifyRequiredSGXExtensions( parsedPck.PckCertObj, parsedPck.GetPckCertRequiredSgxExtMap())
+	_, err = verifier.VerifyRequiredSGXExtensions(parsedPck.PckCertObj, parsedPck.GetPckCertRequiredSgxExtMap())
 	if err != nil {
-		log.Debug("NewPCKCertObj: VerifyRequiredSGXExtensions not found", err.Error())
+		log.Error("NewPCKCertObj: VerifyRequiredSGXExtensions not found", err.Error())
 		return nil
 	}
 
 	err = parsedPck.ParseFMSPCValue()
 	if err != nil {
-		log.Debug("NewPCKCertObj: Fmspc Parse error", err.Error())
+		log.Error("NewPCKCertObj: Fmspc Parse error", err.Error())
 		return nil
 	}
 	err = parsedPck.ParsePCKCRL()
 	if err != nil {
-		log.Debug("NewPCKCertObj: PCK CRL Parse error", err.Error())
+		log.Error("NewPCKCertObj: PCK CRL Parse error", err.Error())
 		return nil
 	}
 	return parsedPck
@@ -144,7 +144,7 @@ func (e *PckCert) ParseFMSPCValue() (error) {
                         }
                 }
         }
-	log.Debug("Fmspc Value not found in Extension")
+	log.Error("Fmspc Value not found in Extension")
         return errors.Wrap(err,"Fmspc Value not found in Extension")
 }
 
@@ -199,7 +199,7 @@ func (e *PckCert) ParsePCKCRL() error{
 		if !strings.Contains(url, scsUrl){
 			a := regexp.MustCompile(`v\d`)
 			splitUrl := a.Split(url, -1)
-			log.Debug("Splited string:", splitUrl)
+			log.Debug("Split string:", splitUrl)
 			if len(splitUrl) != 2 {
 				return errors.Wrap(err, "ParsePCKCRL: Invalid PCK CRL Url")
 			}
@@ -211,7 +211,7 @@ func (e *PckCert) ParsePCKCRL() error{
 		    return errors.Wrap(err, "ParsePCKCRL: Failed to Get New request")
 		}
 
-		resp, err := client.Do( req )
+		resp, err := client.Do(req)
 		if err != nil {
 		    return errors.Wrap(err, "Client request Failed")
 		}
