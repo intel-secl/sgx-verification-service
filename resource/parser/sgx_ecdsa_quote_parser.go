@@ -14,12 +14,11 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"gopkg.in/restruct.v1"
-	clog "intel/isecl/lib/common/log"
 	"github.com/pkg/errors"
+	clog "intel/isecl/lib/common/log"
 )
 
 var log = clog.GetDefaultLogger()
-var slog = clog.GetSecurityLogger()
 
 const (
 	SgxReportBodyReserved1Bytes     = 12
@@ -128,7 +127,7 @@ type SgxQuoteParsed struct {
 	InterMediateCA		map[string]*x509.Certificate
 }
 
-func ParseEcdsaEncodedQuoteBlob( rawQuote []byte) (*SgxQuoteParsed) {
+func ParseEcdsaEncodedQuoteBlob(rawQuote []byte) (*SgxQuoteParsed) {
 	if len(rawQuote) < 1 {
 		log.Error("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote is Empty")
 		return nil
@@ -148,7 +147,7 @@ func ParseEcdsaEncodedQuoteBlob( rawQuote []byte) (*SgxQuoteParsed) {
 	return parsedObj
 }
 
-func ParseEcdsaQuoteBlob( rawBlob []byte) (*SgxQuoteParsed) {
+func ParseEcdsaQuoteBlob(rawBlob []byte) (*SgxQuoteParsed) {
 	if len(rawBlob) < 1 {
 		log.Error("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote is Empty")
 		return nil
@@ -180,7 +179,7 @@ func (e *SgxQuoteParsed) GetRawBlob1() ([]byte, error) {
 	if BlobLen < 1 {
 		return nil, errors.Wrap(err, "GetRawBlob1: Invalid Raw Blob1 Len")
 	}
-	Blob1 := make( []byte, len(e.EcdsaBlob1))
+	Blob1 := make([]byte, len(e.EcdsaBlob1))
 	copy(Blob1, e.EcdsaBlob1)
 	return Blob1, nil
 }
@@ -329,7 +328,7 @@ func (e *SgxQuoteParsed) GetRawBlob2() ([]byte, error) {
 		return nil, errors.Wrap(err, "GetRawBlob2: zero len blob2")
 	}
 	Blob2 := make([]byte, len(e.EcdsaBlob2))
-	copy( Blob2, e.EcdsaBlob2 )
+	copy(Blob2, e.EcdsaBlob2)
 	return Blob2, nil
 }
 
@@ -361,7 +360,7 @@ func (e *SgxQuoteParsed) GetQEReportIsvSvn() (uint16) {
        return e.Ecdsa256SignatureData.ReportBody.SgxIsvSvn
 }
 
-func (e *SgxQuoteParsed) DumpSGXQuote(){
+func (e *SgxQuoteParsed) DumpSGXQuote() {
 	log.Debug("Version = ",e.Header.Version)
         log.Debug("SignType = ",e.Header.SignType)
         log.Debug("EpidGroupId = ",e.Header.EpidGroupId)
@@ -399,31 +398,31 @@ func (e *SgxQuoteParsed) DumpSGXQuote(){
         log.Printf("CertDat = %v", string(e.QuoteCertData.Data))
 }
 
-func  (e *SgxQuoteParsed) GetECDSASignature1()([]byte){
+func  (e *SgxQuoteParsed) GetECDSASignature1() ([]byte) {
 	Signature1 := make([]byte, len(e.Ecdsa256SignatureData.ReportSignature))
-	copy( Signature1, e.Ecdsa256SignatureData.ReportSignature[:])
+	copy(Signature1, e.Ecdsa256SignatureData.ReportSignature[:])
 	return Signature1
 }
 
-func  (e *SgxQuoteParsed) GetECDSASignature2()([]byte){
+func  (e *SgxQuoteParsed) GetECDSASignature2() ([]byte) {
 	Signature2 := make([]byte, len(e.Ecdsa256SignatureData.Signature))
-	copy( Signature2, e.Ecdsa256SignatureData.Signature[:])
+	copy(Signature2, e.Ecdsa256SignatureData.Signature[:])
 	return Signature2
 }
 
-func  (e *SgxQuoteParsed) GetECDSAPublicKey2()([]byte){
+func  (e *SgxQuoteParsed) GetECDSAPublicKey2() ([]byte) {
 	PublicKey2 := make([]byte, len(e.Ecdsa256SignatureData.PublicKey))
-	copy( PublicKey2, e.Ecdsa256SignatureData.PublicKey[:])
+	copy(PublicKey2, e.Ecdsa256SignatureData.PublicKey[:])
 	return PublicKey2
 }
 
-func (e *SgxQuoteParsed) GetQuotePckCertObj()(*x509.Certificate){
+func (e *SgxQuoteParsed) GetQuotePckCertObj() (*x509.Certificate) {
 	var copyPCKCert *x509.Certificate
 	copyPCKCert = e.PCKCert
 	return copyPCKCert
 }
 
-func (e *SgxQuoteParsed) GetQuotePckCertInterCAList()([]*x509.Certificate){
+func (e *SgxQuoteParsed) GetQuotePckCertInterCAList() ([]*x509.Certificate) {
 	interMediateCAArr := make([]*x509.Certificate, len(e.InterMediateCA))
 	var i  int=0
 	for _, v := range e.InterMediateCA {
@@ -433,7 +432,7 @@ func (e *SgxQuoteParsed) GetQuotePckCertInterCAList()([]*x509.Certificate){
 	return interMediateCAArr
 }
 
-func (e *SgxQuoteParsed) GetQuotePckCertRootCAList()([]*x509.Certificate){
+func (e *SgxQuoteParsed) GetQuotePckCertRootCAList() ([]*x509.Certificate) {
 	RootCAArr := make([]*x509.Certificate, len(e.RootCA))
 	var i  int=0
 	for _, v := range e.RootCA {
@@ -495,7 +494,7 @@ func (e *SgxQuoteParsed) ParseQuoteCertificates() (error) {
 	return nil
 }
 
-func (e *SgxQuoteParsed) ParseRawECDSAQuote(decodedQuote []byte) (bool, error){
+func (e *SgxQuoteParsed) ParseRawECDSAQuote(decodedQuote []byte) (bool, error) {
 	e.RawQuoteFull = make([]byte, len(decodedQuote))
 	e.RawQuoteLen  = len(decodedQuote)
 	copy(e.RawQuoteFull, decodedQuote)

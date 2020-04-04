@@ -32,6 +32,7 @@ type PckCRL struct {
 type PckCert struct {
 	PckCertObj		*x509.Certificate
 	FmspcStr		string
+	tcbCompLevels		[]byte
 	PckCRL			PckCRL
 	RequiredExtension	map[string]asn1.ObjectIdentifier
 	RequiredSGXExtension	map[string]asn1.ObjectIdentifier
@@ -67,6 +68,13 @@ func NewPCKCertObj(certBlob []byte) (*PckCert) {
 		log.Error("NewPCKCertObj: Fmspc Parse error", err.Error())
 		return nil
 	}
+
+	err = parsedPck.ParseTCBExtensions()
+	if err != nil {
+		log.Error("NewPCKCertObj: Tcb Extensions Parse error", err.Error())
+		return nil
+	}
+
 	err = parsedPck.ParsePCKCRL()
 	if err != nil {
 		log.Error("NewPCKCertObj: PCK CRL Parse error", err.Error())
@@ -92,15 +100,15 @@ func (e *PckCert) GeneratePckCertRequiredSgxExtMap() {
 	e.RequiredSGXExtension[verifier.ExtSgxSGXTypeOid.String()] = verifier.ExtSgxSGXTypeOid
 }
 
-func (e *PckCert) GetPckCertRequiredExtMap() (map[string]asn1.ObjectIdentifier){
+func (e *PckCert) GetPckCertRequiredExtMap() (map[string]asn1.ObjectIdentifier) {
 	return e.RequiredExtension
 }
 
-func (e *PckCert) GetPckCertRequiredSgxExtMap() (map[string]asn1.ObjectIdentifier){
+func (e *PckCert) GetPckCertRequiredSgxExtMap() (map[string]asn1.ObjectIdentifier) {
 	return e.RequiredSGXExtension
 }
 
-func (e *PckCert) GenCertObj(certBlob []byte)	(error){
+func (e *PckCert) GenCertObj(certBlob []byte) (error) {
 	var err error
 	block, _ := pem.Decode([]byte(certBlob))
         e.PckCertObj, err = x509.ParseCertificate( block.Bytes )
@@ -115,10 +123,14 @@ func (e *PckCert) GetFMSPCValue() string {
 	return fmspcValue
 }
 
+func (e *PckCert) GetPckCertTcbLevels() []byte {
+	return e.tcbCompLevels
+}
+
 func (e *PckCert) ParseFMSPCValue() (error) {
         var ext pkix.Extension
 	var err error
-        for i:=0; i< len(e.PckCertObj.Extensions); i++ {
+        for i := 0; i < len(e.PckCertObj.Extensions); i++ {
                 ext=e.PckCertObj.Extensions[i]
                 if verifier.ExtSgxOid.Equal(ext.Id) == true {
 
@@ -129,7 +141,7 @@ func (e *PckCert) ParseFMSPCValue() (error) {
                         }
 
                         var sgxExtension pkix.Extension
-                        for j:=0; j<len(asn1Extensions); j++ {
+                        for j := 0; j < len(asn1Extensions); j++ {
 
                                 _, err = asn1.Unmarshal(asn1Extensions[j].FullBytes, &sgxExtension)
                                 if err != nil {
@@ -137,7 +149,6 @@ func (e *PckCert) ParseFMSPCValue() (error) {
                                 }
                                 if verifier.ExtSgxFMSPCOid.Equal(sgxExtension.Id) == true {
                                         e.FmspcStr=hex.EncodeToString(sgxExtension.Value)
-                                        log.WithField("FMSPC hex value", e.FmspcStr).Debug("Fmspc Value from cert")
                                         log.WithField("FMSPC hex value", e.FmspcStr).Debug("Fmspc Value from cert")
                                         return nil
                                 }
@@ -148,6 +159,55 @@ func (e *PckCert) ParseFMSPCValue() (error) {
         return errors.Wrap(err,"Fmspc Value not found in Extension")
 }
 
+type TcbExtn struct {
+	Id	asn1.ObjectIdentifier
+	Value	int
+}
+
+func (e *PckCert) ParseTCBExtensions() (error) {
+        var ext pkix.Extension
+	e.tcbCompLevels = make([]byte, 18)
+
+        for i := 0; i < len(e.PckCertObj.Extensions); i++ {
+                ext=e.PckCertObj.Extensions[i]
+                if verifier.ExtSgxOid.Equal(ext.Id) == true {
+                        var asn1Extensions []asn1.RawValue
+                        _, err := asn1.Unmarshal(ext.Value, &asn1Extensions)
+                        if err != nil {
+                                return errors.Wrap(err,"Asn1 Extension Unmarshal failed")
+                        }
+
+			var oid asn1.ObjectIdentifier
+			for j, sgxExt := range asn1Extensions {
+				var rest []byte
+                                rest, err = asn1.Unmarshal(sgxExt.Bytes, &oid)
+                                if err != nil {
+                                        log.Warn("Warning: Asn1 Extension Unmarshal failed for index:", j)
+                                }
+				if verifier.ExtSgxTCBOid.Equal(oid) {
+					var tcbExts []asn1.RawValue
+					_, err = asn1.Unmarshal(rest, &tcbExts)
+					if err != nil {
+						log.Warn("Warning: Asn1 Extension Unmarshal failed for index:", j)
+					}
+					for k, tcbExt := range tcbExts {
+						var ext2 TcbExtn
+						rest, _ = asn1.Unmarshal(tcbExt.FullBytes, &ext2)
+						if verifier.ExtSgxTcbPceSvnOid.Equal(ext2.Id) {
+							var h, l uint8 = uint8(ext2.Value >> 8), uint8(ext2.Value & 0xff)
+							e.tcbCompLevels[k] = l
+							e.tcbCompLevels[k+1] = h
+						} else {
+							e.tcbCompLevels[k] = byte(ext2.Value)
+						}
+					}
+                                }
+                        }
+                }
+        }
+	return nil
+}
+
 func (e *PckCert) GetECDSAPublicKey() (*ecdsa.PublicKey) {
 	return e.PckCertObj.PublicKey.(*ecdsa.PublicKey)
 }
@@ -156,12 +216,12 @@ func (e *PckCert) GetPckCRLURLs() ([]string) {
 	return e.PckCRL.PckCRLUrls
 }
 
-func (e *PckCert) GetPckCRLObj() ( []*pkix.CertificateList) {
+func (e *PckCert) GetPckCRLObj() ([]*pkix.CertificateList) {
 	return e.PckCRL.PckCRLObjs
 }
 
-func (e *PckCert) GetPckCRLInterCAList()([]*x509.Certificate){
-        interMediateCAArr := make( []*x509.Certificate, len(e.PckCRL.IntermediateCA))
+func (e *PckCert) GetPckCRLInterCAList() ([]*x509.Certificate) {
+        interMediateCAArr := make([]*x509.Certificate, len(e.PckCRL.IntermediateCA))
         var i  int=0
         for _, v := range e.PckCRL.IntermediateCA {
                 interMediateCAArr[i] = v
@@ -171,8 +231,8 @@ func (e *PckCert) GetPckCRLInterCAList()([]*x509.Certificate){
         return interMediateCAArr
 }
 
-func (e *PckCert) GetPckCRLRootCAList()([]*x509.Certificate){
-        RootCAArr := make( []*x509.Certificate, len(e.PckCRL.RootCA))
+func (e *PckCert) GetPckCRLRootCAList() ([]*x509.Certificate) {
+        RootCAArr := make([]*x509.Certificate, len(e.PckCRL.RootCA))
         var i  int=0
         for _, v := range e.PckCRL.RootCA {
                 RootCAArr[i] = v
@@ -182,11 +242,11 @@ func (e *PckCert) GetPckCRLRootCAList()([]*x509.Certificate){
         return RootCAArr
 }
 
-func (e *PckCert) ParsePCKCRL() error{
+func (e *PckCert) ParsePCKCRL() error {
 	e.PckCRL.PckCRLUrls = e.PckCertObj.CRLDistributionPoints
-	e.PckCRL.PckCRLObjs = make( []*pkix.CertificateList, len(e.PckCRL.PckCRLUrls))
+	e.PckCRL.PckCRLObjs = make([]*pkix.CertificateList, len(e.PckCRL.PckCRLUrls))
 
-	for i:=0; i<len(e.PckCRL.PckCRLUrls); i++ {
+	for i := 0; i < len(e.PckCRL.PckCRLUrls); i++ {
 
 		client, conf, err := utils.GetHTTPClientObj()
 		if err != nil {
@@ -237,7 +297,7 @@ func (e *PckCert) ParsePCKCRL() error{
 		}
 
 		e.PckCRL.RootCA = make(map[string]*x509.Certificate)
-		e.PckCRL.IntermediateCA = make( map[string]*x509.Certificate )
+		e.PckCRL.IntermediateCA = make(map[string]*x509.Certificate)
 
 		var IntermediateCACount int=0
 		var RootCACount int=0

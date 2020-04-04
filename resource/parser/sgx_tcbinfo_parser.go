@@ -2,7 +2,6 @@
  * Copyright (C) 2019 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
 package parser
 
 import (
@@ -14,6 +13,7 @@ import (
 	"crypto/x509"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"encoding/binary"
 	"encoding/asn1"
 	"encoding/json"
 
@@ -22,24 +22,31 @@ import (
 	"intel/isecl/svs/resource/utils"
 )
 
+const (
+	Error = iota
+	EqualOrGreater
+	Lower
+	Undefined
+)
+
 type TcbType struct {
-	Sgxtcbcomp01svn int	`json: "sgxtcbcomp01svn"`
-	Sgxtcbcomp02svn int	`json: "sgxtcbcomp02svn"`
-	Sgxtcbcomp03svn int	`json: "sgxtcbcomp03svn"`
-	Sgxtcbcomp04svn int	`json: "sgxtcbcomp04svn"`
-	Sgxtcbcomp05svn int	`json: "sgxtcbcomp05svn"`
-	Sgxtcbcomp06svn int	`json: "sgxtcbcomp06svn"`
-	Sgxtcbcomp07svn int	`json: "sgxtcbcomp07svn"`
-	Sgxtcbcomp08svn int	`json: "sgxtcbcomp08svn"`
-	Sgxtcbcomp09svn int	`json: "sgxtcbcomp09svn"`
-	Sgxtcbcomp10svn int	`json: "sgxtcbcomp10svn"`
-	Sgxtcbcomp11svn int	`json: "sgxtcbcomp11svn"`
-	Sgxtcbcomp12svn int	`json: "sgxtcbcomp12svn"`
-	Sgxtcbcomp13svn int	`json: "sgxtcbcomp13svn"`
-	Sgxtcbcomp14svn int	`json: "sgxtcbcomp14svn"`
-	Sgxtcbcomp15svn int	`json: "sgxtcbcomp15svn"`
-	Sgxtcbcomp16svn int	`json: "sgxtcbcomp16svn"`
-	PceSvn		int	`json: "pcesvn"`
+	SgxTcbComp01Svn uint	`json: "sgxtcbcomp01svn"`
+	SgxTcbComp02Svn uint	`json: "sgxtcbcomp02svn"`
+	SgxTcbComp03Svn uint	`json: "sgxtcbcomp03svn"`
+	SgxTcbComp04Svn uint	`json: "sgxtcbcomp04svn"`
+	SgxTcbComp05Svn uint	`json: "sgxtcbcomp05svn"`
+	SgxTcbComp06Svn uint	`json: "sgxtcbcomp06svn"`
+	SgxTcbComp07Svn uint	`json: "sgxtcbcomp07svn"`
+	SgxTcbComp08Svn uint	`json: "sgxtcbcomp08svn"`
+	SgxTcbComp09Svn uint	`json: "sgxtcbcomp09svn"`
+	SgxTcbComp10Svn uint	`json: "sgxtcbcomp10svn"`
+	SgxTcbComp11Svn uint	`json: "sgxtcbcomp11svn"`
+	SgxTcbComp12Svn uint	`json: "sgxtcbcomp12svn"`
+	SgxTcbComp13Svn uint	`json: "sgxtcbcomp13svn"`
+	SgxTcbComp14Svn uint	`json: "sgxtcbcomp14svn"`
+	SgxTcbComp15Svn uint	`json: "sgxtcbcomp15svn"`
+	SgxTcbComp16Svn uint	`json: "sgxtcbcomp16svn"`
+	PceSvn		uint16	`json: "pcesvn"`
 }
 
 type TcbLevelsType struct {
@@ -88,8 +95,8 @@ func NewTCBInfo(fmspc string) (*TcbInfoStruct, error) {
 	return tcbInfoStruct, nil
 }
 
-func (e *TcbInfoStruct) GetTCBInfoInterCAList()([]*x509.Certificate){
-        interMediateCAArr := make( []*x509.Certificate, len(e.IntermediateCA))
+func (e *TcbInfoStruct) GetTCBInfoInterCAList() ([]*x509.Certificate) {
+        interMediateCAArr := make([]*x509.Certificate, len(e.IntermediateCA))
         var i  int=0
         for _, v := range e.IntermediateCA {
                 interMediateCAArr[i] = v
@@ -98,8 +105,8 @@ func (e *TcbInfoStruct) GetTCBInfoInterCAList()([]*x509.Certificate){
         return interMediateCAArr
 }
 
-func (e *TcbInfoStruct) GetTCBInfoRootCAList()([]*x509.Certificate){
-        RootCAArr := make( []*x509.Certificate, len(e.RootCA))
+func (e *TcbInfoStruct) GetTCBInfoRootCAList() ([]*x509.Certificate) {
+        RootCAArr := make([]*x509.Certificate, len(e.RootCA))
         var i  int=0
         for _, v := range e.RootCA {
                 RootCAArr[i] = v
@@ -109,9 +116,9 @@ func (e *TcbInfoStruct) GetTCBInfoRootCAList()([]*x509.Certificate){
         return RootCAArr
 }
 
-func (e *TcbInfoStruct) GetTCBInfoPublicKey()( *ecdsa.PublicKey){
+func (e *TcbInfoStruct) GetTCBInfoPublicKey() (*ecdsa.PublicKey) {
         for _, v := range e.IntermediateCA {
-		if strings.Compare( v.Subject.String(), constants.SGXTCBInfoSubjectStr ) == 0 {
+		if strings.Compare(v.Subject.String(), constants.SGXTCBInfoSubjectStr) == 0 {
 			return v.PublicKey.(*ecdsa.PublicKey)
 		}
 		//utils.DumpDataInHex("Signature:", v.Signature, len(v.Signature))
@@ -120,15 +127,15 @@ func (e *TcbInfoStruct) GetTCBInfoPublicKey()( *ecdsa.PublicKey){
 	return nil
 }
 
-func (e *TcbInfoStruct) GetTcbInfoIssueDate()( string ){
+func (e *TcbInfoStruct) GetTcbInfoIssueDate() (string) {
 	return e.TcbInfoData.TcbInfo.IssueDate
 }
 
-func (e *TcbInfoStruct) GetTcbInfoNextUpdate()( string ){
+func (e *TcbInfoStruct) GetTcbInfoNextUpdate() (string) {
 	return e.TcbInfoData.TcbInfo.NextUpdate
 }
 
-func (e *TcbInfoStruct) GetTcbInfoStruct(fmspc string)(error) {
+func (e *TcbInfoStruct) GetTcbInfoStruct(fmspc string) (error) {
 	log.Debug("GetTcbInfoStruct: started processing")
 	client, conf, err := utils.GetHTTPClientObj()
         if err != nil {
@@ -178,8 +185,8 @@ func (e *TcbInfoStruct) GetTcbInfoStruct(fmspc string)(error) {
 		return errors.Wrap(err, "TCBInfo Unmarshal Failed")
 	}
 
-	e.RootCA = make( map[string]*x509.Certificate )
-	e.IntermediateCA = make( map[string]*x509.Certificate )
+	e.RootCA = make(map[string]*x509.Certificate)
+	e.IntermediateCA = make(map[string]*x509.Certificate)
 
 	var IntermediateCACount int=0
 	var RootCACount int=0
@@ -202,19 +209,19 @@ func (e *TcbInfoStruct) GetTcbInfoStruct(fmspc string)(error) {
 	return nil
 }
 
-func (e *TcbInfoStruct) GetTcbInfoFmspc()(string) {
+func (e *TcbInfoStruct) GetTcbInfoFmspc() (string) {
         return e.TcbInfoData.TcbInfo.Fmspc
 }
 
-func (e *TcbInfoStruct) GetTcbInfoBlob()([]byte){
+func (e *TcbInfoStruct) GetTcbInfoBlob() ([]byte) {
 	bytes, err := json.Marshal(e.TcbInfoData.TcbInfo)
 	if err != nil {
-		log.Error("GetTcbInfoBlob: Error in Marshal")
+		log.Error("GetTcbInfoBlob: Error in Json Marshalling")
 	}
 	return bytes
 }
 
-func (e *TcbInfoStruct) GetTcbInfoSignature()([]byte, error){
+func (e *TcbInfoStruct) GetTcbInfoSignature() ([]byte, error) {
 	signatureBytes, err := hex.DecodeString(e.TcbInfoData.Signature)
 	if err != nil {
 		return nil, errors.Wrap(err,"GetTcbInfoSignature: error in decode string")
@@ -228,33 +235,103 @@ func (e *TcbInfoStruct) GetTcbInfoSignature()([]byte, error){
         return bytes, nil
 }
 
-func (e *TcbInfoStruct) GetTcbInfoStatus()(string){
-        return e.TcbInfoData.TcbInfo.TcbLevels[0].TcbStatus
+func CompareTcbComponents(pckComponents []byte, pckpcesvn uint16, tcbComponents []byte, tcbpcesvn uint16) int {
+	left_lower := false
+	right_lower := false
+
+	if (len(pckComponents) != constants.MaxTcbLevels || len(tcbComponents) != constants.MaxTcbLevels) {
+		return Error
+	}
+	if pckpcesvn < tcbpcesvn {
+		left_lower = true
+	}
+	if pckpcesvn > tcbpcesvn {
+		right_lower = true
+	}
+
+	for i := 0; i < constants.MaxTcbLevels; i++ {
+		if pckComponents[i] < tcbComponents[i] {
+			left_lower = true
+		}
+		if pckComponents[i] > tcbComponents[i] {
+			right_lower = true
+		}
+	}
+	// this should not happen as either one can be greater
+	if (left_lower && right_lower) {
+		return Undefined
+	}
+	if left_lower {
+		return Lower
+	}
+	return EqualOrGreater
 }
 
-func (e *TcbInfoStruct) DumpTcbInfo(){
+func GetTcbCompList(TcbLevelList *TcbType) []byte {
+	TcbCompLevel := make([]byte, constants.MaxTcbLevels)
+
+	TcbCompLevel[0] = byte(TcbLevelList.SgxTcbComp01Svn)
+	TcbCompLevel[1] = byte(TcbLevelList.SgxTcbComp02Svn)
+	TcbCompLevel[2] = byte(TcbLevelList.SgxTcbComp03Svn)
+	TcbCompLevel[3] = byte(TcbLevelList.SgxTcbComp04Svn)
+	TcbCompLevel[4] = byte(TcbLevelList.SgxTcbComp05Svn)
+	TcbCompLevel[5] = byte(TcbLevelList.SgxTcbComp06Svn)
+	TcbCompLevel[6] = byte(TcbLevelList.SgxTcbComp07Svn)
+	TcbCompLevel[7] = byte(TcbLevelList.SgxTcbComp08Svn)
+	TcbCompLevel[8] = byte(TcbLevelList.SgxTcbComp09Svn)
+	TcbCompLevel[9] = byte(TcbLevelList.SgxTcbComp10Svn)
+	TcbCompLevel[10] = byte(TcbLevelList.SgxTcbComp11Svn)
+	TcbCompLevel[11] = byte(TcbLevelList.SgxTcbComp12Svn)
+	TcbCompLevel[12] = byte(TcbLevelList.SgxTcbComp13Svn)
+	TcbCompLevel[13] = byte(TcbLevelList.SgxTcbComp14Svn)
+	TcbCompLevel[14] = byte(TcbLevelList.SgxTcbComp15Svn)
+	TcbCompLevel[15] = byte(TcbLevelList.SgxTcbComp16Svn)
+
+	return TcbCompLevel
+}
+
+func (e *TcbInfoStruct) GetTcbUptoDateStatus(tcbLevels []byte) (string) {
+	PckComponents := tcbLevels[:16]
+	PckPceSvn :=  binary.LittleEndian.Uint16(tcbLevels[16:])
+
+	var Status string
+	var TcbComponents []byte
+	// iterate through all TCB Levels present in TCBInfo
+	for i := 0; i < len(e.TcbInfoData.TcbInfo.TcbLevels); i++ {
+		TcbPceSvn := e.TcbInfoData.TcbInfo.TcbLevels[i].Tcb.PceSvn
+		TcbComponents = GetTcbCompList(&e.TcbInfoData.TcbInfo.TcbLevels[i].Tcb)
+		TcbError := CompareTcbComponents(PckComponents, PckPceSvn, TcbComponents, TcbPceSvn)
+		if TcbError == EqualOrGreater {
+			Status = e.TcbInfoData.TcbInfo.TcbLevels[i].TcbStatus
+			break
+		}
+	}
+	return Status
+}
+
+func (e *TcbInfoStruct) DumpTcbInfo() {
         log.Debug("============TCBInfo================")
         log.Printf("Version:         %v", e.TcbInfoData.TcbInfo.Version)
         log.Printf("IssueDate:       %v", e.TcbInfoData.TcbInfo.IssueDate)
         log.Printf("NextUpdate:      %v", e.TcbInfoData.TcbInfo.NextUpdate)
         log.Printf("Fmspc:           %v", e.TcbInfoData.TcbInfo.Fmspc)
         log.Printf("pceId:           %v", e.TcbInfoData.TcbInfo.PceId)
-        log.Printf("Sgxtcbcomp01svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.Sgxtcbcomp01svn)
-        log.Printf("Sgxtcbcomp02svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.Sgxtcbcomp02svn)
-        log.Printf("Sgxtcbcomp03svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.Sgxtcbcomp03svn)
-        log.Printf("Sgxtcbcomp04svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.Sgxtcbcomp04svn)
-        log.Printf("Sgxtcbcomp05svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.Sgxtcbcomp05svn)
-        log.Printf("Sgxtcbcomp06svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.Sgxtcbcomp06svn)
-        log.Printf("Sgxtcbcomp07svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.Sgxtcbcomp07svn)
-        log.Printf("Sgxtcbcomp08svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.Sgxtcbcomp08svn)
-        log.Printf("Sgxtcbcomp09svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.Sgxtcbcomp09svn)
-        log.Printf("Sgxtcbcomp10svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.Sgxtcbcomp10svn)
-        log.Printf("Sgxtcbcomp11svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.Sgxtcbcomp11svn)
-        log.Printf("Sgxtcbcomp12svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.Sgxtcbcomp12svn)
-        log.Printf("Sgxtcbcomp13svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.Sgxtcbcomp13svn)
-        log.Printf("Sgxtcbcomp14svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.Sgxtcbcomp14svn)
-        log.Printf("Sgxtcbcomp15svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.Sgxtcbcomp15svn)
-        log.Printf("Sgxtcbcomp16svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.Sgxtcbcomp16svn)
+        log.Printf("Sgxtcbcomp01svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.SgxTcbComp01Svn)
+        log.Printf("Sgxtcbcomp02svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.SgxTcbComp02Svn)
+        log.Printf("Sgxtcbcomp03svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.SgxTcbComp03Svn)
+        log.Printf("Sgxtcbcomp04svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.SgxTcbComp04Svn)
+        log.Printf("Sgxtcbcomp05svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.SgxTcbComp05Svn)
+        log.Printf("Sgxtcbcomp06svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.SgxTcbComp06Svn)
+        log.Printf("Sgxtcbcomp07svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.SgxTcbComp07Svn)
+        log.Printf("Sgxtcbcomp08svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.SgxTcbComp08Svn)
+        log.Printf("Sgxtcbcomp09svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.SgxTcbComp09Svn)
+        log.Printf("Sgxtcbcomp10svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.SgxTcbComp10Svn)
+        log.Printf("Sgxtcbcomp11svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.SgxTcbComp11Svn)
+        log.Printf("Sgxtcbcomp12svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.SgxTcbComp12Svn)
+        log.Printf("Sgxtcbcomp13svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.SgxTcbComp13Svn)
+        log.Printf("Sgxtcbcomp14svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.SgxTcbComp14Svn)
+        log.Printf("Sgxtcbcomp15svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.SgxTcbComp15Svn)
+        log.Printf("Sgxtcbcomp16svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.SgxTcbComp16Svn)
         log.Printf("Status:          %v", e.TcbInfoData.TcbInfo.TcbLevels[0].TcbStatus)
         log.Printf("Pcesvn:          %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.PceSvn)
         log.Printf("Signature:       %v", e.TcbInfoData.Signature)

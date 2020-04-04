@@ -15,17 +15,17 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"encoding/hex"
+	"github.com/pkg/errors"
 
 	"intel/isecl/svs/config"
 	"intel/isecl/svs/constants"
-	"github.com/pkg/errors"
 	commLog "intel/isecl/lib/common/log"
 	cos "intel/isecl/lib/common/os"
 )
 
 var log = commLog.GetDefaultLogger()
 
-func DumpDataInHex(label string, data []byte, len int){
+func DumpDataInHex(label string, data []byte, len int) {
 	log.Printf("%s[%d]:", label, len)
 	dumper := hex.Dumper(os.Stderr)
 	defer dumper.Close()
@@ -48,7 +48,6 @@ func GetHTTPClientObj()(*http.Client, *config.Configuration, error) {
 		return nil, nil, errors.Wrap(err, "Could not read root CA certificate")
 	}
 
-	// Get the SystemCertPool, continue with an empty pool on error
 	rootCAs, _ := x509.SystemCertPool()
 	if rootCAs == nil {
 		rootCAs = x509.NewCertPool()
@@ -71,22 +70,22 @@ func GetHTTPClientObj()(*http.Client, *config.Configuration, error) {
 	return client, conf, nil
 }
 
-func GetCertPemData(obj *x509.Certificate) ([]byte, error) {
+func GetCertPemData(cert *x509.Certificate) ([]byte, error) {
 	var err error
-	if obj == nil {
+	if cert == nil {
 		return nil, errors.Wrap(err, "Certificate Object is empty")
 	}
 
 	block := &pem.Block{
 		Type: "CERTIFICATE",
-		Bytes: obj.Raw,
+		Bytes: cert.Raw,
 	}
 
 	pemData := pem.EncodeToMemory(block)
 	return pemData, nil
 }
 
-func GetCertObjListFromStr(certChainStr string) ([]*x509.Certificate, error){
+func GetCertObjListFromStr(certChainStr string) ([]*x509.Certificate, error) {
 	certChainEscapedStr, err := url.QueryUnescape(certChainStr)
 	if err != nil{
 		return nil, errors.Wrap(err, "GetCertObjListFromStr: Error parsing Cert Chain QueryUnescape")
@@ -100,14 +99,13 @@ func GetCertObjListFromStr(certChainStr string) ([]*x509.Certificate, error){
 	certs := strings.SplitAfterN( certChainEscapedStr, "-----END CERTIFICATE-----", certCount)
 	certChainObjList := make( []*x509.Certificate, certCount)
 
-	for i:=0; i<len(certs); i++ {
-
+	for i := 0; i < len(certs); i++ {
 		log.Debug("Certificate[", i, "]:", string(certs[i]))
 		block, _ := pem.Decode([]byte(certs[i]))
 		if block == nil{
 			return nil, errors.Wrap(err, "GetCertObjListFromStr: Pem Decode error")
 		}
-		certChainObjList[i], err = x509.ParseCertificate( block.Bytes )
+		certChainObjList[i], err = x509.ParseCertificate(block.Bytes)
 		if err != nil {
 			return nil, errors.Wrap(err, "GetCertObjListFromStr: Parse Certificate error")
 		}
@@ -136,13 +134,13 @@ func CheckDate(issueDate string, nextUpdate string) bool {
         universalTime := time.Now().UTC()
 
         iDate, err := time.Parse(time.RFC3339, issueDate)
-        if err!=nil {
+        if err != nil {
                 log.Error("CheckData: IssueDate parse:" +err.Error())
 		return false
         }
 
         nUpdate, err := time.Parse(time.RFC3339, nextUpdate)
-        if err!=nil {
+        if err != nil {
                 log.Error("CheckData: NextUpdate parse:"+err.Error())
 		return false
         }
@@ -153,10 +151,10 @@ func CheckDate(issueDate string, nextUpdate string) bool {
 	log.Debug("Issuedate:", issueDate, ", nextUpdate:", nextUpdate,
 			", Current Date:", universalTime)
         if (curTimeAfterIssDate == false || curTimeBeforeNextUpdate == false) {
-                log.Error(fmt.Sprintf("CheckDate: CheckDate Validataion Failed,SysTime After IssueDate : %v, SysTime Before NextUpdate : %v",
+                log.Error(fmt.Sprintf("CheckDate: CheckDate Validataion Failed, Time After IssueDate : %v, Time Before NextUpdate : %v",
 				curTimeAfterIssDate, curTimeBeforeNextUpdate))
                 return false
-        }else {
+        } else {
                 return true
         }
 }

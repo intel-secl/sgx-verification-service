@@ -57,6 +57,7 @@ const (
 	SGXPCKCertificateSubjectStr   = "CN=Intel SGX PCK Certificate,O=Intel Corporation,L=Santa Clara,ST=CA,C=US"
 	SGXTCBInfoSubjectStr	      = "CN=Intel SGX TCB Signing,O=Intel Corporation,L=Santa Clara,ST=CA,C=US"
 	SGXQEInfoSubjectStr	      = "CN=Intel SGX TCB Signing,O=Intel Corporation,L=Santa Clara,ST=CA,C=US"
+	MaxTcbLevels		      = 16
 )
 
 // State represents whether or not a daemon is running or not

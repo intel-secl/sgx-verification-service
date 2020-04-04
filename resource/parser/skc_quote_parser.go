@@ -14,7 +14,6 @@ import (
 	"encoding/binary"
         "gopkg.in/restruct.v1"
 	"github.com/pkg/errors"
-
 )
 
 type EcdsaQuoteData struct {

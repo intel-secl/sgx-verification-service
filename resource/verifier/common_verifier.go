@@ -10,22 +10,22 @@ import (
 	"encoding/asn1"
 	"crypto/sha256"
 	"crypto/x509/pkix"
-
 	clog "intel/isecl/lib/common/log"
 	"github.com/pkg/errors"
 )
 
-var ExtCRLDistributionPointOid          asn1.ObjectIdentifier   = asn1.ObjectIdentifier{2,5,29,31}
-var ExtSubjectKeyIdentifierOid          asn1.ObjectIdentifier   = asn1.ObjectIdentifier{2,5,29,14}
-var ExtKeyUsageOid                      asn1.ObjectIdentifier   = asn1.ObjectIdentifier{2,5,29,15}
-var ExtBasicConstrainsOid               asn1.ObjectIdentifier   = asn1.ObjectIdentifier{2,5,29,19}
-var ExtAuthorityKeyIdentifierOid        asn1.ObjectIdentifier   = asn1.ObjectIdentifier{2,5,29,35}
-var ExtSgxOid                           asn1.ObjectIdentifier   = asn1.ObjectIdentifier{1,2,840,113741,1,13,1}
-var ExtSgxPPIDOid                       asn1.ObjectIdentifier   = asn1.ObjectIdentifier{1,2,840,113741,1,13,1,1}
-var ExtSgxTCBOid                        asn1.ObjectIdentifier   = asn1.ObjectIdentifier{1,2,840,113741,1,13,1,2}
-var ExtSgxPCEIDOid                      asn1.ObjectIdentifier   = asn1.ObjectIdentifier{1,2,840,113741,1,13,1,3}
-var ExtSgxFMSPCOid                      asn1.ObjectIdentifier   = asn1.ObjectIdentifier{1,2,840,113741,1,13,1,4}
-var ExtSgxSGXTypeOid                    asn1.ObjectIdentifier   = asn1.ObjectIdentifier{1,2,840,113741,1,13,1,5}
+var ExtCRLDistributionPointOid		asn1.ObjectIdentifier   = asn1.ObjectIdentifier{2,5,29,31}
+var ExtSubjectKeyIdentifierOid		asn1.ObjectIdentifier   = asn1.ObjectIdentifier{2,5,29,14}
+var ExtKeyUsageOid			asn1.ObjectIdentifier   = asn1.ObjectIdentifier{2,5,29,15}
+var ExtBasicConstrainsOid		asn1.ObjectIdentifier   = asn1.ObjectIdentifier{2,5,29,19}
+var ExtAuthorityKeyIdentifierOid	asn1.ObjectIdentifier   = asn1.ObjectIdentifier{2,5,29,35}
+var ExtSgxOid				asn1.ObjectIdentifier   = asn1.ObjectIdentifier{1,2,840,113741,1,13,1}
+var ExtSgxPPIDOid			asn1.ObjectIdentifier   = asn1.ObjectIdentifier{1,2,840,113741,1,13,1,1}
+var ExtSgxTCBOid			asn1.ObjectIdentifier   = asn1.ObjectIdentifier{1,2,840,113741,1,13,1,2}
+var ExtSgxPCEIDOid			asn1.ObjectIdentifier   = asn1.ObjectIdentifier{1,2,840,113741,1,13,1,3}
+var ExtSgxFMSPCOid			asn1.ObjectIdentifier   = asn1.ObjectIdentifier{1,2,840,113741,1,13,1,4}
+var ExtSgxSGXTypeOid			asn1.ObjectIdentifier   = asn1.ObjectIdentifier{1,2,840,113741,1,13,1,5}
+var ExtSgxTcbPceSvnOid			asn1.ObjectIdentifier   = asn1.ObjectIdentifier{1,2,840,113741,1,13,1,2,17}
 
 var log = clog.GetDefaultLogger()
 
@@ -182,8 +182,6 @@ func VerifiySHA256Hash(hash []byte, blob []byte) (bool, error) {
 		return false, errors.New("VerifiySHA256Hash: Error in Hash generation")
 	}
 
-	//utils.DumpDataInHex("Quote Hash", hash, len(hash))
-	//utils.DumpDataInHex("Gen Hash", hashValue, len(hashValue))
 	for i:=0;i<len(hash);i++{
 		if hashValue[i] != hash[i]{
 			return false, errors.New("VerifiySHA256Hash: Public 256 validation failed")

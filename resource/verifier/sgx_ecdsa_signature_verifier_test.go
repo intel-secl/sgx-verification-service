@@ -22,13 +22,12 @@ type TestData struct {
 	PostData []byte
 }
 
-func ExecuteQPLTest(input TestData){
+func ExecuteQPLTest(input TestData) {
 	input.Test.Log("Test:", input.Description)
 	var req *http.Request
 	req = httptest.NewRequest("GET", input.Url, nil)
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Content-Type", "application/json")
-
 }
 
 func TestGetFmspc(t *testing.T) {

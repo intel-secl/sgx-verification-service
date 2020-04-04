@@ -11,10 +11,9 @@ import (
 	"strings"
 	"intel/isecl/svs/constants"
 	"github.com/pkg/errors"
-
 )
 
-func CheckExpiry(crl *pkix.CertificateList)(bool){
+func CheckExpiry(crl *pkix.CertificateList) (bool) {
 	if crl.HasExpired(time.Now()){
 		log.Error("Certificate Revocation List Has Expired")
 		return false
@@ -22,13 +21,13 @@ func CheckExpiry(crl *pkix.CertificateList)(bool){
 	return true
 }
 
-func VerifyPCKCRLIssuer( crl *pkix.CertificateList) (bool){
+func VerifyPCKCRLIssuer(crl *pkix.CertificateList) (bool) {
 	issuer := crl.TBSCertList.Issuer.String()
-	return VerifyString( issuer, constants.SGXCRLIssuerStr)
+	return VerifyString(issuer, constants.SGXCRLIssuerStr)
 }
 
-func VerifyPCKCRL (crlUrl []string, crlList []*pkix.CertificateList, interCA []*x509.Certificate,
-				rootCA []*x509.Certificate, trustedRootCA *x509.Certificate)(bool, error){
+func VerifyPCKCRL(crlUrl []string, crlList []*pkix.CertificateList, interCA []*x509.Certificate,
+				rootCA []*x509.Certificate, trustedRootCA *x509.Certificate) (bool, error) {
 	if len(crlList) == 0 || len(interCA) == 0 || len(rootCA) == 0 {
 		return false, errors.New("VerifyPCKCRL: CRL List/InterCA/RootCA is empty")
 	}
@@ -46,7 +45,6 @@ func VerifyPCKCRL (crlUrl []string, crlList []*pkix.CertificateList, interCA []*
 		}
 	}
 
-	log.Debug("CRL List:", len(crlUrl))
 	var signPassCount int = 0
 	for i := 0; i < len(crlList); i++ {
 		ret := CheckExpiry(crlList[i])
@@ -58,7 +56,7 @@ func VerifyPCKCRL (crlUrl []string, crlList []*pkix.CertificateList, interCA []*
 			return false, errors.New("VerifyPCKCRL: CRL Issuer info is Invalid: "+crlUrl[i])
 		}
 
-		for j:=0;j<len(interCA);j++{
+		for j := 0; j < len(interCA); j++{
 			err :=  interCA[i].CheckCRLSignature(crlList[i])
 			if err == nil {
 				signPassCount += 1
@@ -70,7 +68,7 @@ func VerifyPCKCRL (crlUrl []string, crlList []*pkix.CertificateList, interCA []*
 		}
 	}
 
-	if strings.Compare( string(trustedRootCA.Signature), string(rootCA[0].Signature)) != 0 {
+	if strings.Compare(string(trustedRootCA.Signature), string(rootCA[0].Signature)) != 0 {
 		return false, errors.New("VerifyPCKCRL: Trusted CA Verification Failed")
 	}
 	return true, nil
