@@ -15,7 +15,7 @@ import (
 	"encoding/binary"
 	"gopkg.in/restruct.v1"
 	"github.com/pkg/errors"
-	clog "intel/isecl/lib/common/log"
+	clog "intel/isecl/lib/common/v2/log"
 )
 
 var log = clog.GetDefaultLogger()

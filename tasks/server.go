@@ -7,7 +7,7 @@ package tasks
 import (
 	"flag"
 	"fmt"
-	"intel/isecl/lib/common/setup"
+	"intel/isecl/lib/common/v2/setup"
 	"intel/isecl/svs/config"
 	"intel/isecl/svs/constants"
 	"io"

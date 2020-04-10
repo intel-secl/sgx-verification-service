@@ -10,7 +10,7 @@ import (
 	"encoding/asn1"
 	"crypto/sha256"
 	"crypto/x509/pkix"
-	clog "intel/isecl/lib/common/log"
+	clog "intel/isecl/lib/common/v2/log"
 	"github.com/pkg/errors"
 )
 

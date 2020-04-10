@@ -19,8 +19,8 @@ import (
 
 	"intel/isecl/svs/config"
 	"intel/isecl/svs/constants"
-	commLog "intel/isecl/lib/common/log"
-	cos "intel/isecl/lib/common/os"
+	commLog "intel/isecl/lib/common/v2/log"
+	cos "intel/isecl/lib/common/v2/os"
 )
 
 var log = commLog.GetDefaultLogger()
