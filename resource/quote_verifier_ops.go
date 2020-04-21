@@ -29,7 +29,6 @@ type SwResponse struct {
 type SGXResponse struct {
 	Status			string
 	Message			string
-
 	ChallengeKeyType	string
 	ChallengeRsaPublicKey	string
 	EnclaveIssuer		string
@@ -66,7 +65,6 @@ func GenericQuoteVerifyCB(config *config.Configuration) errorHandlerFunc {
 		}
 
 		blob := data.QuoteBlob
-		log.Debug("GenericQuoteVerifyCB: Blob: ", blob)
 
 		obj := parser.ParseSkcQuoteBlob(blob)
 		if obj == nil {
@@ -79,7 +77,7 @@ func GenericQuoteVerifyCB(config *config.Configuration) errorHandlerFunc {
 		} else if obj.GetQuoteType() == parser.QuoteTypeSw {
 			return SwQuoteVerifyCB(w, r, obj, config)
 		} else {
-			return &resourceError{Message: "GenericQuoteVerifyCB - ParseSkcQuoteBlob parsing failed",
+			return &resourceError{Message: "GenericQuoteVerifyCB - Quote Type is Invalid",
 				StatusCode: http.StatusBadRequest}
 		}
 		return nil
@@ -88,7 +86,6 @@ func GenericQuoteVerifyCB(config *config.Configuration) errorHandlerFunc {
 
 func SwQuoteVerifyCB(w http.ResponseWriter, r *http.Request,
 		skcBlobParser *parser.SkcBlobParsed, config *config.Configuration) error {
-
 	rsaBytes, err := skcBlobParser.GetRSAPubKeyObj()
 	if err != nil {
 		return &resourceError{Message: "GetRSAPubKeyObj: Error: " + err.Error(),
@@ -98,9 +95,9 @@ func SwQuoteVerifyCB(w http.ResponseWriter, r *http.Request,
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK) // HTTP 200
 
-	res := SwResponse{
+	res := SwResponse {
 		Status:                "Success",
-		Message:               "Software(SW) Quote Verification is Success",
+		Message:               "Software(SW) Quote Verification Successful",
 		ChallengeKeyType:      "RSA",
 		SwIssuer:              "Intel",
 		ChallengeRsaPublicKey: string(rsaBytes),
@@ -157,12 +154,12 @@ func SGXECDSAQuoteVerifyCB(w http.ResponseWriter, r *http.Request, skcBlobParser
 
 	err = VerifyTCBInfo(certObj, tcbObj, config.TrustedRootCA)
 	if err != nil {
-		return &resourceError{Message: "VerifyTCBInfo Verification failed: " + err.Error(),
+		return &resourceError{Message: "TCBInfo Verification failed: " + err.Error(),
 			StatusCode: http.StatusInternalServerError}
 	}
 
 	tcbUptoDateStatus := tcbObj.GetTcbUptoDateStatus(certObj.GetPckCertTcbLevels())
-	log.Info("Current tcbUptoDateStatus is : ", tcbUptoDateStatus)
+	log.Info("Current Tcb-Upto-Date Status is : ", tcbUptoDateStatus)
 
 	qeIdObj, err := parser.NewQeIdentity()
 	if err != nil {

@@ -11,7 +11,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/binary"
 	"gopkg.in/restruct.v1"
 	"github.com/pkg/errors"
@@ -127,35 +126,15 @@ type SgxQuoteParsed struct {
 	InterMediateCA		map[string]*x509.Certificate
 }
 
-func ParseEcdsaEncodedQuoteBlob(rawQuote []byte) (*SgxQuoteParsed) {
-	if len(rawQuote) < 1 {
-		log.Error("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote is Empty")
-		return nil
-	}
-
-	parsedObj := new(SgxQuoteParsed)
-	decodedQuote, err := base64.StdEncoding.DecodeString(string(rawQuote))
-	if err != nil {
-		log.Error("Failed to Decode Quote")
-		return nil
-	}
-	_, err = parsedObj.ParseRawECDSAQuote(decodedQuote)
-	if err != nil {
-		log.Error("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote parsing error", err.Error())
-		return nil
-	}
-	return parsedObj
-}
-
 func ParseEcdsaQuoteBlob(rawBlob []byte) (*SgxQuoteParsed) {
 	if len(rawBlob) < 1 {
-		log.Error("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote is Empty")
+		log.Error("ParseEcdsaQuoteBlob: Raw SGX ECDSA Quote is Empty: ")
 		return nil
 	}
-	parsedObj := new( SgxQuoteParsed )
-	_, err := parsedObj.ParseRawECDSAQuote( rawBlob )
+	parsedObj := new(SgxQuoteParsed)
+	_, err := parsedObj.ParseRawECDSAQuote(rawBlob)
 	if err != nil {
-		log.Error("SgxQuoteParsed Object Spawn: Raw SGX ECDSA Quote parsing error", err.Error())
+		log.Error("ParseRawECDSAQuote: Raw SGX ECDSA Quote parsing error: ", err.Error())
 		return nil
 	}
 	return parsedObj
@@ -463,7 +442,7 @@ func (e *SgxQuoteParsed) ParseQuoteCertificates() (error) {
 		}
 		cert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
-			log.Error("ParseCertificate error")
+			log.Error("ParseCertificate error: ")
 			return errors.Wrap(err, "ParseQuoteCertificates: ParseCertificate error")
 		}
 
@@ -519,7 +498,7 @@ func (e *SgxQuoteParsed) ParseRawECDSAQuote(decodedQuote []byte) (bool, error) {
 
 	err = e.ParseQuoteCertificates()
 	if err != nil {
-		return false, errors.Wrap(err, "Failed to ParseQuoteCertificates")
+		return false, errors.Wrap(err, "Failed to Parse PCK certificates in Quote")
 	}
 	return true, nil
 }

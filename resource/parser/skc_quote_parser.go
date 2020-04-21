@@ -20,10 +20,6 @@ type EcdsaQuoteData struct {
 	PckCertSize uint32
 }
 
-type EpidQuoteData struct {
-	Spid [32]byte
-}
-
 type SwQuoteData struct {
 	Dummy uint32
 }
@@ -42,7 +38,7 @@ type KeyDetailsRSA struct {
 }
 
 type KeyDetailsEC struct {
-	Dummy	uint32
+	Dummy uint32
 }
 
 type SkcBlobParsed struct {
@@ -50,7 +46,6 @@ type SkcBlobParsed struct {
 	RsaKeyDetails	KeyDetailsRSA
 	ECKeyDetails	KeyDetailsEC
 	EcdsaQuoteInfo  EcdsaQuoteData
-	EpidQuoteInfo   EpidQuoteData
 	SwQuoteInfo	SwQuoteData
 	RawBlobLen	int
 	RawBlob		[]byte
@@ -59,26 +54,25 @@ type SkcBlobParsed struct {
 }
 
 const (
-	KeyTypeRsa=1
-	KeyTypeEc=2
+	KeyTypeRsa = 1
+	KeyTypeEc = 2
 )
 
 const (
-	QuoteTypeEpid = 1
-	QuoteTypeEcdsa = 2
-	QuoteTypeSw = 3
+	QuoteTypeEcdsa = 1
+	QuoteTypeSw = 2
 )
 
-func ParseSkcQuoteBlob( rawBlob string) (*SkcBlobParsed) {
+func ParseSkcQuoteBlob(rawBlob string) (*SkcBlobParsed) {
 	if len(rawBlob) < 1 {
-		log.Error("ParseSkcBlob Object Spawn: Raw SKC Blob is Empty")
+		log.Error("ParseSkcQuoteBlob: SKC Blob is Empty")
 		return nil
 	}
 
 	parsedObj := new(SkcBlobParsed)
 	_, err := parsedObj.ParseSkcBlobData(rawBlob)
 	if err != nil {
-		log.Error("ParseSkcBlob Object Spawn: Raw SKC Parsing Error: ", err.Error())
+		log.Error("ParseSkcBlobData: SKC Blob Parsing Error: ", err.Error())
 		return nil
 	}
 	return parsedObj
@@ -104,21 +98,21 @@ func (e *SkcBlobParsed) GetPubKeyBlob() ([]byte) {
 	return e.PubKeyBlob
 }
 
-func (e *SkcBlobParsed) ParseSkcBlobData( blob string) (bool, error) {
+func (e *SkcBlobParsed) ParseSkcBlobData(blob string) (bool, error) {
 	decodedBlob, err := base64.StdEncoding.DecodeString(blob)
         if err != nil {
-                log.Error("Failed to Decode Quote")
-		return false, errors.Wrap(err, "ParseSkcBlob: Failed to Decode Quote")
+                log.Error("Failed to Base64 Decode Quote")
+		return false, errors.Wrap(err, "ParseSkcBlob: Failed to Base64 Decode Quote")
         }
 
 	var keyDetailsLen int
 	var quoteDetailsLen int
-	var pubKeySize	int=0
+	var pubKeySize int=0
 
 	e.RawBlob = make([]byte, len(decodedBlob))
 	copy(e.RawBlob, decodedBlob)
 
-	e.RawBlobLen  = len(e.RawBlob)
+	e.RawBlobLen = len(e.RawBlob)
 	restruct.Unpack(e.RawBlob, binary.LittleEndian, &e.Header)
 
 	if e.GetKeyType() == KeyTypeRsa {
@@ -131,24 +125,21 @@ func (e *SkcBlobParsed) ParseSkcBlobData( blob string) (bool, error) {
 		return false, errors.Wrap(err, "ParseSkcBlob: Invalid Key Type Received")
 	}
 
+	// first 20 bytes are added by skc_library to identify type of quote and signing key type
 	quoteDetailsOffset := 20 + keyDetailsLen
 
-	if e.GetQuoteType() ==  QuoteTypeEpid {
-		restruct.Unpack(e.RawBlob[quoteDetailsOffset:], binary.LittleEndian, &e.EpidQuoteInfo)
-		quoteDetailsLen = 32
-	} else if e.GetQuoteType() ==  QuoteTypeEcdsa {
+	if e.GetQuoteType() == QuoteTypeEcdsa {
 		restruct.Unpack(e.RawBlob[quoteDetailsOffset:], binary.LittleEndian, &e.EcdsaQuoteInfo)
-		quoteDetailsLen = 32 //Because of union member
-	} else if e.GetQuoteType() ==  QuoteTypeSw {
+	} else if e.GetQuoteType() == QuoteTypeSw {
 		restruct.Unpack(e.RawBlob[quoteDetailsOffset:], binary.LittleEndian, &e.SwQuoteInfo)
-		quoteDetailsLen = 32 //Because of union member
-	}else {
-		return false, errors.Wrap(err, "ParseSkcBlob: Invalid Quote Type Received")
+	} else {
+		return false, errors.Wrap(err, "ParseSkcBlobData: Invalid Quote Type Received: ")
 	}
 
+	quoteDetailsLen = 4
 	pubKeyStrOfset := quoteDetailsOffset + quoteDetailsLen
 	quoteStrOffset := quoteDetailsOffset + quoteDetailsLen
-	if e.GetQuoteType() ==  QuoteTypeEcdsa {
+	if e.GetQuoteType() == QuoteTypeEcdsa {
 		quoteStrOffset = quoteStrOffset + int(e.EcdsaQuoteInfo.PckCertSize)
 		pubKeyStrOfset = pubKeyStrOfset + int(e.EcdsaQuoteInfo.PckCertSize)
 	}
@@ -162,15 +153,13 @@ func (e *SkcBlobParsed) ParseSkcBlobData( blob string) (bool, error) {
 
 	pubKeyEndOffset := pubKeyStrOfset + pubKeySize
 	e.PubKeyBlob = make([]byte, pubKeySize)
-	copy( e.PubKeyBlob,  e.RawBlob[pubKeyStrOfset: pubKeyEndOffset])
+	copy(e.PubKeyBlob,  e.RawBlob[pubKeyStrOfset: pubKeyEndOffset])
 
 	quoteEndOffset := quoteStrOffset + int(e.Header.QuoteSize)
 	log.Debug("TotalBlobSize: ", e.RawBlobLen,", QuoteStrOffset: ", quoteStrOffset, ", QuoteEndOffet: ", quoteEndOffset)
 
 	e.QuoteBlob = make([]byte, e.Header.QuoteSize)
-	copy( e.QuoteBlob,  e.RawBlob[quoteStrOffset:])
-
-	log.Debug("QuoteSize: ", len(e.QuoteBlob))
+	copy(e.QuoteBlob,  e.RawBlob[quoteStrOffset:])
 
 	e.DumpSkcBlobHeader()
 	return true, nil
@@ -191,11 +180,9 @@ func (e *SkcBlobParsed) DumpSkcBlobHeader() {
 		log.Debug("ECKeyDetails->ModulusLen = ", e.ECKeyDetails.Dummy)
 	}
 
-	if e.GetQuoteType() ==  QuoteTypeEpid {
-		log.Debug("EpidQuoteInfo->Spid = ", e.EpidQuoteInfo.Spid)
-	} else if e.GetQuoteType() ==  QuoteTypeEcdsa {
+	if e.GetQuoteType() == QuoteTypeEcdsa {
 		log.Debug("EcdsaQuoteInfo->PckCertSize = ", e.EcdsaQuoteInfo.PckCertSize)
-	} else if e.GetQuoteType() ==  QuoteTypeSw{
+	} else if e.GetQuoteType() == QuoteTypeSw{
 		log.Debug("SwQuoteInfo->Dummy = ", e.SwQuoteInfo.Dummy)
 	}
 }
