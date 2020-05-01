@@ -5,17 +5,19 @@
 package parser
 
 import (
-        "fmt"
+	"fmt"
 	"strings"
-        "net/http"
+	"net/http"
 	"io/ioutil"
 	"crypto/x509"
 	"crypto/ecdsa"
-        "encoding/hex"
-        "encoding/json"
+	"encoding/hex"
+	"encoding/json"
 	"github.com/pkg/errors"
-        "intel/isecl/svs/resource/utils"
-        "intel/isecl/svs/constants"
+	"intel/isecl/lib/clients/v2"
+	"intel/isecl/svs/resource/utils"
+	"intel/isecl/svs/config"
+	"intel/isecl/svs/constants"
 )
 
 type QeIdentityJson struct {
@@ -56,12 +58,17 @@ type EnclaveIdentityType struct {
 }
 
 func NewQeIdentity() (*QeIdentityData, error) {
-	obj := new( QeIdentityData )
+	obj := new(QeIdentityData)
 
-	client, conf, err := utils.GetHTTPClientObj()
-        if err != nil {
-		return nil, errors.Wrap(err, "NewQeIdentity: failed to Get client Obj")
-        }
+	conf := config.Global()
+	if conf == nil {
+		return nil, errors.Wrap(errors.New("NewQeIdentity: Configuration pointer is null"), "Config error")
+	}
+
+	client, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
+	if err != nil {
+		return nil, errors.Wrap(err, "NewQeIdentity: Error in getting client object")
+	}
 
         url := fmt.Sprintf("%s/qe/identity", conf.SCSBaseUrl)
         req, err := http.NewRequest("GET", url, nil)
@@ -69,12 +76,18 @@ func NewQeIdentity() (*QeIdentityData, error) {
             return nil, errors.Wrap(err, "NewQeIdentity: failed to get new request")
         }
 
+	req.Header.Set("Accept", "application/json")
         q := req.URL.Query()
         req.URL.RawQuery = q.Encode()
 
+	err = utils.AddJWTToken(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "NewQeIdentity: failed to add JWT token")
+	}
+
         resp, err := client.Do(req)
         if err != nil {
-            return nil, errors.Wrap(err, "NewQeIdentity: failed to to client request")
+            return nil, errors.Wrap(err, "NewQeIdentity: failed to do client request")
         }
 
 	if resp.StatusCode != 200 {

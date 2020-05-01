@@ -29,8 +29,8 @@ sudo yum install -y git wget makeself
 ### Install `go 1.14.1` or newer
 The `Certificate Management Service` requires Go version 11.4 that has support for `go modules`. The build was validated with version 14.1 version of `go`. It is recommended that you use a newer version of `go` - but please keep in mind that the product has been validated with 1.14.1 and newer versions of `go` may introduce compatibility issues. You can use the following to install `go`.
 ```shell
-wget https://dl.google.com/go/go1.14.1.linux-amd64.tar.gz
-tar -xzf go1.14.1.linux-amd64.tar.gz
+wget https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz
+tar -xzf go1.14.2.linux-amd64.tar.gz
 sudo mv go /usr/local
 export GOROOT=/usr/local/go
 export PATH=$GOPATH/bin:$GOROOT/bin:$PATH

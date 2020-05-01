@@ -13,7 +13,9 @@ require (
 	golang.org/x/time master
 	gopkg.in/restruct.v1 v1.0.0-20190323193435-3c2afb705f3c
 	gopkg.in/yaml.v2 v2.2.8
+	intel/isecl/lib/clients/v2 v2.0.0
 	intel/isecl/lib/common/v2 v2.0.0
 )
 
 replace intel/isecl/lib/common/v2 => gitlab.devtools.intel.com/sst/isecl/lib/common.git/v2 v2.1/develop
+replace intel/isecl/lib/clients/v2 => gitlab.devtools.intel.com/sst/isecl/lib/clients.git/v2 v2.1/develop

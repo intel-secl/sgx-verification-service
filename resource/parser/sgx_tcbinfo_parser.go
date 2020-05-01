@@ -16,8 +16,9 @@ import (
 	"encoding/binary"
 	"encoding/asn1"
 	"encoding/json"
-
 	"github.com/pkg/errors"
+	"intel/isecl/lib/clients/v2"
+	"intel/isecl/svs/config"
 	"intel/isecl/svs/constants"
 	"intel/isecl/svs/resource/utils"
 )
@@ -136,12 +137,15 @@ func (e *TcbInfoStruct) GetTcbInfoNextUpdate() (string) {
 }
 
 func (e *TcbInfoStruct) GetTcbInfoStruct(fmspc string) (error) {
-	log.Debug("GetTcbInfoStruct: started processing")
-	client, conf, err := utils.GetHTTPClientObj()
-        if err != nil {
-		log.Error("GetTcbInfoStruct: client object error")
-		return errors.Wrap(err, "GetTcbInfoStruct: Failed to Get HTTP client Obj")
-        }
+	conf := config.Global()
+	if conf == nil {
+		return errors.Wrap(errors.New("GetTcbInfoStruct: Configuration pointer is null"), "Config error")
+	}
+
+	client, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
+	if err != nil {
+		return errors.Wrap(err, "GetTcbInfoStruct: Error in getting client object")
+	}
 
 	url := fmt.Sprintf("%s/tcb", conf.SCSBaseUrl)
         req, err := http.NewRequest("GET", url, nil)
@@ -150,10 +154,16 @@ func (e *TcbInfoStruct) GetTcbInfoStruct(fmspc string) (error) {
                 return errors.Wrap(err,"GetTcbInfoStruct: Failed to Get http NewRequest")
         }
 
+	req.Header.Set("Accept", "application/json")
         q := req.URL.Query()
         q.Add("fmspc", fmspc)
-
         req.URL.RawQuery = q.Encode()
+
+	err = utils.AddJWTToken(req)
+	if err != nil {
+		return errors.Wrap(err, "GetTcbInfoStruct: failed to add JWT token")
+	}
+
         resp, err := client.Do(req)
         if err != nil {
                 return errors.Wrap(err,"GetTcbInfoStruct: Failed to Get http client")

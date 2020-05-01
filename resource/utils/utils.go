@@ -7,23 +7,30 @@ package utils
 import (
 	"os"
 	"fmt"
+	"sync"
 	"time"
 	"strings"
 	"net/url"
 	"net/http"
-	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"encoding/hex"
 	"github.com/pkg/errors"
-
+	"intel/isecl/lib/clients/v2"
+	"intel/isecl/lib/clients/v2/aas"
+	commLog "intel/isecl/lib/common/v2/log"
 	"intel/isecl/svs/config"
 	"intel/isecl/svs/constants"
-	commLog "intel/isecl/lib/common/v2/log"
-	cos "intel/isecl/lib/common/v2/os"
 )
 
 var log = commLog.GetDefaultLogger()
+var statusUpdateLock *sync.Mutex
+
+var (
+	c = config.Global()
+	aasClient = aas.NewJWTClient(c.AuthServiceUrl)
+	aasRWLock = sync.RWMutex{}
+)
 
 func DumpDataInHex(label string, data []byte, len int) {
 	log.Printf("%s[%d]:", label, len)
@@ -32,42 +39,52 @@ func DumpDataInHex(label string, data []byte, len int) {
 	dumper.Write(data)
 }
 
-func GetHTTPClientObj()(*http.Client, *config.Configuration, error) {
-	conf := config.Global()
-	if conf == nil {
-		return nil, nil, errors.New("Configuration pointer is null")
+func init() {
+	aasRWLock.Lock()
+	defer aasRWLock.Unlock()
+	if aasClient.HTTPClient == nil {
+		c, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
+		if err != nil {
+			return
+		}
+		aasClient.HTTPClient = c
 	}
+}
 
-	timeout := time.Duration(5 * time.Second)
-	client  := &http.Client{
-		Timeout: timeout,
-	}
 
-	rootCaCertPems, err := cos.GetDirFileContents(constants.TrustedCAsStoreDir, "*.pem")
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "Could not read root CA certificate")
-	}
-
-	rootCAs, _ := x509.SystemCertPool()
-	if rootCAs == nil {
-		rootCAs = x509.NewCertPool()
-	}
-
-	for _, rootCACert := range rootCaCertPems{
-		if ok := rootCAs.AppendCertsFromPEM(rootCACert); !ok {
-			return  nil, nil, errors.Wrap(err, "failed to append certs from pem")
+func AddJWTToken(req *http.Request) error {
+	if aasClient.BaseURL == "" {
+		aasClient = aas.NewJWTClient(c.AuthServiceUrl)
+		if aasClient.HTTPClient == nil {
+			c, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
+			if err != nil {
+				return errors.Wrap(err, "addJWTToken: Error initializing http client")
+			}
+			aasClient.HTTPClient = c
 		}
 	}
-
-	client = &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: false,
-				RootCAs: rootCAs,
-			},
-		},
+	aasRWLock.RLock()
+	jwtToken, err := aasClient.GetUserToken(c.SVS.User)
+	aasRWLock.RUnlock()
+	// something wrong
+	if err != nil {
+		// lock aas with w lock
+		aasRWLock.Lock()
+		defer aasRWLock.Unlock()
+		// check if other thread fix it already
+		jwtToken, err = aasClient.GetUserToken(c.SVS.User)
+		// it is not fixed
+		if err != nil {
+			aasClient.AddUser(c.SVS.User, c.SVS.Password)
+			err = aasClient.FetchAllTokens()
+			jwtToken, err = aasClient.GetUserToken(c.SVS.User)
+			if err != nil {
+				return errors.Wrap(err, "addJWTToken: Could not fetch token")
+			}
+		}
 	}
-	return client, conf, nil
+	req.Header.Set("Authorization", "Bearer "+string(jwtToken))
+	return nil
 }
 
 func GetCertPemData(cert *x509.Certificate) ([]byte, error) {

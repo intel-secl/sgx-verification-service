@@ -39,6 +39,8 @@ const (
 	DefaultIntelProvServerURL     = "https://api.trustedservices.intel.com/sgx/certification/v2/"
 	DefaultJwtValidateCacheKeyMins = 60
 	CmsTlsCertDigestEnv           = "CMS_TLS_CERT_SHA384"
+	SVS_USER                      = "SVS_USERNAME"
+	SVS_PASSWORD                  = "SVS_PASSWORD"
 	DefaultReadTimeout             = 30 * time.Second
 	DefaultReadHeaderTimeout       = 10 * time.Second
 	DefaultWriteTimeout            = 10 * time.Second

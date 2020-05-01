@@ -16,8 +16,10 @@ import (
 	"encoding/pem"
 	"encoding/asn1"
 	"crypto/x509/pkix"
-
 	"github.com/pkg/errors"
+	"intel/isecl/lib/clients/v2"
+	"intel/isecl/svs/config"
+	"intel/isecl/svs/constants"
 	"intel/isecl/svs/resource/utils"
 	"intel/isecl/svs/resource/verifier"
 )
@@ -246,13 +248,17 @@ func (e *PckCert) ParsePCKCRL() error {
 	e.PckCRL.PckCRLUrls = e.PckCertObj.CRLDistributionPoints
 	e.PckCRL.PckCRLObjs = make([]*pkix.CertificateList, len(e.PckCRL.PckCRLUrls))
 
+	conf := config.Global()
+	if conf == nil {
+		return errors.Wrap(errors.New("ParsePCKCRL: Configuration pointer is null"), "Config error")
+	}
+
+	client, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
+	if err != nil {
+		return errors.Wrap(err, "ParsePCKCRL: Error in getting client object")
+	}
+
 	for i := 0; i < len(e.PckCRL.PckCRLUrls); i++ {
-
-		client, conf, err := utils.GetHTTPClientObj()
-		if err != nil {
-			return  errors.Wrap(err, "Failed to get HTTPClientObj")
-		}
-
 		url := fmt.Sprintf("%s", e.PckCRL.PckCRLUrls[i])
 
 		scsUrl := conf.SCSBaseUrl
@@ -271,6 +277,11 @@ func (e *PckCert) ParsePCKCRL() error {
 		    return errors.Wrap(err, "ParsePCKCRL: Failed to Get New request")
 		}
 
+		req.Header.Set("Accept", "application/json")
+		err = utils.AddJWTToken(req)
+		if err != nil {
+			return errors.Wrap(err, "ParsePCKCRL: failed to add JWT token")
+		}
 		resp, err := client.Do(req)
 		if err != nil {
 		    return errors.Wrap(err, "Client request Failed")

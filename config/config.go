@@ -10,6 +10,7 @@ import (
 	"sync"
 	"errors"
 	"time"
+	"strings"
 	"io/ioutil"
 	"crypto/x509"
 	"encoding/pem"
@@ -36,7 +37,10 @@ type Configuration struct {
 		IntervalMins        int
 		LockoutDurationMins int
 	}
-
+	SVS struct {
+		User     string
+		Password string
+	}
 	Token struct {
 		IncludeKid        bool
 		TokenDurationMins int
@@ -126,6 +130,23 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 	} else if conf.TLSCertFile == "" {
 		conf.TLSCertFile = constants.DefaultTLSCertFile
 	}
+
+	svsAASUser, err := c.GetenvString(constants.SVS_USER, "SVS Service Username")
+	if err == nil && svsAASUser != "" {
+		conf.SVS.User = svsAASUser
+	} else if conf.SVS.User == "" {
+		commLog.GetDefaultLogger().Error("SVS_USERNAME is not defined in environment or configuration file")
+		return errorLog.Wrap(err, "SVS_USERNAME is not defined in environment or configuration file")
+	}
+
+	svsAASPassword, err := c.GetenvSecret(constants.SVS_PASSWORD, "SVS Service Password")
+	if err == nil && svsAASPassword != "" {
+		conf.SVS.Password = svsAASPassword
+	} else if strings.TrimSpace(conf.SVS.Password) == "" {
+		commLog.GetDefaultLogger().Error("SVS_PASSWORD is not defined in environment or configuration file")
+		return errorLog.Wrap(err, "SVS_PASSWORD is not defined in environment or configuration file")
+	}
+
 	trustedRootPath, err := c.GetenvString("SGX_TRUSTED_ROOT_CA_PATH", "SVS SGX Trusted Root ca")
 	if err == nil && trustedRootPath != "" {
 		trustedRoot, err := ioutil.ReadFile(trustedRootPath)
