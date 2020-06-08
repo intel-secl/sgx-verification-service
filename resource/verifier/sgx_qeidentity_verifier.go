@@ -5,71 +5,71 @@
 package verifier
 
 import (
-	"strings"
 	"crypto/x509"
-	"encoding/hex"
 	"encoding/binary"
+	"encoding/hex"
 	"github.com/pkg/errors"
 	"intel/isecl/svs/constants"
+	"strings"
 )
 
-func VerifyQEIdentityCertChain( interCA []*x509.Certificate, rootCA []*x509.Certificate, trustedRootCA *x509.Certificate)(bool, error) {
+func VerifyQEIdentityCertChain(interCA []*x509.Certificate, rootCA []*x509.Certificate, trustedRootCA *x509.Certificate) (bool, error) {
 	if len(interCA) == 0 || len(rootCA) == 0 {
 		return false, errors.New("VerifyQEIdentityCertChain: InterCA/RootCA is empty")
 	}
 
 	for i := 0; i < len(interCA); i++ {
-		_, err := VerifyInterCACertificate( interCA[i], rootCA, constants.SGXQEInfoSubjectStr)
+		_, err := VerifyInterCACertificate(interCA[i], rootCA, constants.SGXQEInfoSubjectStr)
 		if err != nil {
 			return false, errors.Wrap(err, "VerifyQEIdentityCertChain: VerifyInterCACertificate failed")
 		}
 	}
 	for i := 0; i < len(rootCA); i++ {
-		_, err := VerifyRootCACertificate( rootCA[i], constants.SGXRootCACertSubjectStr)
+		_, err := VerifyRootCACertificate(rootCA[i], constants.SGXRootCACertSubjectStr)
 		if err != nil {
 			return false, errors.Wrap(err, "VerifyQEIdentityCertChain: VerifyRootCACertificate failed")
 		}
 	}
 
-	if strings.Compare( string(trustedRootCA.Signature), string(rootCA[0].Signature)) != 0 {
+	if strings.Compare(string(trustedRootCA.Signature), string(rootCA[0].Signature)) != 0 {
 		return false, errors.New("VerifyQEIdentityCertChain: Trusted CA Verification Failed")
 	}
 	log.Info("Verify QEIdentity CertChain is succesfull")
 	return true, nil
 }
 
-func VerifyReportAttributeSize32(QeReportAttribute [32]uint8, attributeName string, attribute string) ( bool, error ) {
+func VerifyReportAttributeSize32(QeReportAttribute [32]uint8, attributeName string, attribute string) (bool, error) {
 	attrArr, err := hex.DecodeString(attribute)
-	if  err != nil {
-		return false,errors.Wrap(err, "VerifyReportAttributeSize32: "+ attributeName +": hex decode failed:")
+	if err != nil {
+		return false, errors.Wrap(err, "VerifyReportAttributeSize32: "+attributeName+": hex decode failed:")
 	}
 
 	if len(attrArr) != 32 {
-		return false,errors.New("VerifyReportAttributeSize32: "+ attributeName +": Invalid Report attribute")
+		return false, errors.New("VerifyReportAttributeSize32: " + attributeName + ": Invalid Report attribute")
 	}
 
 	for i := 0; i < len(attrArr); i++ {
 		if byte(QeReportAttribute[i]) != attrArr[i] {
-			return false,errors.New("VerifyReportAttributeSize32: "+ attributeName +" validation failed")
+			return false, errors.New("VerifyReportAttributeSize32: " + attributeName + " validation failed")
 		}
 	}
-	log.Debug("VerifyReportAttributeSize32: "+  attributeName + ": validation passed")
+	log.Debug("VerifyReportAttributeSize32: " + attributeName + ": validation passed")
 	return true, nil
 }
 
-func VerifyMiscSelect(reportMiscSelect uint32, miscSelect string, miscSelectMask string) ( bool, error ) {
+func VerifyMiscSelect(reportMiscSelect uint32, miscSelect string, miscSelectMask string) (bool, error) {
 	miscSelectQeArr, err := hex.DecodeString(miscSelect)
 
-	if  err != nil {
-		return false,errors.Wrap(err, "VerifyMiscSelect: hex decode failed(1)")
-	}
-	miscSelectQe :=  binary.LittleEndian.Uint32(miscSelectQeArr)
-
-	miscSelectMaskQeArr, err := hex.DecodeString(miscSelectMask)
-	if  err != nil {
+	if err != nil {
 		return false, errors.Wrap(err, "VerifyMiscSelect: hex decode failed(1)")
 	}
-	miscSelectMaskQe :=  binary.LittleEndian.Uint32(miscSelectMaskQeArr)
+	miscSelectQe := binary.LittleEndian.Uint32(miscSelectQeArr)
+
+	miscSelectMaskQeArr, err := hex.DecodeString(miscSelectMask)
+	if err != nil {
+		return false, errors.Wrap(err, "VerifyMiscSelect: hex decode failed(1)")
+	}
+	miscSelectMaskQe := binary.LittleEndian.Uint32(miscSelectMaskQeArr)
 
 	if (miscSelectMaskQe & reportMiscSelect) == miscSelectQe {
 		return true, nil
@@ -77,7 +77,7 @@ func VerifyMiscSelect(reportMiscSelect uint32, miscSelect string, miscSelectMask
 	return false, errors.New("VerifyMiscSelect: failed")
 }
 
-func VerifyAttributes( reportAttribute [2]uint64, QeAttributes string, QeAttributeMask string) ( bool, error ) {
+func VerifyAttributes(reportAttribute [2]uint64, QeAttributes string, QeAttributeMask string) (bool, error) {
 	QeAttributeArr, err := hex.DecodeString(QeAttributes)
 	if err != nil {
 		return false, errors.Wrap(err, "VerifyAttributes: QeAttributeArr")
@@ -87,8 +87,8 @@ func VerifyAttributes( reportAttribute [2]uint64, QeAttributes string, QeAttribu
 		return false, errors.New("VerifyAttributes: Invalid QeAttribute data")
 	}
 
-	QeAttributeFlagsInt :=  binary.LittleEndian.Uint64(QeAttributeArr[:8])
-	QeAttributeXfrmInt :=  binary.LittleEndian.Uint64(QeAttributeArr[8:])
+	QeAttributeFlagsInt := binary.LittleEndian.Uint64(QeAttributeArr[:8])
+	QeAttributeXfrmInt := binary.LittleEndian.Uint64(QeAttributeArr[8:])
 
 	QeAttributeMaskArr, err := hex.DecodeString(QeAttributeMask)
 	if err != nil {
@@ -99,11 +99,11 @@ func VerifyAttributes( reportAttribute [2]uint64, QeAttributes string, QeAttribu
 		return false, errors.New("VerifyAttributes: Invalid QeAttributeMask data")
 	}
 
-	QeAttributeMaskFlagsInt :=  binary.LittleEndian.Uint64(QeAttributeMaskArr[:8])
-	QeAttributeMaskXfrmInt :=  binary.LittleEndian.Uint64(QeAttributeMaskArr[8:])
+	QeAttributeMaskFlagsInt := binary.LittleEndian.Uint64(QeAttributeMaskArr[:8])
+	QeAttributeMaskXfrmInt := binary.LittleEndian.Uint64(QeAttributeMaskArr[8:])
 
-	if (( reportAttribute[0] & QeAttributeMaskFlagsInt ) ==  QeAttributeFlagsInt) &&
-		(( reportAttribute[1] & QeAttributeMaskXfrmInt ) ==  QeAttributeXfrmInt) {
+	if ((reportAttribute[0] & QeAttributeMaskFlagsInt) == QeAttributeFlagsInt) &&
+		((reportAttribute[1] & QeAttributeMaskXfrmInt) == QeAttributeXfrmInt) {
 		return true, nil
 	}
 	return false, errors.New("VerifyAttributes: failed")

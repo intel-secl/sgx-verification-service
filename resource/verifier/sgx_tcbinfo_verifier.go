@@ -6,13 +6,13 @@ package verifier
 
 import (
 	"crypto/x509"
-	"strings"
-	"intel/isecl/svs/constants"
 	"github.com/pkg/errors"
+	"intel/isecl/svs/constants"
+	"strings"
 )
 
 func VerifyTcbInfoCertChain(interCA []*x509.Certificate, rootCA []*x509.Certificate,
-				trustedRootCA *x509.Certificate)(bool, error) {
+	trustedRootCA *x509.Certificate) (bool, error) {
 	if len(interCA) == 0 || len(rootCA) == 0 {
 		return false, errors.New("VerifyTcbInfo: InterCA/RootCA is empty")
 	}
@@ -25,7 +25,7 @@ func VerifyTcbInfoCertChain(interCA []*x509.Certificate, rootCA []*x509.Certific
 	}
 	for i := 0; i < len(rootCA); i++ {
 		_, err := VerifyRootCACertificate(rootCA[i], constants.SGXRootCACertSubjectStr)
-                if err != nil {
+		if err != nil {
 			return false, errors.Wrap(err, "VerifyTcbInfo: VerifyRootCACertificate failed")
 		}
 	}

@@ -5,26 +5,26 @@
 package resource
 
 import (
-        "testing"
 	"github.com/gorilla/mux"
-	"net/http/httptest"
 	"github.com/stretchr/testify/assert"
 	"intel/isecl/svs/config"
+	"net/http/httptest"
+	"testing"
 )
 
 type TestData struct {
 	Description string
-	Recorder *httptest.ResponseRecorder
-	Assert   *assert.Assertions
-	Router   *mux.Router
-	Test     *testing.T
-	Token	 string
-	Url	 string
-        StatusCode int
-	PostData []byte
+	Recorder    *httptest.ResponseRecorder
+	Assert      *assert.Assertions
+	Router      *mux.Router
+	Test        *testing.T
+	Token       string
+	Url         string
+	StatusCode  int
+	PostData    []byte
 }
 
-func mockRetrieveJWTSigningCerts() error{
+func mockRetrieveJWTSigningCerts() error {
 	return nil
 }
 

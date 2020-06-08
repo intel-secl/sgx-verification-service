@@ -5,21 +5,21 @@
 package config
 
 import (
-	"os"
-	"path"
-	"sync"
-	"errors"
-	"time"
-	"strings"
-	"io/ioutil"
 	"crypto/x509"
 	"encoding/pem"
-	"intel/isecl/svs/constants"
-	"intel/isecl/lib/common/v2/setup"
-	commLog "intel/isecl/lib/common/v2/log"
+	"errors"
 	errorLog "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
+	commLog "intel/isecl/lib/common/v2/log"
+	"intel/isecl/lib/common/v2/setup"
+	"intel/isecl/svs/constants"
+	"io/ioutil"
+	"os"
+	"path"
+	"strings"
+	"sync"
+	"time"
 )
 
 var slog = commLog.GetSecurityLogger()
@@ -30,9 +30,9 @@ type Configuration struct {
 	Port             int
 	CmsTlsCertDigest string
 
-	LogMaxLength	int
-	LogEnableStdout  bool
-	LogLevel	log.Level
+	LogMaxLength    int
+	LogEnableStdout bool
+	LogLevel        log.Level
 
 	AuthDefender struct {
 		MaxAttempts         int
@@ -47,16 +47,16 @@ type Configuration struct {
 		IncludeKid        bool
 		TokenDurationMins int
 	}
-	CMSBaseUrl	string
-	AuthServiceUrl	string
-	SCSBaseUrl	string
-	Subject struct {
+	CMSBaseUrl     string
+	AuthServiceUrl string
+	SCSBaseUrl     string
+	Subject        struct {
 		TLSCertCommonName string
 	}
-	TrustedRootCA	*x509.Certificate
-	TLSKeyFile	string
-	TLSCertFile	string
-	CertSANList	string
+	TrustedRootCA     *x509.Certificate
+	TLSKeyFile        string
+	TLSCertFile       string
+	CertSANList       string
 	ReadTimeout       time.Duration
 	ReadHeaderTimeout time.Duration
 	WriteTimeout      time.Duration
@@ -78,7 +78,7 @@ func Global() *Configuration {
 var ErrNoConfigFile = errors.New("no config file")
 
 func (conf *Configuration) SaveConfiguration(c setup.Context) error {
-        var err error = nil
+	var err error = nil
 
 	tlsCertDigest, err := c.GetenvString(constants.CmsTlsCertDigestEnv, "TLS certificate digest")
 	if err == nil && tlsCertDigest != "" {
@@ -89,12 +89,12 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 	}
 
 	cmsBaseUrl, err := c.GetenvString("CMS_BASE_URL", "CMS Base URL")
-        if err == nil && cmsBaseUrl != "" {
-                conf.CMSBaseUrl = cmsBaseUrl
-        } else if conf.CMSBaseUrl == "" {
+	if err == nil && cmsBaseUrl != "" {
+		conf.CMSBaseUrl = cmsBaseUrl
+	} else if conf.CMSBaseUrl == "" {
 		commLog.GetDefaultLogger().Error("CMS_BASE_URL is not defined in environment")
 		return errorLog.Wrap(errors.New("CMS_BASE_URL is not defined in environment"), "SaveConfiguration() ENV variable not found")
-        }
+	}
 
 	aasApiUrl, err := c.GetenvString("AAS_API_URL", "AAS API URL")
 	if err == nil && aasApiUrl != "" {
@@ -112,12 +112,12 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 		return errorLog.Wrap(errors.New("SCS_BASE_URL is not defined in environment"), "SaveConfiguration() ENV variable not found")
 	}
 
-        tlsCertCN, err := c.GetenvString("SVS_TLS_CERT_CN", "SVS TLS Certificate Common Name")
-        if err == nil && tlsCertCN != "" {
-                conf.Subject.TLSCertCommonName = tlsCertCN
-        } else if conf.Subject.TLSCertCommonName == "" {
-                conf.Subject.TLSCertCommonName = constants.DefaultSvsTlsCn
-        }
+	tlsCertCN, err := c.GetenvString("SVS_TLS_CERT_CN", "SVS TLS Certificate Common Name")
+	if err == nil && tlsCertCN != "" {
+		conf.Subject.TLSCertCommonName = tlsCertCN
+	} else if conf.Subject.TLSCertCommonName == "" {
+		conf.Subject.TLSCertCommonName = constants.DefaultSvsTlsCn
+	}
 
 	tlsKeyPath, err := c.GetenvString("KEY_PATH", "Path of file where TLS key needs to be stored")
 	if err == nil && tlsKeyPath != "" {
@@ -168,15 +168,15 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 	if err == nil && trustedRootPath != "" {
 		trustedRoot, err := ioutil.ReadFile(trustedRootPath)
 		if err != nil {
-			return errors.New("SaveConfiguration: Filed read error: " + trustedRootPath +  " : "+ err.Error())
+			return errors.New("SaveConfiguration: Filed read error: " + trustedRootPath + " : " + err.Error())
 		}
 		block, _ := pem.Decode([]byte(trustedRoot))
 		if block == nil {
 			return errors.New("SaveConfiguration: Pem Decode error")
 		}
-		conf.TrustedRootCA, err =  x509.ParseCertificate(block.Bytes)
+		conf.TrustedRootCA, err = x509.ParseCertificate(block.Bytes)
 		if err != nil {
-			return errors.New("SaveConfiguration: ParseCertificate error: "+ err.Error())
+			return errors.New("SaveConfiguration: ParseCertificate error: " + err.Error())
 		}
 	} else {
 		return errors.New("SaveConfiguration: Invalid pem certificate")
@@ -189,7 +189,7 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 		conf.CertSANList = constants.DefaultSvsTlsSan
 	}
 
-        return conf.Save()
+	return conf.Save()
 }
 
 func (c *Configuration) Save() error {

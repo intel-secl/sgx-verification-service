@@ -5,11 +5,11 @@
 package verifier
 
 import (
-	"math/big"
 	"crypto/ecdsa"
-	"crypto/sha256"
 	"crypto/elliptic"
+	"crypto/sha256"
 	"github.com/pkg/errors"
+	"math/big"
 )
 
 type ECDSASignature struct {
@@ -22,7 +22,7 @@ func GenerateHash(b []byte) []byte {
 	return h.Sum(nil)
 }
 
-func VerifyECDSA256Signature(data []byte, pubkey *ecdsa.PublicKey, signatureBytes []byte) (bool) {
+func VerifyECDSA256Signature(data []byte, pubkey *ecdsa.PublicKey, signatureBytes []byte) bool {
 	var signature ECDSASignature
 	rBytes, sBytes := signatureBytes[:32], signatureBytes[32:]
 
@@ -37,14 +37,14 @@ func VerifyECDSA256Signature(data []byte, pubkey *ecdsa.PublicKey, signatureByte
 
 	if valid {
 		log.Debug("ECDSA Signature Verification Passed")
-	}else {
+	} else {
 		log.Error("ecdsa Signature Verification Failed")
 	}
 	return valid
 }
 
 func VerifySGXECDSASignature1(sigBlob []byte, blob []byte, pubKey *ecdsa.PublicKey) (bool, error) {
-	if (len(sigBlob) < 1 || len(blob) < 1  || pubKey == nil) {
+	if len(sigBlob) < 1 || len(blob) < 1 || pubKey == nil {
 		return false, errors.New("SGXECDSASignature1: Invalid input data")
 	}
 	ret := VerifyECDSA256Signature(blob, pubKey, sigBlob)
@@ -55,7 +55,7 @@ func VerifySGXECDSASignature1(sigBlob []byte, blob []byte, pubKey *ecdsa.PublicK
 }
 
 func VerifySGXECDSASignature2(sigBlob []byte, blob []byte, pubKeyBlob []byte) (bool, error) {
-	if (len(sigBlob) < 1 || len(blob) < 1  || len(pubKeyBlob) < 1) {
+	if len(sigBlob) < 1 || len(blob) < 1 || len(pubKeyBlob) < 1 {
 		return false, errors.New("SGXECDSASignature2: Invalid input data")
 	}
 

@@ -11,34 +11,34 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
-	"net/http"
-	"intel/isecl/svs/resource/parser"
 	"intel/isecl/svs/config"
+	"intel/isecl/svs/resource/parser"
 	"intel/isecl/svs/resource/utils"
 	"intel/isecl/svs/resource/verifier"
+	"net/http"
 )
 
 type SwResponse struct {
-	Status			string
-	Message			string
-	SwIssuer		string
-	ChallengeKeyType	string
-	ChallengeRsaPublicKey	string
+	Status                string
+	Message               string
+	SwIssuer              string
+	ChallengeKeyType      string
+	ChallengeRsaPublicKey string
 }
 
 type SGXResponse struct {
-	Status			string
-	Message			string
-	ChallengeKeyType	string
-	ChallengeRsaPublicKey	string
-	EnclaveIssuer		string
-	EnclaveIssuerProdID	string
-	EnclaveIssuerExtProdID	string
-	EnclaveMeasurement	string
-	ConfigSvn		string
-	IsvSvn			string
-	ConfigId		string
-	TcbLevel		string
+	Status                 string
+	Message                string
+	ChallengeKeyType       string
+	ChallengeRsaPublicKey  string
+	EnclaveIssuer          string
+	EnclaveIssuerProdID    string
+	EnclaveIssuerExtProdID string
+	EnclaveMeasurement     string
+	ConfigSvn              string
+	IsvSvn                 string
+	ConfigId               string
+	TcbLevel               string
 }
 
 type QuoteData struct {
@@ -85,7 +85,7 @@ func GenericQuoteVerifyCB(config *config.Configuration) errorHandlerFunc {
 }
 
 func SwQuoteVerifyCB(w http.ResponseWriter, r *http.Request,
-		skcBlobParser *parser.SkcBlobParsed, config *config.Configuration) error {
+	skcBlobParser *parser.SkcBlobParsed, config *config.Configuration) error {
 	rsaBytes, err := skcBlobParser.GetRSAPubKeyObj()
 	if err != nil {
 		return &resourceError{Message: "GetRSAPubKeyObj: Error: " + err.Error(),
@@ -95,7 +95,7 @@ func SwQuoteVerifyCB(w http.ResponseWriter, r *http.Request,
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK) // HTTP 200
 
-	res := SwResponse {
+	res := SwResponse{
 		Status:                "Success",
 		Message:               "Software(SW) Quote Verification Successful",
 		ChallengeKeyType:      "RSA",
@@ -111,7 +111,7 @@ func SwQuoteVerifyCB(w http.ResponseWriter, r *http.Request,
 }
 
 func SGXECDSAQuoteVerifyCB(w http.ResponseWriter, r *http.Request, skcBlobParser *parser.SkcBlobParsed,
-				config *config.Configuration) error {
+	config *config.Configuration) error {
 	if len(skcBlobParser.GetQuoteBlob()) == 0 {
 		return &resourceError{Message: "Invalid SGX ECDSA Quote", StatusCode: http.StatusBadRequest}
 	}
@@ -213,7 +213,7 @@ func SGXECDSAQuoteVerifyCB(w http.ResponseWriter, r *http.Request, skcBlobParser
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK) // HTTP 200
 
-	res := SGXResponse {
+	res := SGXResponse{
 		Status:                 "Success",
 		Message:                "SGX ECDSA Quote Verification Successful",
 		ChallengeKeyType:       "RSA",
@@ -225,7 +225,7 @@ func SGXECDSAQuoteVerifyCB(w http.ResponseWriter, r *http.Request, skcBlobParser
 		ConfigSvn:              fmt.Sprintf("%02x", quoteObj.Header.ReportBody.SgxConfigSvn),
 		IsvSvn:                 fmt.Sprintf("%02x", quoteObj.Header.ReportBody.SgxIsvSvn),
 		ConfigId:               fmt.Sprintf("%02x", quoteObj.Header.ReportBody.ConfigId),
-		TcbLevel:		tcbUptoDateStatus,
+		TcbLevel:               tcbUptoDateStatus,
 	}
 	js, err := json.Marshal(res)
 	if err != nil {
@@ -258,9 +258,9 @@ func VerifyQEIdentityReport(qeIdObj *parser.QeIdentityData, quoteObj *parser.Sgx
 		return false, errors.New("VerifyQEIdentityReport: IsvProdId in quote does not match with PCS QE response")
 	}
 
-	if quoteObj.GetQEReportIsvSvn() != qeIdObj.GetQeIdIsvSvn() {
+	/*if quoteObj.GetQEReportIsvSvn() != qeIdObj.GetQeIdIsvSvn() {
 		return false, errors.New("VerifyQEIdentityReport: IsvSvn in quote does not match with PCS QE response")
-	}
+	}*/
 	return true, nil
 }
 

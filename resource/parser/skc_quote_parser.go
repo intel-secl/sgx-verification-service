@@ -5,15 +5,15 @@
 package parser
 
 import (
-	"strconv"
-	"math/big"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/pem"
 	"encoding/base64"
 	"encoding/binary"
-        "gopkg.in/restruct.v1"
+	"encoding/pem"
 	"github.com/pkg/errors"
+	"gopkg.in/restruct.v1"
+	"math/big"
+	"strconv"
 )
 
 type EcdsaQuoteData struct {
@@ -25,16 +25,16 @@ type SwQuoteData struct {
 }
 
 type SkcBlobHeader struct {
-	MajorNum	uint32
-	MinorNum	uint32
-	QuoteSize	uint32
-	QuoteType	uint32
-	KeyType		uint32
+	MajorNum  uint32
+	MinorNum  uint32
+	QuoteSize uint32
+	QuoteType uint32
+	KeyType   uint32
 }
 
 type KeyDetailsRSA struct {
-	ExponentLen	uint32
-	ModulusLen	uint32
+	ExponentLen uint32
+	ModulusLen  uint32
 }
 
 type KeyDetailsEC struct {
@@ -42,28 +42,28 @@ type KeyDetailsEC struct {
 }
 
 type SkcBlobParsed struct {
-	Header		SkcBlobHeader
-	RsaKeyDetails	KeyDetailsRSA
-	ECKeyDetails	KeyDetailsEC
-	EcdsaQuoteInfo  EcdsaQuoteData
-	SwQuoteInfo	SwQuoteData
-	RawBlobLen	int
-	RawBlob		[]byte
-	QuoteBlob	[]byte
-	PubKeyBlob	[]byte
+	Header         SkcBlobHeader
+	RsaKeyDetails  KeyDetailsRSA
+	ECKeyDetails   KeyDetailsEC
+	EcdsaQuoteInfo EcdsaQuoteData
+	SwQuoteInfo    SwQuoteData
+	RawBlobLen     int
+	RawBlob        []byte
+	QuoteBlob      []byte
+	PubKeyBlob     []byte
 }
 
 const (
 	KeyTypeRsa = 1
-	KeyTypeEc = 2
+	KeyTypeEc  = 2
 )
 
 const (
 	QuoteTypeEcdsa = 1
-	QuoteTypeSw = 2
+	QuoteTypeSw    = 2
 )
 
-func ParseSkcQuoteBlob(rawBlob string) (*SkcBlobParsed) {
+func ParseSkcQuoteBlob(rawBlob string) *SkcBlobParsed {
 	if len(rawBlob) < 1 {
 		log.Error("ParseSkcQuoteBlob: SKC Blob is Empty")
 		return nil
@@ -78,36 +78,36 @@ func ParseSkcQuoteBlob(rawBlob string) (*SkcBlobParsed) {
 	return parsedObj
 }
 
-func (e *SkcBlobParsed) GetKeyType() (uint32) {
+func (e *SkcBlobParsed) GetKeyType() uint32 {
 	return e.Header.KeyType
 }
 
-func (e *SkcBlobParsed) GetQuoteType() (uint32) {
+func (e *SkcBlobParsed) GetQuoteType() uint32 {
 	return e.Header.QuoteType
 }
 
-func (e *SkcBlobParsed) GetQuoteBlob() ([]byte) {
+func (e *SkcBlobParsed) GetQuoteBlob() []byte {
 	return e.QuoteBlob
 }
 
-func (e *SkcBlobParsed) GetQuoteLen() (int) {
+func (e *SkcBlobParsed) GetQuoteLen() int {
 	return len(e.QuoteBlob)
 }
 
-func (e *SkcBlobParsed) GetPubKeyBlob() ([]byte) {
+func (e *SkcBlobParsed) GetPubKeyBlob() []byte {
 	return e.PubKeyBlob
 }
 
 func (e *SkcBlobParsed) ParseSkcBlobData(blob string) (bool, error) {
 	decodedBlob, err := base64.StdEncoding.DecodeString(blob)
-        if err != nil {
-                log.Error("Failed to Base64 Decode Quote")
+	if err != nil {
+		log.Error("Failed to Base64 Decode Quote")
 		return false, errors.Wrap(err, "ParseSkcBlob: Failed to Base64 Decode Quote")
-        }
+	}
 
 	var keyDetailsLen int
 	var quoteDetailsLen int
-	var pubKeySize int=0
+	var pubKeySize int = 0
 
 	e.RawBlob = make([]byte, len(decodedBlob))
 	copy(e.RawBlob, decodedBlob)
@@ -118,10 +118,10 @@ func (e *SkcBlobParsed) ParseSkcBlobData(blob string) (bool, error) {
 	if e.GetKeyType() == KeyTypeRsa {
 		restruct.Unpack(e.RawBlob[20:], binary.LittleEndian, &e.RsaKeyDetails)
 		keyDetailsLen = 8
-	}else if e.GetKeyType() == KeyTypeEc {
+	} else if e.GetKeyType() == KeyTypeEc {
 		restruct.Unpack(e.RawBlob[20:], binary.LittleEndian, &e.ECKeyDetails)
 		keyDetailsLen = 4
-	}else {
+	} else {
 		return false, errors.Wrap(err, "ParseSkcBlob: Invalid Key Type Received")
 	}
 
@@ -145,7 +145,7 @@ func (e *SkcBlobParsed) ParseSkcBlobData(blob string) (bool, error) {
 	}
 
 	if e.GetKeyType() == KeyTypeRsa {
-		pubKeySize =  (int(e.RsaKeyDetails.ModulusLen) + int(e.RsaKeyDetails.ExponentLen))
+		pubKeySize = (int(e.RsaKeyDetails.ModulusLen) + int(e.RsaKeyDetails.ExponentLen))
 		quoteStrOffset = quoteStrOffset + pubKeySize
 	} else {
 		quoteStrOffset += 8 //Because of union member
@@ -153,13 +153,13 @@ func (e *SkcBlobParsed) ParseSkcBlobData(blob string) (bool, error) {
 
 	pubKeyEndOffset := pubKeyStrOfset + pubKeySize
 	e.PubKeyBlob = make([]byte, pubKeySize)
-	copy(e.PubKeyBlob,  e.RawBlob[pubKeyStrOfset: pubKeyEndOffset])
+	copy(e.PubKeyBlob, e.RawBlob[pubKeyStrOfset:pubKeyEndOffset])
 
 	quoteEndOffset := quoteStrOffset + int(e.Header.QuoteSize)
-	log.Debug("TotalBlobSize: ", e.RawBlobLen,", QuoteStrOffset: ", quoteStrOffset, ", QuoteEndOffet: ", quoteEndOffset)
+	log.Debug("TotalBlobSize: ", e.RawBlobLen, ", QuoteStrOffset: ", quoteStrOffset, ", QuoteEndOffet: ", quoteEndOffset)
 
 	e.QuoteBlob = make([]byte, e.Header.QuoteSize)
-	copy(e.QuoteBlob,  e.RawBlob[quoteStrOffset:])
+	copy(e.QuoteBlob, e.RawBlob[quoteStrOffset:])
 
 	e.DumpSkcBlobHeader()
 	return true, nil
@@ -182,12 +182,12 @@ func (e *SkcBlobParsed) DumpSkcBlobHeader() {
 
 	if e.GetQuoteType() == QuoteTypeEcdsa {
 		log.Debug("EcdsaQuoteInfo->PckCertSize = ", e.EcdsaQuoteInfo.PckCertSize)
-	} else if e.GetQuoteType() == QuoteTypeSw{
+	} else if e.GetQuoteType() == QuoteTypeSw {
 		log.Debug("SwQuoteInfo->Dummy = ", e.SwQuoteInfo.Dummy)
 	}
 }
 
-func (e *SkcBlobParsed) GetRSAModulusLen() (uint32) {
+func (e *SkcBlobParsed) GetRSAModulusLen() uint32 {
 	if e.GetKeyType() == KeyTypeRsa {
 		return e.RsaKeyDetails.ModulusLen
 	}
@@ -195,7 +195,7 @@ func (e *SkcBlobParsed) GetRSAModulusLen() (uint32) {
 	return 0
 }
 
-func (e *SkcBlobParsed) GetRSAExponentLen() (uint32) {
+func (e *SkcBlobParsed) GetRSAExponentLen() uint32 {
 	if e.GetKeyType() == KeyTypeRsa {
 		return e.RsaKeyDetails.ExponentLen
 	}
@@ -203,14 +203,14 @@ func (e *SkcBlobParsed) GetRSAExponentLen() (uint32) {
 	return 0
 }
 
-func (e *SkcBlobParsed) GetRSAPubKeyObj()([]byte, error) {
+func (e *SkcBlobParsed) GetRSAPubKeyObj() ([]byte, error) {
 	var err error
 	if e.GetKeyType() != KeyTypeRsa {
 		return nil, errors.Wrap(err, "GetRSAPubKeyObj: Invalid Public Key Type")
 	}
 
-	pubKeyBlob :=  e.GetPubKeyBlob()
-	if len(pubKeyBlob) == 0{
+	pubKeyBlob := e.GetPubKeyBlob()
+	if len(pubKeyBlob) == 0 {
 		return nil, errors.Wrap(err, "GetRSAPubKeyObj: Invalid Public Key length")
 	}
 
@@ -219,7 +219,7 @@ func (e *SkcBlobParsed) GetRSAPubKeyObj()([]byte, error) {
 	modulusStrOffset := exponentLen
 
 	n := big.Int{}
-        n.SetBytes(pubKeyBlob[modulusStrOffset:])
+	n.SetBytes(pubKeyBlob[modulusStrOffset:])
 	eb := big.Int{}
 	eb.SetBytes(exponentArr)
 
@@ -228,14 +228,14 @@ func (e *SkcBlobParsed) GetRSAPubKeyObj()([]byte, error) {
 		return nil, errors.Wrap(err, "GetRSAPubKeyObj: Strconv to int")
 	}
 
-	pubKey := rsa.PublicKey {N: &n, E: int(ex)}
+	pubKey := rsa.PublicKey{N: &n, E: int(ex)}
 
 	pubKeyBytes, err := x509.MarshalPKIXPublicKey(&pubKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "GetRSAPubKeyObj: Marshal error")
 	}
 
-	rsaPem := pem.Block {Type : "PUBLIC KEY", Bytes : pubKeyBytes}
+	rsaPem := pem.Block{Type: "PUBLIC KEY", Bytes: pubKeyBytes}
 	rsaBytes := pem.EncodeToMemory(&rsaPem)
 	if rsaBytes == nil {
 		return nil, errors.Wrap(err, "GetRSAPubKeyObj: Pem Encode failed")

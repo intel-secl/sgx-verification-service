@@ -5,29 +5,29 @@
 package utils
 
 import (
-	"os"
-	"fmt"
-	"sync"
-	"time"
-	"strings"
-	"net/url"
-	"net/http"
 	"crypto/x509"
-	"encoding/pem"
 	"encoding/hex"
+	"encoding/pem"
+	"fmt"
 	"github.com/pkg/errors"
 	"intel/isecl/lib/clients/v2"
 	"intel/isecl/lib/clients/v2/aas"
 	commLog "intel/isecl/lib/common/v2/log"
 	"intel/isecl/svs/config"
 	"intel/isecl/svs/constants"
+	"net/http"
+	"net/url"
+	"os"
+	"strings"
+	"sync"
+	"time"
 )
 
 var log = commLog.GetDefaultLogger()
 var statusUpdateLock *sync.Mutex
 
 var (
-	c = config.Global()
+	c         = config.Global()
 	aasClient = aas.NewJWTClient(c.AuthServiceUrl)
 	aasRWLock = sync.RWMutex{}
 )
@@ -50,7 +50,6 @@ func init() {
 		aasClient.HTTPClient = c
 	}
 }
-
 
 func AddJWTToken(req *http.Request) error {
 	if aasClient.BaseURL == "" {
@@ -94,7 +93,7 @@ func GetCertPemData(cert *x509.Certificate) ([]byte, error) {
 	}
 
 	block := &pem.Block{
-		Type: "CERTIFICATE",
+		Type:  "CERTIFICATE",
 		Bytes: cert.Raw,
 	}
 
@@ -104,22 +103,22 @@ func GetCertPemData(cert *x509.Certificate) ([]byte, error) {
 
 func GetCertObjListFromStr(certChainStr string) ([]*x509.Certificate, error) {
 	certChainEscapedStr, err := url.QueryUnescape(certChainStr)
-	if err != nil{
+	if err != nil {
 		return nil, errors.Wrap(err, "GetCertObjListFromStr: Error parsing Cert Chain QueryUnescape")
 	}
 
-	certCount := strings.Count( certChainEscapedStr, "-----END CERTIFICATE-----")
+	certCount := strings.Count(certChainEscapedStr, "-----END CERTIFICATE-----")
 	if certCount == 0 {
 		return nil, errors.Wrap(err, "GetCertObjListFromStr: Invalid Certificate PEM string")
 	}
 
-	certs := strings.SplitAfterN( certChainEscapedStr, "-----END CERTIFICATE-----", certCount)
-	certChainObjList := make( []*x509.Certificate, certCount)
+	certs := strings.SplitAfterN(certChainEscapedStr, "-----END CERTIFICATE-----", certCount)
+	certChainObjList := make([]*x509.Certificate, certCount)
 
 	for i := 0; i < len(certs); i++ {
 		log.Debug("Certificate[", i, "]:", string(certs[i]))
 		block, _ := pem.Decode([]byte(certs[i]))
-		if block == nil{
+		if block == nil {
 			return nil, errors.Wrap(err, "GetCertObjListFromStr: Pem Decode error")
 		}
 		certChainObjList[i], err = x509.ParseCertificate(block.Bytes)
@@ -131,47 +130,47 @@ func GetCertObjListFromStr(certChainStr string) ([]*x509.Certificate, error) {
 	return certChainObjList, nil
 }
 
-func BoolToInt(b bool) (int) {
-        n := 0
-        if b {
-          n = 1
-        }
-        return n
+func BoolToInt(b bool) int {
+	n := 0
+	if b {
+		n = 1
+	}
+	return n
 }
 
-func IntToBool(i int) (bool) {
-        if i != 0 {
-          return true
-        } else {
-           return false
-        }
+func IntToBool(i int) bool {
+	if i != 0 {
+		return true
+	} else {
+		return false
+	}
 }
 
 func CheckDate(issueDate string, nextUpdate string) bool {
-        universalTime := time.Now().UTC()
+	universalTime := time.Now().UTC()
 
-        iDate, err := time.Parse(time.RFC3339, issueDate)
-        if err != nil {
-                log.Error("CheckData: IssueDate parse:" +err.Error())
+	iDate, err := time.Parse(time.RFC3339, issueDate)
+	if err != nil {
+		log.Error("CheckData: IssueDate parse:" + err.Error())
 		return false
-        }
+	}
 
-        nUpdate, err := time.Parse(time.RFC3339, nextUpdate)
-        if err != nil {
-                log.Error("CheckData: NextUpdate parse:"+err.Error())
+	nUpdate, err := time.Parse(time.RFC3339, nextUpdate)
+	if err != nil {
+		log.Error("CheckData: NextUpdate parse:" + err.Error())
 		return false
-        }
+	}
 
 	curTimeAfterIssDate := universalTime.After(iDate)
 	curTimeBeforeNextUpdate := universalTime.Before(nUpdate)
 
 	log.Debug("Issuedate:", issueDate, ", nextUpdate:", nextUpdate,
-			", Current Date:", universalTime)
-        if (curTimeAfterIssDate == false || curTimeBeforeNextUpdate == false) {
-                log.Error(fmt.Sprintf("CheckDate: CheckDate Validataion Failed, Time After IssueDate : %v, Time Before NextUpdate : %v",
-				curTimeAfterIssDate, curTimeBeforeNextUpdate))
-                return false
-        } else {
-                return true
-        }
+		", Current Date:", universalTime)
+	if curTimeAfterIssDate == false || curTimeBeforeNextUpdate == false {
+		log.Error(fmt.Sprintf("CheckDate: CheckDate Validataion Failed, Time After IssueDate : %v, Time Before NextUpdate : %v",
+			curTimeAfterIssDate, curTimeBeforeNextUpdate))
+		return false
+	} else {
+		return true
+	}
 }

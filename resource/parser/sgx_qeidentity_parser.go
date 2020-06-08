@@ -5,56 +5,56 @@
 package parser
 
 import (
-	"fmt"
-	"strings"
-	"net/http"
-	"io/ioutil"
-	"crypto/x509"
 	"crypto/ecdsa"
+	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"github.com/pkg/errors"
 	"intel/isecl/lib/clients/v2"
-	"intel/isecl/svs/resource/utils"
 	"intel/isecl/svs/config"
 	"intel/isecl/svs/constants"
+	"intel/isecl/svs/resource/utils"
+	"io/ioutil"
+	"net/http"
+	"strings"
 )
 
 type QeIdentityJson struct {
-	EnclaveIdentity	EnclaveIdentityType	`json: "enclaveIdentity"`
-	Signature	string			`json: "signature"`
+	EnclaveIdentity EnclaveIdentityType `json: "enclaveIdentity"`
+	Signature       string              `json: "signature"`
 }
 
 type QeIdentityData struct {
-	QEJson		QeIdentityJson
-	RootCA          map[string]*x509.Certificate
-	IntermediateCA  map[string]*x509.Certificate
-	RawBlob         []byte
+	QEJson         QeIdentityJson
+	RootCA         map[string]*x509.Certificate
+	IntermediateCA map[string]*x509.Certificate
+	RawBlob        []byte
 }
 
 type TcbInfo struct {
-	IsvSvn		uint16	`json: "isvsvn"`
+	IsvSvn uint16 `json: "isvsvn"`
 }
 
 type TcbLevelsInfo struct {
-	Tcb		TcbInfo	`json: "tcb"`
-	TcbDate		string  `json: "tcbDate"`
-	TcbStatus	string  `json: "tcbStatus"`
+	Tcb       TcbInfo `json: "tcb"`
+	TcbDate   string  `json: "tcbDate"`
+	TcbStatus string  `json: "tcbStatus"`
 }
 
 type EnclaveIdentityType struct {
-	Id			string		`json: "id"`
-	Version			uint16		`json: "version"`
-	IssueDate		string		`json: "issueDate"`
-	NextUpdate		string		`json: "nextUpdate"`
-	TcbEvaluationDataNumber uint16		`json: "tcbEvaluationDataNumber"`
-	MiscSelect		string		`json: "miscselect"`
-	MiscSelectMask		string		`json: "miscselectMask"`
-	Attributes		string		`json: "attributes"`
-	AttributesMask		string		`json: "attributesMask"`
-	MrSigner		string		`json: "mrsigner"`
-	IsvProdId		uint16		`json: "isvprodid"`
-	TcbLevels		[]TcbLevelsInfo	`json: "tcbLevels"`
+	Id                      string          `json: "id"`
+	Version                 uint16          `json: "version"`
+	IssueDate               string          `json: "issueDate"`
+	NextUpdate              string          `json: "nextUpdate"`
+	TcbEvaluationDataNumber uint16          `json: "tcbEvaluationDataNumber"`
+	MiscSelect              string          `json: "miscselect"`
+	MiscSelectMask          string          `json: "miscselectMask"`
+	Attributes              string          `json: "attributes"`
+	AttributesMask          string          `json: "attributesMask"`
+	MrSigner                string          `json: "mrsigner"`
+	IsvProdId               uint16          `json: "isvprodid"`
+	TcbLevels               []TcbLevelsInfo `json: "tcbLevels"`
 }
 
 func NewQeIdentity() (*QeIdentityData, error) {
@@ -70,168 +70,168 @@ func NewQeIdentity() (*QeIdentityData, error) {
 		return nil, errors.Wrap(err, "NewQeIdentity: Error in getting client object")
 	}
 
-        url := fmt.Sprintf("%s/qe/identity", conf.SCSBaseUrl)
-        req, err := http.NewRequest("GET", url, nil)
-        if err != nil {
-            return nil, errors.Wrap(err, "NewQeIdentity: failed to get new request")
-        }
+	url := fmt.Sprintf("%s/qe/identity", conf.SCSBaseUrl)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "NewQeIdentity: failed to get new request")
+	}
 
 	req.Header.Set("Accept", "application/json")
-        q := req.URL.Query()
-        req.URL.RawQuery = q.Encode()
+	q := req.URL.Query()
+	req.URL.RawQuery = q.Encode()
 
 	err = utils.AddJWTToken(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "NewQeIdentity: failed to add JWT token")
 	}
 
-        resp, err := client.Do(req)
-        if err != nil {
-            return nil, errors.Wrap(err, "NewQeIdentity: failed to do client request")
-        }
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "NewQeIdentity: failed to do client request")
+	}
 
 	if resp.StatusCode != 200 {
-                return nil, errors.New(fmt.Sprintf("NewQeIdentity: Invalid Status code received: %d",resp.StatusCode))
-        }
+		return nil, errors.New(fmt.Sprintf("NewQeIdentity: Invalid Status code received: %d", resp.StatusCode))
+	}
 
 	content, err := ioutil.ReadAll(resp.Body)
-        if err != nil {
-                        return nil, errors.Wrap(err, "read Response failed ")
-        }
-        resp.Body.Close()
+	if err != nil {
+		return nil, errors.Wrap(err, "read Response failed ")
+	}
+	resp.Body.Close()
 
-        if len(content) == 0 {
-                return nil, errors.Wrap(err, "NewQeIdentity: buffer lenght is zero")
-        }
+	if len(content) == 0 {
+		return nil, errors.Wrap(err, "NewQeIdentity: buffer lenght is zero")
+	}
 
 	obj.RawBlob = make([]byte, len(content))
-	copy( obj.RawBlob, content)
+	copy(obj.RawBlob, content)
 
-        if err := json.Unmarshal(content, &obj.QEJson); err != nil {
-                return nil, errors.Wrap(err, "NewQeIdentity: QeIdentity Unmarshal Failed")
+	if err := json.Unmarshal(content, &obj.QEJson); err != nil {
+		return nil, errors.Wrap(err, "NewQeIdentity: QeIdentity Unmarshal Failed")
 	}
 
 	certChainList, err := utils.GetCertObjListFromStr(string(resp.Header.Get("Sgx-Qe-Identity-Issuer-Chain")))
-        if err != nil {
-                return nil, errors.Wrap(err, "NewQeIdentity: failed to get QE Identity CertChain")
-        }
+	if err != nil {
+		return nil, errors.Wrap(err, "NewQeIdentity: failed to get QE Identity CertChain")
+	}
 
 	obj.RootCA = make(map[string]*x509.Certificate)
-        obj.IntermediateCA = make(map[string]*x509.Certificate)
+	obj.IntermediateCA = make(map[string]*x509.Certificate)
 
-        var IntermediateCACount int=0
-        var RootCACount int=0
-        for i := 0; i < len(certChainList); i++ {
-                cert := certChainList[i]
-                if strings.Contains(cert.Subject.String(), "CN=Intel SGX Root CA") {
-                        RootCACount += 1
-                        obj.RootCA[cert.Subject.String()] = cert
-                }
-                if strings.Contains(cert.Subject.String(), "CN=Intel SGX TCB Signing"){
-                        IntermediateCACount += 1
-                        obj.IntermediateCA[cert.Subject.String()] = cert
-                }
-                log.Debug("Cert[" ,i, "]Issuer:", cert.Issuer.String(), ", Subject:", cert.Subject.String())
-        }
+	var IntermediateCACount int = 0
+	var RootCACount int = 0
+	for i := 0; i < len(certChainList); i++ {
+		cert := certChainList[i]
+		if strings.Contains(cert.Subject.String(), "CN=Intel SGX Root CA") {
+			RootCACount += 1
+			obj.RootCA[cert.Subject.String()] = cert
+		}
+		if strings.Contains(cert.Subject.String(), "CN=Intel SGX TCB Signing") {
+			IntermediateCACount += 1
+			obj.IntermediateCA[cert.Subject.String()] = cert
+		}
+		log.Debug("Cert[", i, "]Issuer:", cert.Issuer.String(), ", Subject:", cert.Subject.String())
+	}
 
-        if IntermediateCACount == 0 || RootCACount == 0 {
-                return nil, errors.Wrap(err, "NewQeIdentityi: Root CA/Intermediate CA Invalid count")
-        }
+	if IntermediateCACount == 0 || RootCACount == 0 {
+		return nil, errors.Wrap(err, "NewQeIdentityi: Root CA/Intermediate CA Invalid count")
+	}
 
 	return obj, nil
 }
 
-func (e *QeIdentityData) GetQEInfoInterCAList() ([]*x509.Certificate) {
-        interMediateCAArr := make([]*x509.Certificate, len(e.IntermediateCA))
-        var i  int=0
-        for _, v := range e.IntermediateCA {
-                interMediateCAArr[i] = v
-                i += 1
-        }
-        log.Debug("GetQEInfoInterCAList:", len(interMediateCAArr))
-        return interMediateCAArr
+func (e *QeIdentityData) GetQEInfoInterCAList() []*x509.Certificate {
+	interMediateCAArr := make([]*x509.Certificate, len(e.IntermediateCA))
+	var i int = 0
+	for _, v := range e.IntermediateCA {
+		interMediateCAArr[i] = v
+		i += 1
+	}
+	log.Debug("GetQEInfoInterCAList:", len(interMediateCAArr))
+	return interMediateCAArr
 }
 
-func (e *QeIdentityData) GetQEInfoRootCAList() ([]*x509.Certificate) {
-        RootCAArr := make([]*x509.Certificate, len(e.RootCA))
-        var i  int=0
-        for _, v := range e.RootCA {
-                RootCAArr[i] = v
-                i += 1
-        }
-        log.Debug("GetQEInfoRootCAList:", len(RootCAArr))
-        return RootCAArr
+func (e *QeIdentityData) GetQEInfoRootCAList() []*x509.Certificate {
+	RootCAArr := make([]*x509.Certificate, len(e.RootCA))
+	var i int = 0
+	for _, v := range e.RootCA {
+		RootCAArr[i] = v
+		i += 1
+	}
+	log.Debug("GetQEInfoRootCAList:", len(RootCAArr))
+	return RootCAArr
 }
 
-func (e *QeIdentityData) GetQEInfoPublicKey() (*ecdsa.PublicKey) {
-        for _, v := range e.IntermediateCA {
-                if strings.Compare(v.Subject.String(), constants.SGXQEInfoSubjectStr) == 0 {
-                        return v.PublicKey.(*ecdsa.PublicKey)
-                }
-        }
-        return nil
+func (e *QeIdentityData) GetQEInfoPublicKey() *ecdsa.PublicKey {
+	for _, v := range e.IntermediateCA {
+		if strings.Compare(v.Subject.String(), constants.SGXQEInfoSubjectStr) == 0 {
+			return v.PublicKey.(*ecdsa.PublicKey)
+		}
+	}
+	return nil
 }
 
-func (e *QeIdentityData) GetQEInfoBlob() ([]byte) {
-        return e.RawBlob
+func (e *QeIdentityData) GetQEInfoBlob() []byte {
+	return e.RawBlob
 }
 
-func (e *QeIdentityData) GetQeIdentityStatus() (bool) {
+func (e *QeIdentityData) GetQeIdentityStatus() bool {
 	sign, err := e.GetQeIdSignature()
 	if err != nil {
 		return false
 	}
-	if  !utils.IntToBool(int(e.GetQeIdVersion()))    || !utils.IntToBool(len(e.GetQeIdIssueDate()))      ||
+	if !utils.IntToBool(int(e.GetQeIdVersion())) || !utils.IntToBool(len(e.GetQeIdIssueDate())) ||
 		!utils.IntToBool(len(e.GetQeIdMiscSelect())) || !utils.IntToBool(len(e.GetQeIdMiscSelectMask())) ||
 		!utils.IntToBool(len(e.GetQeIdAttributes())) || !utils.IntToBool(len(e.GetQeIdAttributesMask())) ||
-		!utils.IntToBool(len(e.GetQeIdMrSigner()))   || !utils.IntToBool(int(e.GetQeIdIsvProdId()))      ||
-		!utils.IntToBool(int(e.GetQeIdIsvSvn()))     || !utils.IntToBool(len(sign)) {
+		!utils.IntToBool(len(e.GetQeIdMrSigner())) || !utils.IntToBool(int(e.GetQeIdIsvProdId())) ||
+		!utils.IntToBool(int(e.GetQeIdIsvSvn())) || !utils.IntToBool(len(sign)) {
 		return false
 	}
 	return true
 }
 
-func (e *QeIdentityData) GetQeId() (string) {
+func (e *QeIdentityData) GetQeId() string {
 	return e.QEJson.EnclaveIdentity.Id
 }
 
-func (e *QeIdentityData) GetQeIdVersion() (uint16) {
+func (e *QeIdentityData) GetQeIdVersion() uint16 {
 	return e.QEJson.EnclaveIdentity.Version
 }
 
-func (e *QeIdentityData) GetQeIdIssueDate() (string) {
-        return e.QEJson.EnclaveIdentity.IssueDate
+func (e *QeIdentityData) GetQeIdIssueDate() string {
+	return e.QEJson.EnclaveIdentity.IssueDate
 }
 
-func (e *QeIdentityData) GetQeIdNextUpdate() (string) {
-        return e.QEJson.EnclaveIdentity.NextUpdate
+func (e *QeIdentityData) GetQeIdNextUpdate() string {
+	return e.QEJson.EnclaveIdentity.NextUpdate
 }
 
-func (e *QeIdentityData) GetQeIdMiscSelect() (string) {
+func (e *QeIdentityData) GetQeIdMiscSelect() string {
 	return e.QEJson.EnclaveIdentity.MiscSelect
 }
 
-func (e *QeIdentityData) GetQeIdMiscSelectMask() (string) {
+func (e *QeIdentityData) GetQeIdMiscSelectMask() string {
 	return e.QEJson.EnclaveIdentity.MiscSelectMask
 }
 
-func (e *QeIdentityData) GetQeIdAttributes() (string) {
+func (e *QeIdentityData) GetQeIdAttributes() string {
 	return e.QEJson.EnclaveIdentity.Attributes
 }
 
-func (e *QeIdentityData) GetQeIdAttributesMask() (string) {
+func (e *QeIdentityData) GetQeIdAttributesMask() string {
 	return e.QEJson.EnclaveIdentity.AttributesMask
 }
 
-func (e *QeIdentityData) GetQeIdMrSigner() (string) {
+func (e *QeIdentityData) GetQeIdMrSigner() string {
 	return e.QEJson.EnclaveIdentity.MrSigner
 }
 
-func (e *QeIdentityData) GetQeIdIsvProdId() (uint16) {
+func (e *QeIdentityData) GetQeIdIsvProdId() uint16 {
 	return e.QEJson.EnclaveIdentity.IsvProdId
 }
 
-func (e *QeIdentityData) GetQeIdIsvSvn() (uint16) {
+func (e *QeIdentityData) GetQeIdIsvSvn() uint16 {
 	for i := 0; i < len(e.QEJson.EnclaveIdentity.TcbLevels); i++ {
 		if e.QEJson.EnclaveIdentity.TcbLevels[i].TcbStatus == "UpToDate" {
 			return e.QEJson.EnclaveIdentity.TcbLevels[i].Tcb.IsvSvn

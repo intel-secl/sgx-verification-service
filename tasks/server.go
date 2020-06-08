@@ -7,12 +7,12 @@ package tasks
 import (
 	"flag"
 	"fmt"
+	"github.com/pkg/errors"
 	"intel/isecl/lib/common/v2/setup"
 	"intel/isecl/svs/config"
 	"intel/isecl/svs/constants"
 	"io"
 	"time"
-	"github.com/pkg/errors"
 )
 
 type Server struct {
@@ -37,12 +37,12 @@ func (s Server) Run(c setup.Context) error {
 
 	if s.Config.Port > 65535 || s.Config.Port <= 1024 {
 		return errors.Wrap(err, "tasks/server:Run() Invalid or reserved port")
-        }
-        fmt.Fprintf(s.ConsoleWriter, "Using HTTPS port: %d\n", s.Config.Port)
+	}
+	fmt.Fprintf(s.ConsoleWriter, "Using HTTPS port: %d\n", s.Config.Port)
 
-        s.Config.AuthDefender.MaxAttempts = constants.DefaultAuthDefendMaxAttempts
-        s.Config.AuthDefender.IntervalMins = constants.DefaultAuthDefendIntervalMins
-        s.Config.AuthDefender.LockoutDurationMins = constants.DefaultAuthDefendLockoutMins
+	s.Config.AuthDefender.MaxAttempts = constants.DefaultAuthDefendMaxAttempts
+	s.Config.AuthDefender.IntervalMins = constants.DefaultAuthDefendIntervalMins
+	s.Config.AuthDefender.LockoutDurationMins = constants.DefaultAuthDefendLockoutMins
 
 	readTimeout, err := c.GetenvInt("SVS_SERVER_READ_TIMEOUT", "SGX Verification Service Read Timeout")
 	if err != nil {
@@ -87,14 +87,14 @@ func (s Server) Run(c setup.Context) error {
 	}
 
 	s.Config.LogEnableStdout = false
-        logEnableStdout, err := c.GetenvString("SVS_ENABLE_CONSOLE_LOG", "SGX Verification Service Enable standard output")
+	logEnableStdout, err := c.GetenvString("SVS_ENABLE_CONSOLE_LOG", "SGX Verification Service Enable standard output")
 	if err != nil || len(logEnableStdout) == 0 {
 		s.Config.LogEnableStdout = false
 	} else {
 		s.Config.LogEnableStdout = true
 	}
 
-        err = s.Config.Save()
+	err = s.Config.Save()
 	if err != nil {
 		return errors.Wrap(err, "failed to save SVS config")
 	}
@@ -102,5 +102,5 @@ func (s Server) Run(c setup.Context) error {
 }
 
 func (s Server) Validate(c setup.Context) error {
-        return nil
+	return nil
 }

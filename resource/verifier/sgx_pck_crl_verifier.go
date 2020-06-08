@@ -5,29 +5,29 @@
 package verifier
 
 import (
-	"crypto/x509/pkix"
-	"time"
 	"crypto/x509"
-	"strings"
-	"intel/isecl/svs/constants"
+	"crypto/x509/pkix"
 	"github.com/pkg/errors"
+	"intel/isecl/svs/constants"
+	"strings"
+	"time"
 )
 
-func CheckExpiry(crl *pkix.CertificateList) (bool) {
-	if crl.HasExpired(time.Now()){
+func CheckExpiry(crl *pkix.CertificateList) bool {
+	if crl.HasExpired(time.Now()) {
 		log.Error("Certificate Revocation List Has Expired")
 		return false
 	}
 	return true
 }
 
-func VerifyPCKCRLIssuer(crl *pkix.CertificateList) (bool) {
+func VerifyPCKCRLIssuer(crl *pkix.CertificateList) bool {
 	issuer := crl.TBSCertList.Issuer.String()
 	return VerifyString(issuer, constants.SGXCRLIssuerStr)
 }
 
 func VerifyPCKCRL(crlUrl []string, crlList []*pkix.CertificateList, interCA []*x509.Certificate,
-				rootCA []*x509.Certificate, trustedRootCA *x509.Certificate) (bool, error) {
+	rootCA []*x509.Certificate, trustedRootCA *x509.Certificate) (bool, error) {
 	if len(crlList) == 0 || len(interCA) == 0 || len(rootCA) == 0 {
 		return false, errors.New("VerifyPCKCRL: CRL List/InterCA/RootCA is empty")
 	}
@@ -39,7 +39,7 @@ func VerifyPCKCRL(crlUrl []string, crlList []*pkix.CertificateList, interCA []*x
 		}
 	}
 	for i := 0; i < len(rootCA); i++ {
-		 _, err := VerifyRootCACertificate(rootCA[i], constants.SGXRootCACertSubjectStr)
+		_, err := VerifyRootCACertificate(rootCA[i], constants.SGXRootCACertSubjectStr)
 		if err != nil {
 			return false, errors.Wrap(err, "VerifyPCKCRL: VerifyRootCACertificate failed ")
 		}
@@ -49,15 +49,15 @@ func VerifyPCKCRL(crlUrl []string, crlList []*pkix.CertificateList, interCA []*x
 	for i := 0; i < len(crlList); i++ {
 		ret := CheckExpiry(crlList[i])
 		if ret != true {
-			return false, errors.New("VerifyPCKCRL: Revocation List has Expired"+crlUrl[i])
+			return false, errors.New("VerifyPCKCRL: Revocation List has Expired" + crlUrl[i])
 		}
 		ret = VerifyPCKCRLIssuer(crlList[i])
 		if ret != true {
-			return false, errors.New("VerifyPCKCRL: CRL Issuer info is Invalid: "+crlUrl[i])
+			return false, errors.New("VerifyPCKCRL: CRL Issuer info is Invalid: " + crlUrl[i])
 		}
 
-		for j := 0; j < len(interCA); j++{
-			err :=  interCA[i].CheckCRLSignature(crlList[i])
+		for j := 0; j < len(interCA); j++ {
+			err := interCA[i].CheckCRLSignature(crlList[i])
 			if err == nil {
 				signPassCount += 1
 			}

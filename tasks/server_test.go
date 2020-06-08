@@ -5,11 +5,11 @@
 package tasks
 
 import (
+	"github.com/stretchr/testify/assert"
 	"intel/isecl/lib/common/v2/setup"
 	"intel/isecl/svs/config"
 	"os"
 	"testing"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestServerSetup(t *testing.T) {

@@ -5,16 +5,16 @@
 package verifier
 
 import (
-	"strings"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"github.com/pkg/errors"
 	"intel/isecl/svs/constants"
+	"strings"
 )
 
 func VerifyPCKCertificate(pckCert *x509.Certificate, interCA []*x509.Certificate, RootCA []*x509.Certificate,
-				crl []*pkix.CertificateList, trustedRootCA *x509.Certificate) (bool, error) {
-	if pckCert == nil || len(interCA) == 0 || len(RootCA) == 0 || len(crl)==0 {
+	crl []*pkix.CertificateList, trustedRootCA *x509.Certificate) (bool, error) {
+	if pckCert == nil || len(interCA) == 0 || len(RootCA) == 0 || len(crl) == 0 {
 		return false, errors.New("VerifyPCKCertificate: Invalid Inter/Root ca certs, CRL data")
 	}
 
@@ -45,19 +45,19 @@ func VerifyPCKCertificate(pckCert *x509.Certificate, interCA []*x509.Certificate
 	}
 
 	if strings.Compare(string(trustedRootCA.Signature), string(RootCA[0].Signature)) != 0 {
-		return false, errors.New("VerifyTcbInfo: Trusted CA Verification Failed")
-        }
+		return false, errors.New("VerifyPCKCertificate: Trusted CA Verification Failed")
+	}
 
 	_, err := pckCert.Verify(opts)
 	if err != nil {
 		log.Error("Error in PCKCert Verification:", err.Error())
-		return false, errors.Wrap(err,"VerifyPCKCertificate: verify certificate")
+		return false, errors.Wrap(err, "VerifyPCKCertificate: verify certificate")
 	}
 
 	for i := 0; i < len(crl); i++ {
 		log.Debug("CRL Revoked Certifate Count:", len(crl[i].TBSCertList.RevokedCertificates))
 		for _, crlObj := range crl[i].TBSCertList.RevokedCertificates {
-			if pckCert.SerialNumber.Cmp(crlObj.SerialNumber) ==  0 {
+			if pckCert.SerialNumber.Cmp(crlObj.SerialNumber) == 0 {
 				log.Error("PCK Certificate is Revoked")
 				return false, errors.New("VerifyPCKCertificate: PCK Certificate is Revoked")
 			}

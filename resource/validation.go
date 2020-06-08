@@ -5,17 +5,17 @@
 package resource
 
 import (
-	"regexp"
 	"intel/isecl/svs/constants"
+	"regexp"
 )
 
 var regExMap = map[string]*regexp.Regexp{
-				constants.Fmspc_Key: regexp.MustCompile(`^[0-9a-fA-F]{12}$`),
-				constants.Misc_Select: regexp.MustCompile(`^[0-9a-fA-F]{8}$`),
-				constants.Misc_SelectMask: regexp.MustCompile(`^[0-9a-fA-F]{8}$`),
-				constants.Attributes: regexp.MustCompile(`^[0-9a-fA-F]{32}$`),
-				constants.Attributes_Mask: regexp.MustCompile(`^[0-9a-fA-F]{32}$`),
-				constants.Mrsigner_key: regexp.MustCompile(`^[0-9a-fA-F]{64}$`)}
+	constants.Fmspc_Key:       regexp.MustCompile(`^[0-9a-fA-F]{12}$`),
+	constants.Misc_Select:     regexp.MustCompile(`^[0-9a-fA-F]{8}$`),
+	constants.Misc_SelectMask: regexp.MustCompile(`^[0-9a-fA-F]{8}$`),
+	constants.Attributes:      regexp.MustCompile(`^[0-9a-fA-F]{32}$`),
+	constants.Attributes_Mask: regexp.MustCompile(`^[0-9a-fA-F]{32}$`),
+	constants.Mrsigner_key:    regexp.MustCompile(`^[0-9a-fA-F]{64}$`)}
 
 func ValidateInputString(key string, inString string) bool {
 	regEx := regExMap[key]
