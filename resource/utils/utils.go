@@ -6,7 +6,6 @@ package utils
 
 import (
 	"crypto/x509"
-	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 	"github.com/pkg/errors"
@@ -17,7 +16,6 @@ import (
 	"intel/isecl/svs/constants"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -31,13 +29,6 @@ var (
 	aasClient = aas.NewJWTClient(c.AuthServiceUrl)
 	aasRWLock = sync.RWMutex{}
 )
-
-func DumpDataInHex(label string, data []byte, len int) {
-	log.Printf("%s[%d]:", label, len)
-	dumper := hex.Dumper(os.Stderr)
-	defer dumper.Close()
-	dumper.Write(data)
-}
 
 func init() {
 	aasRWLock.Lock()
@@ -101,15 +92,15 @@ func GetCertPemData(cert *x509.Certificate) ([]byte, error) {
 	return pemData, nil
 }
 
-func GetCertObjListFromStr(certChainStr string) ([]*x509.Certificate, error) {
+func GetCertObjList(certChainStr string) ([]*x509.Certificate, error) {
 	certChainEscapedStr, err := url.QueryUnescape(certChainStr)
 	if err != nil {
-		return nil, errors.Wrap(err, "GetCertObjListFromStr: Error parsing Cert Chain QueryUnescape")
+		return nil, errors.Wrap(err, "GetCertObjList: Error parsing Cert Chain QueryUnescape")
 	}
 
 	certCount := strings.Count(certChainEscapedStr, "-----END CERTIFICATE-----")
 	if certCount == 0 {
-		return nil, errors.Wrap(err, "GetCertObjListFromStr: Invalid Certificate PEM string")
+		return nil, errors.Wrap(err, "GetCertObjList: Invalid Certificate PEM string")
 	}
 
 	certs := strings.SplitAfterN(certChainEscapedStr, "-----END CERTIFICATE-----", certCount)
@@ -119,23 +110,15 @@ func GetCertObjListFromStr(certChainStr string) ([]*x509.Certificate, error) {
 		log.Debug("Certificate[", i, "]:", string(certs[i]))
 		block, _ := pem.Decode([]byte(certs[i]))
 		if block == nil {
-			return nil, errors.Wrap(err, "GetCertObjListFromStr: Pem Decode error")
+			return nil, errors.Wrap(err, "GetCertObjList: Pem Decode error")
 		}
 		certChainObjList[i], err = x509.ParseCertificate(block.Bytes)
 		if err != nil {
-			return nil, errors.Wrap(err, "GetCertObjListFromStr: Parse Certificate error")
+			return nil, errors.Wrap(err, "GetCertObjList: Parse Certificate error")
 		}
 	}
-	log.Debug("GetCertObjListFromStr parsed: ", len(certChainObjList), " certificates from string: ", certChainEscapedStr)
+	log.Debug("GetCertObjList parsed: ", len(certChainObjList), " certificates from string: ", certChainEscapedStr)
 	return certChainObjList, nil
-}
-
-func BoolToInt(b bool) int {
-	n := 0
-	if b {
-		n = 1
-	}
-	return n
 }
 
 func IntToBool(i int) bool {

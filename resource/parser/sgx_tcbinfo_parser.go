@@ -5,7 +5,6 @@
 package parser
 
 import (
-	"crypto/ecdsa"
 	"crypto/x509"
 	"encoding/asn1"
 	"encoding/binary"
@@ -82,21 +81,21 @@ type ECDSASignature struct {
 	R, S *big.Int
 }
 
-func NewTCBInfo(fmspc string) (*TcbInfoStruct, error) {
+func NewTcbInfo(fmspc string) (*TcbInfoStruct, error) {
 	var err error
 	if len(fmspc) < 0 {
-		return nil, errors.Wrap(err, "NewTCBInfo: FMSPC value not found")
+		return nil, errors.Wrap(err, "NewTcbInfo: FMSPC value not found")
 	}
 
 	tcbInfoStruct := new(TcbInfoStruct)
-	err = tcbInfoStruct.GetTcbInfoStruct(fmspc)
+	err = tcbInfoStruct.getTcbInfoStruct(fmspc)
 	if err != nil {
-		return nil, errors.Wrap(err, "NewTCBInfo: Failed to get Tcb Info")
+		return nil, errors.Wrap(err, "NewTcbInfo: Failed to get Tcb Info")
 	}
 	return tcbInfoStruct, nil
 }
 
-func (e *TcbInfoStruct) GetTCBInfoInterCAList() []*x509.Certificate {
+func (e *TcbInfoStruct) GetTcbInfoInterCaList() []*x509.Certificate {
 	interMediateCAArr := make([]*x509.Certificate, len(e.IntermediateCA))
 	var i int = 0
 	for _, v := range e.IntermediateCA {
@@ -106,26 +105,15 @@ func (e *TcbInfoStruct) GetTCBInfoInterCAList() []*x509.Certificate {
 	return interMediateCAArr
 }
 
-func (e *TcbInfoStruct) GetTCBInfoRootCAList() []*x509.Certificate {
+func (e *TcbInfoStruct) GetTcbInfoRootCaList() []*x509.Certificate {
 	RootCAArr := make([]*x509.Certificate, len(e.RootCA))
 	var i int = 0
 	for _, v := range e.RootCA {
 		RootCAArr[i] = v
 		i += 1
 	}
-	log.Debug("GetTCBInfoRootCAList:", len(RootCAArr))
+	log.Debug("GetTcbInfoRootCaList:", len(RootCAArr))
 	return RootCAArr
-}
-
-func (e *TcbInfoStruct) GetTCBInfoPublicKey() *ecdsa.PublicKey {
-	for _, v := range e.IntermediateCA {
-		if strings.Compare(v.Subject.String(), constants.SGXTCBInfoSubjectStr) == 0 {
-			return v.PublicKey.(*ecdsa.PublicKey)
-		}
-		//utils.DumpDataInHex("Signature:", v.Signature, len(v.Signature))
-	}
-	log.Error("GetTCBInfoPublicKey: Public Key not found")
-	return nil
 }
 
 func (e *TcbInfoStruct) GetTcbInfoIssueDate() string {
@@ -136,22 +124,22 @@ func (e *TcbInfoStruct) GetTcbInfoNextUpdate() string {
 	return e.TcbInfoData.TcbInfo.NextUpdate
 }
 
-func (e *TcbInfoStruct) GetTcbInfoStruct(fmspc string) error {
+func (e *TcbInfoStruct) getTcbInfoStruct(fmspc string) error {
 	conf := config.Global()
 	if conf == nil {
-		return errors.Wrap(errors.New("GetTcbInfoStruct: Configuration pointer is null"), "Config error")
+		return errors.Wrap(errors.New("getTcbInfoStruct: Configuration pointer is null"), "Config error")
 	}
 
 	client, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
 	if err != nil {
-		return errors.Wrap(err, "GetTcbInfoStruct: Error in getting client object")
+		return errors.Wrap(err, "getTcbInfoStruct: Error in getting client object")
 	}
 
 	url := fmt.Sprintf("%s/tcb", conf.SCSBaseUrl)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.Error("GetTcbInfoStruct: req object error")
-		return errors.Wrap(err, "GetTcbInfoStruct: Failed to Get http NewRequest")
+		log.Error("getTcbInfoStruct: req object error")
+		return errors.Wrap(err, "getTcbInfoStruct: Failed to Get http NewRequest")
 	}
 
 	req.Header.Set("Accept", "application/json")
@@ -161,14 +149,14 @@ func (e *TcbInfoStruct) GetTcbInfoStruct(fmspc string) error {
 
 	err = utils.AddJWTToken(req)
 	if err != nil {
-		return errors.Wrap(err, "GetTcbInfoStruct: failed to add JWT token")
+		return errors.Wrap(err, "getTcbInfoStruct: failed to add JWT token")
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return errors.Wrap(err, "GetTcbInfoStruct: Failed to Get http client")
+		return errors.Wrap(err, "getTcbInfoStruct: Failed to Get http client")
 	}
-	log.Debug("GetTcbInfoStruct: Got status:", resp.StatusCode, ", content-len:", resp.ContentLength, " resp body:", resp.Body)
+	log.Debug("getTcbInfoStruct: Got status:", resp.StatusCode, ", content-len:", resp.ContentLength, " resp body:", resp.Body)
 
 	if resp.StatusCode != 200 {
 		return errors.New(fmt.Sprintf("GetTcbInfoJson: Invalid Status code received: %d", resp.StatusCode))
@@ -186,13 +174,13 @@ func (e *TcbInfoStruct) GetTcbInfoStruct(fmspc string) error {
 
 	log.Debug("GetTcbInfoJson: blob[", resp.ContentLength, "]:", len(e.RawBlob))
 
-	certChainList, err := utils.GetCertObjListFromStr(string(resp.Header.Get("SGX-TCB-Info-Issuer-Chain")))
+	certChainList, err := utils.GetCertObjList(string(resp.Header.Get("SGX-TCB-Info-Issuer-Chain")))
 	if err != nil {
-		return errors.Wrap(err, "GetTcbInfoStruct: failed to get object")
+		return errors.Wrap(err, "getTcbInfoStruct: failed to get object")
 	}
 
 	if err := json.Unmarshal(content, &e.TcbInfoData); err != nil {
-		return errors.Wrap(err, "TCBInfo Unmarshal Failed")
+		return errors.Wrap(err, "TcbInfo Unmarshal Failed")
 	}
 
 	e.RootCA = make(map[string]*x509.Certificate)
@@ -223,29 +211,29 @@ func (e *TcbInfoStruct) GetTcbInfoFmspc() string {
 	return e.TcbInfoData.TcbInfo.Fmspc
 }
 
-func (e *TcbInfoStruct) GetTcbInfoBlob() []byte {
+func (e *TcbInfoStruct) getTcbInfoBlob() []byte {
 	bytes, err := json.Marshal(e.TcbInfoData.TcbInfo)
 	if err != nil {
-		log.Error("GetTcbInfoBlob: Error in Json Marshalling")
+		log.Error("getTcbInfoBlob: Error in Json Marshalling")
 	}
 	return bytes
 }
 
-func (e *TcbInfoStruct) GetTcbInfoSignature() ([]byte, error) {
+func (e *TcbInfoStruct) getTcbInfoSignature() ([]byte, error) {
 	signatureBytes, err := hex.DecodeString(e.TcbInfoData.Signature)
 	if err != nil {
-		return nil, errors.Wrap(err, "GetTcbInfoSignature: error in decode string")
+		return nil, errors.Wrap(err, "getTcbInfoSignature: error in decode string")
 	}
 
 	rBytes, sBytes := signatureBytes[:32], signatureBytes[32:]
 	bytes, err := asn1.Marshal(ECDSASignature{R: new(big.Int).SetBytes(rBytes), S: new(big.Int).SetBytes(sBytes)})
 	if err != nil {
-		return nil, errors.Wrap(err, "GetTcbInfoSignature: asnl marshal fail")
+		return nil, errors.Wrap(err, "getTcbInfoSignature: asnl marshal fail")
 	}
 	return bytes, nil
 }
 
-func CompareTcbComponents(pckComponents []byte, pckpcesvn uint16, tcbComponents []byte, tcbpcesvn uint16) int {
+func compareTcbComponents(pckComponents []byte, pckpcesvn uint16, tcbComponents []byte, tcbpcesvn uint16) int {
 	left_lower := false
 	right_lower := false
 
@@ -277,7 +265,7 @@ func CompareTcbComponents(pckComponents []byte, pckpcesvn uint16, tcbComponents 
 	return EqualOrGreater
 }
 
-func GetTcbCompList(TcbLevelList *TcbType) []byte {
+func getTcbCompList(TcbLevelList *TcbType) []byte {
 	TcbCompLevel := make([]byte, constants.MaxTcbLevels)
 
 	TcbCompLevel[0] = byte(TcbLevelList.SgxTcbComp01Svn)
@@ -309,8 +297,8 @@ func (e *TcbInfoStruct) GetTcbUptoDateStatus(tcbLevels []byte) string {
 	// iterate through all TCB Levels present in TCBInfo
 	for i := 0; i < len(e.TcbInfoData.TcbInfo.TcbLevels); i++ {
 		TcbPceSvn := e.TcbInfoData.TcbInfo.TcbLevels[i].Tcb.PceSvn
-		TcbComponents = GetTcbCompList(&e.TcbInfoData.TcbInfo.TcbLevels[i].Tcb)
-		TcbError := CompareTcbComponents(PckComponents, PckPceSvn, TcbComponents, TcbPceSvn)
+		TcbComponents = getTcbCompList(&e.TcbInfoData.TcbInfo.TcbLevels[i].Tcb)
+		TcbError := compareTcbComponents(PckComponents, PckPceSvn, TcbComponents, TcbPceSvn)
 		if TcbError == EqualOrGreater {
 			Status = e.TcbInfoData.TcbInfo.TcbLevels[i].TcbStatus
 			break
@@ -320,7 +308,6 @@ func (e *TcbInfoStruct) GetTcbUptoDateStatus(tcbLevels []byte) string {
 }
 
 func (e *TcbInfoStruct) DumpTcbInfo() {
-	log.Debug("============TCBInfo================")
 	log.Printf("Version:         %v", e.TcbInfoData.TcbInfo.Version)
 	log.Printf("IssueDate:       %v", e.TcbInfoData.TcbInfo.IssueDate)
 	log.Printf("NextUpdate:      %v", e.TcbInfoData.TcbInfo.NextUpdate)

@@ -94,9 +94,9 @@ echo "$role_id"
 
 create_roles() {
 
-		local cms_role_id=$( create_user_roles "CMS" "CertApprover" "CN=$CN;SAN=$IPADDR;CERTTYPE=TLS" ) #get roleid
-		ROLE_ID_TO_MAP=`echo \"$cms_role_id\"`
-		echo $ROLE_ID_TO_MAP
+	local cms_role_id=$( create_user_roles "CMS" "CertApprover" "CN=$CN;SAN=$IPADDR;CERTTYPE=TLS" ) #get roleid
+	ROLE_ID_TO_MAP=`echo \"$cms_role_id\"`
+	echo $ROLE_ID_TO_MAP
 }
 
 #Map svsUser to Roles
@@ -141,7 +141,6 @@ curl $CURL_OPTS -X POST -H "Content-Type: application/json" -H "Accept: applicat
 
 status=$(cat $tmpdir/getsvsusertoken-response.status)
 if [ $status -ne 200 ]; then
-	#svs config aas.bearer.token $tmpdir/svs_token-response.json 
 	echo "Couldn't get bearer token"
 else
 	export BEARER_TOKEN=`cat $tmpdir/svs_token-response.json`

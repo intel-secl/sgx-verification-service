@@ -18,15 +18,15 @@ func VerifyTcbInfoCertChain(interCA []*x509.Certificate, rootCA []*x509.Certific
 	}
 
 	for i := 0; i < len(interCA); i++ {
-		_, err := VerifyInterCACertificate(interCA[i], rootCA, constants.SGXTCBInfoSubjectStr)
+		_, err := verifyInterCaCert(interCA[i], rootCA, constants.SGXTCBInfoSubjectStr)
 		if err != nil {
-			return false, errors.Wrap(err, "VerifyTcbInfo: VerifyInterCACertificate failed")
+			return false, errors.Wrap(err, "VerifyTcbInfo: verifyInterCaCert failed")
 		}
 	}
 	for i := 0; i < len(rootCA); i++ {
-		_, err := VerifyRootCACertificate(rootCA[i], constants.SGXRootCACertSubjectStr)
+		_, err := verifyRootCaCert(rootCA[i], constants.SGXRootCACertSubjectStr)
 		if err != nil {
-			return false, errors.Wrap(err, "VerifyTcbInfo: VerifyRootCACertificate failed")
+			return false, errors.Wrap(err, "VerifyTcbInfo: verifyRootCaCert failed")
 		}
 	}
 

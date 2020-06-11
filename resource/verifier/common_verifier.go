@@ -29,9 +29,9 @@ var ExtSgxTcbPceSvnOid asn1.ObjectIdentifier = asn1.ObjectIdentifier{1, 2, 840, 
 
 var log = clog.GetDefaultLogger()
 
-func VerifyRequiredExtensions(cert *x509.Certificate, requiredExtDict map[string]asn1.ObjectIdentifier) (bool, error) {
+func CheckMandatoryExt(cert *x509.Certificate, requiredExtDict map[string]asn1.ObjectIdentifier) (bool, error) {
 	if cert == nil || len(requiredExtDict) == 0 {
-		return false, errors.New("VerifyRequiredExtensions: Certificate Object is nul or requiredExtDict is Empty")
+		return false, errors.New("CheckMandatoryExt: Certificate Object is nul or requiredExtDict is Empty")
 	}
 
 	var ext pkix.Extension
@@ -43,12 +43,12 @@ func VerifyRequiredExtensions(cert *x509.Certificate, requiredExtDict map[string
 		}
 	}
 	if present != len(requiredExtDict) {
-		return false, errors.New("VerifyRequiredExtensions: Required Extension not found")
+		return false, errors.New("CheckMandatoryExt: Required Extension not found")
 	}
 	return true, nil
 }
 
-func GetRootCARequiredExtMap() map[string]asn1.ObjectIdentifier {
+func getMandatoryCertExtMap() map[string]asn1.ObjectIdentifier {
 	RequiredExtension := make(map[string]asn1.ObjectIdentifier)
 	RequiredExtension[ExtAuthorityKeyIdentifierOid.String()] = ExtAuthorityKeyIdentifierOid
 	RequiredExtension[ExtCRLDistributionPointOid.String()] = ExtCRLDistributionPointOid
@@ -58,7 +58,7 @@ func GetRootCARequiredExtMap() map[string]asn1.ObjectIdentifier {
 	return RequiredExtension
 }
 
-func VerifyString(input string, cmpStr string) bool {
+func verifyCaSubject(input string, cmpStr string) bool {
 	if len(input) == 0 || len(cmpStr) == 0 {
 		return false
 	}
@@ -70,22 +70,22 @@ func VerifyString(input string, cmpStr string) bool {
 		}
 	}
 
-	log.Errorf("VerifyString: Input:%s not mached with %s\n", input, cmpStr)
+	log.Errorf("verifyCaSubject: Input:%s not mached with %s\n", input, cmpStr)
 	return false
 }
 
-func VerifyInterCACertificate(interCA *x509.Certificate, rootCA []*x509.Certificate, subjectStr string) (bool, error) {
+func verifyInterCaCert(interCA *x509.Certificate, rootCA []*x509.Certificate, subjectStr string) (bool, error) {
 	if rootCA == nil || len(subjectStr) == 0 {
-		return false, errors.New("VerifyInterCACertificate: Certificate Object is nul or requiredExtDict is Empty")
+		return false, errors.New("verifyInterCaCert: Certificate Object is nul or requiredExtDict is Empty")
 	}
 
-	if !VerifyString(interCA.Subject.String(), subjectStr) {
-		return false, errors.New("VerifyInterCACertificate: Invalid Certificate Subject: " + interCA.Subject.String() +
+	if !verifyCaSubject(interCA.Subject.String(), subjectStr) {
+		return false, errors.New("verifyInterCaCert: Invalid Certificate Subject: " + interCA.Subject.String() +
 			"not matched with " + subjectStr)
 	}
-	_, err := VerifyRequiredExtensions(interCA, GetRootCARequiredExtMap())
+	_, err := CheckMandatoryExt(interCA, getMandatoryCertExtMap())
 	if err != nil {
-		return false, errors.Wrap(err, "VerifyInterCACertificate: ")
+		return false, errors.Wrap(err, "verifyInterCaCert: ")
 	}
 
 	var opts x509.VerifyOptions
@@ -95,29 +95,29 @@ func VerifyInterCACertificate(interCA *x509.Certificate, rootCA []*x509.Certific
 	}
 	_, err = interCA.Verify(opts)
 	if err != nil {
-		return false, errors.Wrap(err, "VerifyInterCACertificate: Verification failure")
+		return false, errors.Wrap(err, "verifyInterCaCert: Verification failure")
 	}
 	return true, nil
 }
 
-func VerifyRootCACertificate(rootCA *x509.Certificate, subjectStr string) (bool, error) {
+func verifyRootCaCert(rootCA *x509.Certificate, subjectStr string) (bool, error) {
 	if rootCA == nil || len(subjectStr) == 0 {
-		return false, errors.New("VerifyRootCACertificate: Certificate Object is nul or requiredExtDict is Empty")
+		return false, errors.New("verifyRootCaCert: Certificate Object is nul or requiredExtDict is Empty")
 	}
 
 	var opts x509.VerifyOptions
 
 	if strings.Compare(subjectStr, rootCA.Subject.String()) != 0 {
-		return false, errors.New("VerifyRootCACertificate: Invalid Certificate Subject: " + rootCA.Subject.String())
+		return false, errors.New("verifyRootCaCert: Invalid Certificate Subject: " + rootCA.Subject.String())
 	}
 
 	if strings.Compare(rootCA.Issuer.String(), rootCA.Subject.String()) != 0 {
-		return false, errors.New("VerifyRootCACertificate: Invalid Certificate Subject/Verifier differed: " + rootCA.Subject.String())
+		return false, errors.New("verifyRootCaCert: Invalid Certificate Subject/Verifier differed: " + rootCA.Subject.String())
 	}
 
-	_, err := VerifyRequiredExtensions(rootCA, GetRootCARequiredExtMap())
+	_, err := CheckMandatoryExt(rootCA, getMandatoryCertExtMap())
 	if err != nil {
-		return false, errors.Wrap(err, "VerifyRootCACertificate: ")
+		return false, errors.Wrap(err, "verifyRootCaCert: ")
 	}
 
 	opts.Roots = x509.NewCertPool()
@@ -125,19 +125,19 @@ func VerifyRootCACertificate(rootCA *x509.Certificate, subjectStr string) (bool,
 
 	_, err = rootCA.Verify(opts)
 	if err != nil {
-		return false, errors.Wrap(err, "VerifyRootCACertificate: Verification failure:")
+		return false, errors.Wrap(err, "verifyRootCaCert: Verification failure:")
 	}
 
 	err = rootCA.CheckSignature(rootCA.SignatureAlgorithm, rootCA.RawTBSCertificate, rootCA.Signature)
 	if err != nil {
-		return false, errors.Wrap(err, "VerifyRootCACertificate: Signature check failed ")
+		return false, errors.Wrap(err, "verifyRootCaCert: Signature check failed ")
 	}
 	return true, nil
 }
 
-func VerifyRequiredSGXExtensions(cert *x509.Certificate, requiredExtDict map[string]asn1.ObjectIdentifier) (bool, error) {
+func CheckMandatorySGXExt(cert *x509.Certificate, requiredExtDict map[string]asn1.ObjectIdentifier) (bool, error) {
 	if cert == nil || len(requiredExtDict) == 0 {
-		return false, errors.New("VerifyRequiredSGXExtensions: Certificate Object is nul or requiredExtDict is Empty")
+		return false, errors.New("CheckMandatorySGXExt: Certificate Object is nul or requiredExtDict is Empty")
 	}
 
 	var present int = 0
@@ -149,7 +149,7 @@ func VerifyRequiredSGXExtensions(cert *x509.Certificate, requiredExtDict map[str
 		if ExtSgxOid.Equal(ext.Id) == true {
 			_, err := asn1.Unmarshal(ext.Value, &sgxExtensions)
 			if err != nil {
-				return false, errors.Wrap(err, "VerifyRequiredSGXExtensions: unmarshal failed")
+				return false, errors.Wrap(err, "CheckMandatorySGXExt: unmarshal failed")
 			}
 
 			log.Debug("Required Extension Dictionary", requiredExtDict)
@@ -164,7 +164,7 @@ func VerifyRequiredSGXExtensions(cert *x509.Certificate, requiredExtDict map[str
 		}
 	}
 	if present != len(requiredExtDict) {
-		return false, errors.New("VerifyRequiredSGXExtensions: Required SGX Extension not found")
+		return false, errors.New("CheckMandatorySGXExt: Required SGX Extension not found")
 	}
 	return true, nil
 }

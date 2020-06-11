@@ -18,18 +18,18 @@ func VerifyPCKCertificate(pckCert *x509.Certificate, interCA []*x509.Certificate
 		return false, errors.New("VerifyPCKCertificate: Invalid Inter/Root ca certs, CRL data")
 	}
 
-	if !VerifyString(pckCert.Subject.String(), constants.SGXPCKCertificateSubjectStr) {
+	if !verifyCaSubject(pckCert.Subject.String(), constants.SGXPCKCertificateSubjectStr) {
 		return false, errors.New("VerifyPCKCertificate: Invalid Subject info in PCK Certicate")
 	}
 
-	if !VerifyString(pckCert.Issuer.String(), constants.SGXInterCACertSubjectStr) {
+	if !verifyCaSubject(pckCert.Issuer.String(), constants.SGXInterCACertSubjectStr) {
 		return false, errors.New("VerifyPCKCertificate: Invalid Issuer info in PCK Certicate")
 	}
 
 	var opts x509.VerifyOptions
 	opts.Intermediates = x509.NewCertPool()
 	for i := 0; i < len(interCA); i++ {
-		_, err := VerifyInterCACertificate(interCA[i], RootCA, constants.SGXInterCACertSubjectStr)
+		_, err := verifyInterCaCert(interCA[i], RootCA, constants.SGXInterCACertSubjectStr)
 		if err != nil {
 			return false, errors.Wrap(err, "Invalid Inter CA Certificate")
 		}
@@ -37,7 +37,7 @@ func VerifyPCKCertificate(pckCert *x509.Certificate, interCA []*x509.Certificate
 	}
 	opts.Roots = x509.NewCertPool()
 	for i := 0; i < len(RootCA); i++ {
-		_, err := VerifyRootCACertificate(RootCA[i], constants.SGXRootCACertSubjectStr)
+		_, err := verifyRootCaCert(RootCA[i], constants.SGXRootCACertSubjectStr)
 		if err != nil {
 			return false, errors.Wrap(err, "Invalid Root CA Certificate")
 		}

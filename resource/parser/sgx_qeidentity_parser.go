@@ -5,7 +5,6 @@
 package parser
 
 import (
-	"crypto/ecdsa"
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
@@ -111,7 +110,7 @@ func NewQeIdentity() (*QeIdentityData, error) {
 		return nil, errors.Wrap(err, "NewQeIdentity: QeIdentity Unmarshal Failed")
 	}
 
-	certChainList, err := utils.GetCertObjListFromStr(string(resp.Header.Get("Sgx-Qe-Identity-Issuer-Chain")))
+	certChainList, err := utils.GetCertObjList(string(resp.Header.Get("Sgx-Qe-Identity-Issuer-Chain")))
 	if err != nil {
 		return nil, errors.Wrap(err, "NewQeIdentity: failed to get QE Identity CertChain")
 	}
@@ -141,47 +140,34 @@ func NewQeIdentity() (*QeIdentityData, error) {
 	return obj, nil
 }
 
-func (e *QeIdentityData) GetQEInfoInterCAList() []*x509.Certificate {
+func (e *QeIdentityData) GetQeInfoInterCaList() []*x509.Certificate {
 	interMediateCAArr := make([]*x509.Certificate, len(e.IntermediateCA))
 	var i int = 0
 	for _, v := range e.IntermediateCA {
 		interMediateCAArr[i] = v
 		i += 1
 	}
-	log.Debug("GetQEInfoInterCAList:", len(interMediateCAArr))
+	log.Debug("GetQeInfoInterCaList:", len(interMediateCAArr))
 	return interMediateCAArr
 }
 
-func (e *QeIdentityData) GetQEInfoRootCAList() []*x509.Certificate {
+func (e *QeIdentityData) GetQeInfoRootCaList() []*x509.Certificate {
 	RootCAArr := make([]*x509.Certificate, len(e.RootCA))
 	var i int = 0
 	for _, v := range e.RootCA {
 		RootCAArr[i] = v
 		i += 1
 	}
-	log.Debug("GetQEInfoRootCAList:", len(RootCAArr))
+	log.Debug("GetQeInfoRootCaList:", len(RootCAArr))
 	return RootCAArr
 }
 
-func (e *QeIdentityData) GetQEInfoPublicKey() *ecdsa.PublicKey {
-	for _, v := range e.IntermediateCA {
-		if strings.Compare(v.Subject.String(), constants.SGXQEInfoSubjectStr) == 0 {
-			return v.PublicKey.(*ecdsa.PublicKey)
-		}
-	}
-	return nil
-}
-
-func (e *QeIdentityData) GetQEInfoBlob() []byte {
-	return e.RawBlob
-}
-
 func (e *QeIdentityData) GetQeIdentityStatus() bool {
-	sign, err := e.GetQeIdSignature()
+	sign, err := e.getQeIdSignature()
 	if err != nil {
 		return false
 	}
-	if !utils.IntToBool(int(e.GetQeIdVersion())) || !utils.IntToBool(len(e.GetQeIdIssueDate())) ||
+	if !utils.IntToBool(int(e.getQeIdVer())) || !utils.IntToBool(len(e.GetQeIdIssueDate())) ||
 		!utils.IntToBool(len(e.GetQeIdMiscSelect())) || !utils.IntToBool(len(e.GetQeIdMiscSelectMask())) ||
 		!utils.IntToBool(len(e.GetQeIdAttributes())) || !utils.IntToBool(len(e.GetQeIdAttributesMask())) ||
 		!utils.IntToBool(len(e.GetQeIdMrSigner())) || !utils.IntToBool(int(e.GetQeIdIsvProdId())) ||
@@ -191,11 +177,7 @@ func (e *QeIdentityData) GetQeIdentityStatus() bool {
 	return true
 }
 
-func (e *QeIdentityData) GetQeId() string {
-	return e.QEJson.EnclaveIdentity.Id
-}
-
-func (e *QeIdentityData) GetQeIdVersion() uint16 {
+func (e *QeIdentityData) getQeIdVer() uint16 {
 	return e.QEJson.EnclaveIdentity.Version
 }
 
@@ -240,10 +222,10 @@ func (e *QeIdentityData) GetQeIdIsvSvn() uint16 {
 	return 0
 }
 
-func (e *QeIdentityData) GetQeIdSignature() ([]byte, error) {
+func (e *QeIdentityData) getQeIdSignature() ([]byte, error) {
 	data, err := hex.DecodeString(e.QEJson.Signature)
 	if err != nil {
-		return nil, errors.Wrap(err, "GetQeIdSignature: error in decode string")
+		return nil, errors.Wrap(err, "getQeIdSignature: error in decode string")
 	}
 	return data, nil
 }

@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func CheckExpiry(crl *pkix.CertificateList) bool {
+func checkExpiry(crl *pkix.CertificateList) bool {
 	if crl.HasExpired(time.Now()) {
 		log.Error("Certificate Revocation List Has Expired")
 		return false
@@ -21,39 +21,39 @@ func CheckExpiry(crl *pkix.CertificateList) bool {
 	return true
 }
 
-func VerifyPCKCRLIssuer(crl *pkix.CertificateList) bool {
+func verifyPckCrlIssuer(crl *pkix.CertificateList) bool {
 	issuer := crl.TBSCertList.Issuer.String()
-	return VerifyString(issuer, constants.SGXCRLIssuerStr)
+	return verifyCaSubject(issuer, constants.SGXCRLIssuerStr)
 }
 
-func VerifyPCKCRL(crlUrl []string, crlList []*pkix.CertificateList, interCA []*x509.Certificate,
+func VerifyPckCrl(crlUrl []string, crlList []*pkix.CertificateList, interCA []*x509.Certificate,
 	rootCA []*x509.Certificate, trustedRootCA *x509.Certificate) (bool, error) {
 	if len(crlList) == 0 || len(interCA) == 0 || len(rootCA) == 0 {
-		return false, errors.New("VerifyPCKCRL: CRL List/InterCA/RootCA is empty")
+		return false, errors.New("VerifyPckCrl: CRL List/InterCA/RootCA is empty")
 	}
 
 	for i := 0; i < len(interCA); i++ {
-		_, err := VerifyInterCACertificate(interCA[i], rootCA, constants.SGXInterCACertSubjectStr)
+		_, err := verifyInterCaCert(interCA[i], rootCA, constants.SGXInterCACertSubjectStr)
 		if err != nil {
-			return false, errors.Wrap(err, "VerifyPCKCRL: VerifyInterCACertificate failed")
+			return false, errors.Wrap(err, "VerifyPckCrl: verifyInterCaCert failed")
 		}
 	}
 	for i := 0; i < len(rootCA); i++ {
-		_, err := VerifyRootCACertificate(rootCA[i], constants.SGXRootCACertSubjectStr)
+		_, err := verifyRootCaCert(rootCA[i], constants.SGXRootCACertSubjectStr)
 		if err != nil {
-			return false, errors.Wrap(err, "VerifyPCKCRL: VerifyRootCACertificate failed ")
+			return false, errors.Wrap(err, "VerifyPckCrl: verifyRootCaCert failed ")
 		}
 	}
 
 	var signPassCount int = 0
 	for i := 0; i < len(crlList); i++ {
-		ret := CheckExpiry(crlList[i])
+		ret := checkExpiry(crlList[i])
 		if ret != true {
-			return false, errors.New("VerifyPCKCRL: Revocation List has Expired" + crlUrl[i])
+			return false, errors.New("VerifyPckCrl: Revocation List has Expired" + crlUrl[i])
 		}
-		ret = VerifyPCKCRLIssuer(crlList[i])
+		ret = verifyPckCrlIssuer(crlList[i])
 		if ret != true {
-			return false, errors.New("VerifyPCKCRL: CRL Issuer info is Invalid: " + crlUrl[i])
+			return false, errors.New("VerifyPckCrl: CRL Issuer info is Invalid: " + crlUrl[i])
 		}
 
 		for j := 0; j < len(interCA); j++ {
@@ -64,12 +64,12 @@ func VerifyPCKCRL(crlUrl []string, crlList []*pkix.CertificateList, interCA []*x
 		}
 
 		if signPassCount == 0 {
-			return false, errors.New("VerifyPCKCRL: Signature Verification failed")
+			return false, errors.New("VerifyPckCrl: Signature Verification failed")
 		}
 	}
 
 	if strings.Compare(string(trustedRootCA.Signature), string(rootCA[0].Signature)) != 0 {
-		return false, errors.New("VerifyPCKCRL: Trusted CA Verification Failed")
+		return false, errors.New("VerifyPckCrl: Trusted CA Verification Failed")
 	}
 	return true, nil
 }

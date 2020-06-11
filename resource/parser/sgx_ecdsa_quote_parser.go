@@ -132,21 +132,21 @@ func ParseEcdsaQuoteBlob(rawBlob []byte) *SgxQuoteParsed {
 		return nil
 	}
 	parsedObj := new(SgxQuoteParsed)
-	_, err := parsedObj.ParseRawECDSAQuote(rawBlob)
+	_, err := parsedObj.parseRawECDSAQuote(rawBlob)
 	if err != nil {
-		log.Error("ParseRawECDSAQuote: Raw SGX ECDSA Quote parsing error: ", err.Error())
+		log.Error("parseRawECDSAQuote: Raw SGX ECDSA Quote parsing error: ", err.Error())
 		return nil
 	}
 	return parsedObj
 }
 
-func SwapByte32(val uint32) uint32 {
+func swapByte32(val uint32) uint32 {
 	return val
 	var swapped uint32 = ((val << 24) & 0xff000000) | ((val << 8) & 0x00ff0000) | ((val >> 8) & 0x0000ff00) | ((val >> 24) & 0x000000ff)
 	return swapped
 }
 
-func SwapByte16(val uint16) uint16 {
+func swapByte16(val uint16) uint16 {
 	return val
 	var swapped uint16 = ((val << 8) | (val >> 8))
 	return swapped
@@ -171,11 +171,11 @@ func (e *SgxQuoteParsed) GetSHA256Hash() []byte {
 	return HashValue
 }
 
-func (e *SgxQuoteParsed) GenerateRawBlob2() error {
+func (e *SgxQuoteParsed) generateRawBlob2() error {
 	var err error
 	var rawBlobSize2 = 48 + 384
 	if e.RawQuoteFull == nil || len(e.RawQuoteFull) < rawBlobSize2 {
-		return errors.Wrap(err, "GenerateRawBlob2: Invalid raw blob2 data")
+		return errors.Wrap(err, "generateRawBlob2: Invalid raw blob2 data")
 	}
 	e.EcdsaBlob2 = make([]byte, rawBlobSize2)
 	for i := 0; i < rawBlobSize2; i++ {
@@ -184,7 +184,7 @@ func (e *SgxQuoteParsed) GenerateRawBlob2() error {
 	return nil
 }
 
-func (e *SgxQuoteParsed) GenerateRawBlob1() error {
+func (e *SgxQuoteParsed) generateRawBlob1() error {
 	var offset int = 0
 	report := e.Ecdsa256SignatureData.ReportBody
 	e.EcdsaBlob1 = make([]byte, 384)
@@ -194,7 +194,7 @@ func (e *SgxQuoteParsed) GenerateRawBlob1() error {
 		offset += 1
 	}
 
-	miscSelect := SwapByte32(report.MiscSelect)
+	miscSelect := swapByte32(report.MiscSelect)
 	miscSelectArr := make([]byte, 4)
 	binary.LittleEndian.PutUint32(miscSelectArr, miscSelect)
 
@@ -254,7 +254,7 @@ func (e *SgxQuoteParsed) GenerateRawBlob1() error {
 		offset += 1
 	}
 
-	sgxIsvProdId := SwapByte16(report.SgxIsvProdId)
+	sgxIsvProdId := swapByte16(report.SgxIsvProdId)
 	sgxIsvProdIdArr := make([]byte, 2)
 	binary.LittleEndian.PutUint16(sgxIsvProdIdArr, sgxIsvProdId)
 
@@ -263,7 +263,7 @@ func (e *SgxQuoteParsed) GenerateRawBlob1() error {
 		offset += 1
 	}
 
-	sgxIsvSvn := SwapByte16(report.SgxIsvSvn)
+	sgxIsvSvn := swapByte16(report.SgxIsvSvn)
 	sgxIsvSvnArr := make([]byte, 2)
 	binary.LittleEndian.PutUint16(sgxIsvSvnArr, sgxIsvSvn)
 
@@ -310,7 +310,7 @@ func (e *SgxQuoteParsed) GetRawBlob2() ([]byte, error) {
 	return Blob2, nil
 }
 
-func (e *SgxQuoteParsed) GetQEReportAttributes() [2]uint64 {
+func (e *SgxQuoteParsed) GetQeReportAttributes() [2]uint64 {
 	report := e.Ecdsa256SignatureData.ReportBody.SgxAttributes
 	ReportAttributes := [2]uint64{}
 	ReportAttributes[0] = report.Flags
@@ -318,23 +318,19 @@ func (e *SgxQuoteParsed) GetQEReportAttributes() [2]uint64 {
 	return ReportAttributes
 }
 
-func (e *SgxQuoteParsed) GetQEReportMiscSelect() uint32 {
+func (e *SgxQuoteParsed) GetQeReportMiscSelect() uint32 {
 	return e.Ecdsa256SignatureData.ReportBody.MiscSelect
 }
 
-func (e *SgxQuoteParsed) GetQEReportMiscMrEnclave() [SgxHashSize]uint8 {
-	return e.Ecdsa256SignatureData.ReportBody.MrEnclave
-}
-
-func (e *SgxQuoteParsed) GetQEReportMrSigner() [SgxHashSize]uint8 {
+func (e *SgxQuoteParsed) GetQeReportMrSigner() [SgxHashSize]uint8 {
 	return e.Ecdsa256SignatureData.ReportBody.MrSigner
 }
 
-func (e *SgxQuoteParsed) GetQEReportProdId() uint16 {
+func (e *SgxQuoteParsed) GetQeReportProdId() uint16 {
 	return e.Ecdsa256SignatureData.ReportBody.SgxIsvProdId
 }
 
-func (e *SgxQuoteParsed) GetQEReportIsvSvn() uint16 {
+func (e *SgxQuoteParsed) GetQeReportIsvSvn() uint16 {
 	return e.Ecdsa256SignatureData.ReportBody.SgxIsvSvn
 }
 
@@ -420,7 +416,7 @@ func (e *SgxQuoteParsed) GetQuotePckCertRootCAList() []*x509.Certificate {
 	return RootCAArr
 }
 
-func (e *SgxQuoteParsed) ParseQuoteCertificates() error {
+func (e *SgxQuoteParsed) parseQuoteCerts() error {
 	if e.QuoteCertData.Type != 5 {
 		return errors.New(fmt.Sprintf("Invalid Certificate type in Quote Info: %d", e.QuoteCertData.Type))
 	}
@@ -437,12 +433,13 @@ func (e *SgxQuoteParsed) ParseQuoteCertificates() error {
 	for i := 0; i < len(certs); i++ {
 		block, _ := pem.Decode([]byte(certs[i]))
 		if block == nil {
-			return errors.New("ParseQuoteCertificates: error while decoding PCK Certchain in Quote")
+			return errors.New("parseQuoteCerts: error while decoding PCK Certchain in Quote")
 		}
+
 		cert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
 			log.Error("ParseCertificate error: ")
-			return errors.Wrap(err, "ParseQuoteCertificates: ParseCertificate error")
+			return errors.Wrap(err, "parseQuoteCerts: ParseCertificate error")
 		}
 
 		if strings.Contains(cert.Subject.String(), "CN=Intel SGX PCK Certificate") {
@@ -472,7 +469,7 @@ func (e *SgxQuoteParsed) ParseQuoteCertificates() error {
 	return nil
 }
 
-func (e *SgxQuoteParsed) ParseRawECDSAQuote(decodedQuote []byte) (bool, error) {
+func (e *SgxQuoteParsed) parseRawECDSAQuote(decodedQuote []byte) (bool, error) {
 	e.RawQuoteFull = make([]byte, len(decodedQuote))
 	e.RawQuoteLen = len(decodedQuote)
 	copy(e.RawQuoteFull, decodedQuote)
@@ -483,19 +480,19 @@ func (e *SgxQuoteParsed) ParseRawECDSAQuote(decodedQuote []byte) (bool, error) {
 	log.Debug("SignType = ", e.Header.SignType)
 	restruct.Unpack(decodedQuote[436:], binary.LittleEndian, &e.Ecdsa256SignatureData)
 
-	err := e.GenerateRawBlob1()
+	err := e.generateRawBlob1()
 	if err != nil {
-		return false, errors.Wrap(err, "resource/parser/sgx_ecdsa_quote_parser:ParseRawECDSAQuote() Failed to GenerateRawBlob1")
+		return false, errors.Wrap(err, "resource/parser/sgx_ecdsa_quote_parser:parseRawECDSAQuote() Failed to generateRawBlob1")
 	}
 
-	err = e.GenerateRawBlob2()
+	err = e.generateRawBlob2()
 	restruct.Unpack(decodedQuote[1012:], binary.LittleEndian, &e.QuoteAuthData)
 
 	restruct.Unpack(decodedQuote[1046:], binary.LittleEndian, &e.QuoteCertData)
 	e.QuoteCertData.Data = make([]byte, e.QuoteCertData.ParsedDataSize)
 	copy(e.QuoteCertData.Data, decodedQuote[1052:])
 
-	err = e.ParseQuoteCertificates()
+	err = e.parseQuoteCerts()
 	if err != nil {
 		return false, errors.Wrap(err, "Failed to Parse PCK certificates in Quote")
 	}

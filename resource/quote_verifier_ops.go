@@ -46,21 +46,20 @@ type QuoteData struct {
 }
 
 func QuoteVerifyCB(router *mux.Router, config *config.Configuration) {
-	router.Handle("/verifyQuote", handlers.ContentTypeHandler(GenericQuoteVerifyCB(config), "application/json")).Methods("POST")
-	router.Handle("/push", handlers.ContentTypeHandler(GenericQuoteVerifyCB(config), "application/json")).Methods("GET")
+	router.Handle("/verifyQuote", handlers.ContentTypeHandler(quoteVerify(config), "application/json")).Methods("POST")
 }
 
-func GenericQuoteVerifyCB(config *config.Configuration) errorHandlerFunc {
+func quoteVerify(config *config.Configuration) errorHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var data QuoteData
 		if r.ContentLength == 0 {
-			return &resourceError{Message: "The request body was not provided", StatusCode: http.StatusBadRequest}
+			return &resourceError{Message: "sgx ecdsa quote not provided", StatusCode: http.StatusBadRequest}
 		}
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()
 		err := dec.Decode(&data)
 		if err != nil {
-			return &resourceError{Message: "GenericQuoteVerifyCB - Invalid Input:" + err.Error(),
+			return &resourceError{Message: "invalid sgx ecdsa quote" + err.Error(),
 				StatusCode: http.StatusBadRequest}
 		}
 
@@ -68,27 +67,27 @@ func GenericQuoteVerifyCB(config *config.Configuration) errorHandlerFunc {
 
 		obj := parser.ParseSkcQuoteBlob(blob)
 		if obj == nil {
-			return &resourceError{Message: "GenericQuoteVerifyCB - ParseSkcQuoteBlob parsing failed",
+			return &resourceError{Message: "cannot parse sgx ecdsa quote",
 				StatusCode: http.StatusBadRequest}
 		}
 
 		if obj.GetQuoteType() == parser.QuoteTypeEcdsa {
-			return SGXECDSAQuoteVerifyCB(w, r, obj, config)
+			return sgxEcdsaQuoteVerify(w, r, obj, config)
 		} else if obj.GetQuoteType() == parser.QuoteTypeSw {
-			return SwQuoteVerifyCB(w, r, obj, config)
+			return swQuoteVerify(w, r, obj, config)
 		} else {
-			return &resourceError{Message: "GenericQuoteVerifyCB - Quote Type is Invalid",
+			return &resourceError{Message: "cannot find sw/ecdsa quote",
 				StatusCode: http.StatusBadRequest}
 		}
 		return nil
 	}
 }
 
-func SwQuoteVerifyCB(w http.ResponseWriter, r *http.Request,
+func swQuoteVerify(w http.ResponseWriter, r *http.Request,
 	skcBlobParser *parser.SkcBlobParsed, config *config.Configuration) error {
-	rsaBytes, err := skcBlobParser.GetRSAPubKeyObj()
+	rsaBytes, err := skcBlobParser.GetRsaPubKey()
 	if err != nil {
-		return &resourceError{Message: "GetRSAPubKeyObj: Error: " + err.Error(),
+		return &resourceError{Message: "GetRsaPubKey: Error: " + err.Error(),
 			StatusCode: http.StatusInternalServerError}
 	}
 
@@ -110,20 +109,20 @@ func SwQuoteVerifyCB(w http.ResponseWriter, r *http.Request,
 	return nil
 }
 
-func SGXECDSAQuoteVerifyCB(w http.ResponseWriter, r *http.Request, skcBlobParser *parser.SkcBlobParsed,
+func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *parser.SkcBlobParsed,
 	config *config.Configuration) error {
 	if len(skcBlobParser.GetQuoteBlob()) == 0 {
-		return &resourceError{Message: "Invalid SGX ECDSA Quote", StatusCode: http.StatusBadRequest}
+		return &resourceError{Message: "invalid sgx ecdsa quote", StatusCode: http.StatusBadRequest}
 	}
 
 	quoteObj := parser.ParseEcdsaQuoteBlob(skcBlobParser.GetQuoteBlob())
 	if quoteObj == nil {
-		return &resourceError{Message: "Invalid SGX ECDSA Quote", StatusCode: http.StatusBadRequest}
+		return &resourceError{Message: "invalid sgx ecdsa quote", StatusCode: http.StatusBadRequest}
 	}
 
 	pckCertBytes, err := utils.GetCertPemData(quoteObj.GetQuotePckCertObj())
 	if err != nil {
-		return &resourceError{Message: "Invalid SGX Quote PCK Cert Data: " + err.Error(),
+		return &resourceError{Message: "invalid sgx ecdsa quote: " + err.Error(),
 			StatusCode: http.StatusBadRequest}
 	}
 
@@ -133,26 +132,26 @@ func SGXECDSAQuoteVerifyCB(w http.ResponseWriter, r *http.Request, skcBlobParser
 	}
 
 	_, err = verifier.VerifyPCKCertificate(quoteObj.GetQuotePckCertObj(), quoteObj.GetQuotePckCertInterCAList(),
-		quoteObj.GetQuotePckCertRootCAList(), certObj.GetPckCRLObj(), config.TrustedRootCA)
+		quoteObj.GetQuotePckCertRootCAList(), certObj.GetPckCrlObj(), config.TrustedRootCA)
 	if err != nil {
-		return &resourceError{Message: "PCK Certificate Verification failed: " + err.Error(),
-			StatusCode: http.StatusInternalServerError}
+		return &resourceError{Message: "cannot verify pck cert: " + err.Error(),
+			StatusCode: http.StatusBadRequest}
 	}
 
-	_, err = verifier.VerifyPCKCRL(certObj.GetPckCRLURLs(), certObj.GetPckCRLObj(), certObj.GetPckCRLInterCAList(),
-		certObj.GetPckCRLRootCAList(), config.TrustedRootCA)
+	_, err = verifier.VerifyPckCrl(certObj.GetPckCrlUrl(), certObj.GetPckCrlObj(), certObj.GetPckCrlInterCaList(),
+		certObj.GetPckCrlRootCaList(), config.TrustedRootCA)
 	if err != nil {
-		return &resourceError{Message: "Invalid PCK CRL Data: " + err.Error(),
-			StatusCode: http.StatusInternalServerError}
+		return &resourceError{Message: "cannot verify pck crl: " + err.Error(),
+			StatusCode: http.StatusBadRequest}
 	}
 
-	tcbObj, err := parser.NewTCBInfo(certObj.GetFMSPCValue())
+	tcbObj, err := parser.NewTcbInfo(certObj.GetFmspcValue())
 	if err != nil {
 		return &resourceError{Message: "Get TCB Info data parsing/fetch failed: " + err.Error(),
 			StatusCode: http.StatusInternalServerError}
 	}
 
-	err = VerifyTCBInfo(certObj, tcbObj, config.TrustedRootCA)
+	err = verifyTcbInfo(certObj, tcbObj, config.TrustedRootCA)
 	if err != nil {
 		return &resourceError{Message: "TCBInfo Verification failed: " + err.Error(),
 			StatusCode: http.StatusInternalServerError}
@@ -167,14 +166,14 @@ func SGXECDSAQuoteVerifyCB(w http.ResponseWriter, r *http.Request, skcBlobParser
 			StatusCode: http.StatusInternalServerError}
 	}
 
-	_, err = VerifyQeIdentity(qeIdObj, quoteObj, config.TrustedRootCA)
+	_, err = verifyQeIdentity(qeIdObj, quoteObj, config.TrustedRootCA)
 	if err != nil {
-		return &resourceError{Message: "VerifyQeIdentity failed: " + err.Error(),
+		return &resourceError{Message: "verifyQeIdentity failed: " + err.Error(),
 			StatusCode: http.StatusInternalServerError}
 	}
-	rsaBytes, err := skcBlobParser.GetRSAPubKeyObj()
+	rsaBytes, err := skcBlobParser.GetRsaPubKey()
 	if err != nil {
-		return &resourceError{Message: "GetRSAPubKeyObj: Error: " + err.Error(),
+		return &resourceError{Message: "GetRsaPubKey: Error: " + err.Error(),
 			StatusCode: http.StatusInternalServerError}
 	}
 
@@ -192,7 +191,7 @@ func SGXECDSAQuoteVerifyCB(w http.ResponseWriter, r *http.Request, skcBlobParser
 			StatusCode: http.StatusInternalServerError}
 	}
 
-	_, err = verifier.VerifySGXECDSASignature1(quoteObj.GetECDSASignature1(), blob1, certObj.GetECDSAPublicKey())
+	_, err = verifier.VerifySGXECDSASign1(quoteObj.GetECDSASignature1(), blob1, certObj.GetECDSAPublicKey())
 	if err != nil {
 		return &resourceError{Message: "SGX ECDSA Signature Verification(1) failed: " + err.Error(),
 			StatusCode: http.StatusInternalServerError}
@@ -204,7 +203,7 @@ func SGXECDSAQuoteVerifyCB(w http.ResponseWriter, r *http.Request, skcBlobParser
 			StatusCode: http.StatusInternalServerError}
 	}
 
-	_, err = verifier.VerifySGXECDSASignature2(quoteObj.GetECDSASignature2(), blob2, quoteObj.GetECDSAPublicKey2())
+	_, err = verifier.VerifySGXECDSASign2(quoteObj.GetECDSASignature2(), blob2, quoteObj.GetECDSAPublicKey2())
 	if err != nil {
 		log.Error(err.Error())
 		return &resourceError{Message: "SGX ECDSA Signature Verification(2) failed: " + err.Error(),
@@ -236,71 +235,72 @@ func SGXECDSAQuoteVerifyCB(w http.ResponseWriter, r *http.Request, skcBlobParser
 	return nil
 }
 
-func VerifyQEIdentityReport(qeIdObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteParsed) (bool, error) {
-	_, err := verifier.VerifyMiscSelect(quoteObj.GetQEReportMiscSelect(), qeIdObj.GetQeIdMiscSelect(),
+func verifyQeIdentityReport(qeIdObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteParsed) (bool, error) {
+	_, err := verifier.VerifyMiscSelect(quoteObj.GetQeReportMiscSelect(), qeIdObj.GetQeIdMiscSelect(),
 		qeIdObj.GetQeIdMiscSelectMask())
 	if err != nil {
-		return false, errors.Wrap(err, "VerifyQEIdentityReport: ")
+		return false, errors.Wrap(err, "verifyQeIdentityReport: ")
 	}
 
-	_, err = verifier.VerifyAttributes(quoteObj.GetQEReportAttributes(), qeIdObj.GetQeIdAttributes(),
+	_, err = verifier.VerifyAttributes(quoteObj.GetQeReportAttributes(), qeIdObj.GetQeIdAttributes(),
 		qeIdObj.GetQeIdAttributesMask())
 	if err != nil {
-		return false, errors.Wrap(err, "VerifyQEIdentityReport:")
+		return false, errors.Wrap(err, "verifyQeIdentityReport:")
 	}
 
-	_, err = verifier.VerifyReportAttributeSize32(quoteObj.GetQEReportMrSigner(), "MrSigner", qeIdObj.GetQeIdMrSigner())
+	_, err = verifier.VerifyReportAttrSize(quoteObj.GetQeReportMrSigner(), "MrSigner", qeIdObj.GetQeIdMrSigner())
 	if err != nil {
-		return false, errors.Wrap(err, "VerifyQEIdentityReport")
+		return false, errors.Wrap(err, "verifyQeIdentityReport")
 	}
 
-	if quoteObj.GetQEReportProdId() != qeIdObj.GetQeIdIsvProdId() {
-		return false, errors.New("VerifyQEIdentityReport: IsvProdId in quote does not match with PCS QE response")
+	if quoteObj.GetQeReportProdId() != qeIdObj.GetQeIdIsvProdId() {
+		return false, errors.New("verifyQeIdentityReport: IsvProdId in quote does not match with PCS QE response")
 	}
 
-	/*if quoteObj.GetQEReportIsvSvn() != qeIdObj.GetQeIdIsvSvn() {
-		return false, errors.New("VerifyQEIdentityReport: IsvSvn in quote does not match with PCS QE response")
-	}*/
+	if quoteObj.GetQeReportIsvSvn() != qeIdObj.GetQeIdIsvSvn() {
+		log.Info("IsvSvn in quote does not match with PCS QE response")
+		//return false, errors.New("verifyQeIdentityReport: IsvSvn in quote does not match with PCS QE response")
+	}
 	return true, nil
 }
 
-func VerifyQeIdentity(qeIdObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteParsed,
+func verifyQeIdentity(qeIdObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteParsed,
 	trustedRootCA *x509.Certificate) (bool, error) {
 
 	if qeIdObj == nil || quoteObj == nil {
-		return false, errors.New("VerifyQeIdentity: QEIdentity/Quote Object is empty")
+		return false, errors.New("verifyQeIdentity: QEIdentity/Quote Object is empty")
 	}
-	_, err := verifier.VerifyQEIdentityCertChain(qeIdObj.GetQEInfoInterCAList(), qeIdObj.GetQEInfoRootCAList(),
+	_, err := verifier.VerifyQeIdCertChain(qeIdObj.GetQeInfoInterCaList(), qeIdObj.GetQeInfoRootCaList(),
 		trustedRootCA)
 	if err != nil {
-		return false, errors.Wrap(err, "VerifyQeIdentity: VerifyQEIdentityCertChain")
+		return false, errors.Wrap(err, "verifyQeIdentity: VerifyQeIdCertChain")
 	}
 
 	status := qeIdObj.GetQeIdentityStatus()
 	if status == false {
-		return false, errors.New("VerifyQeIdentity: GetQeIdentityStatus is invalid")
+		return false, errors.New("verifyQeIdentity: GetQeIdentityStatus is invalid")
 	}
 
 	if utils.CheckDate(qeIdObj.GetQeIdIssueDate(), qeIdObj.GetQeIdNextUpdate()) == false {
-		return false, errors.New("VerifyQeIdentity: Date Check validation failed")
+		return false, errors.New("verifyQeIdentity: Date Check validation failed")
 	}
 
-	return VerifyQEIdentityReport(qeIdObj, quoteObj)
+	return verifyQeIdentityReport(qeIdObj, quoteObj)
 }
 
-func VerifyTCBInfo(certObj *parser.PckCert, tcbObj *parser.TcbInfoStruct, trustedRootCA *x509.Certificate) error {
-	if tcbObj.GetTcbInfoFmspc() != certObj.GetFMSPCValue() {
-		return errors.New("VerifyTCBInfo: FMSPC in TCBInfoStruct does not match with PCK Cert FMSPC")
+func verifyTcbInfo(certObj *parser.PckCert, tcbObj *parser.TcbInfoStruct, trustedRootCA *x509.Certificate) error {
+	if tcbObj.GetTcbInfoFmspc() != certObj.GetFmspcValue() {
+		return errors.New("verifyTcbInfo: FMSPC in TCBInfoStruct does not match with PCK Cert FMSPC")
 	}
 
-	_, err := verifier.VerifyTcbInfoCertChain(tcbObj.GetTCBInfoInterCAList(), tcbObj.GetTCBInfoRootCAList(),
+	_, err := verifier.VerifyTcbInfoCertChain(tcbObj.GetTcbInfoInterCaList(), tcbObj.GetTcbInfoRootCaList(),
 		trustedRootCA)
 	if err != nil {
-		return errors.Wrap(err, "VerifyTCBInfo: failed to verify Tcbinfo Certchain")
+		return errors.Wrap(err, "verifyTcbInfo: failed to verify Tcbinfo Certchain")
 	}
 
 	if utils.CheckDate(tcbObj.GetTcbInfoIssueDate(), tcbObj.GetTcbInfoNextUpdate()) == false {
-		return errors.New("VerifyTCBInfo: Date Check validation failed")
+		return errors.New("verifyTcbInfo: Date Check validation failed")
 	}
 
 	return nil

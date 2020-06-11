@@ -13,47 +13,47 @@ import (
 	"strings"
 )
 
-func VerifyQEIdentityCertChain(interCA []*x509.Certificate, rootCA []*x509.Certificate, trustedRootCA *x509.Certificate) (bool, error) {
+func VerifyQeIdCertChain(interCA []*x509.Certificate, rootCA []*x509.Certificate, trustedRootCA *x509.Certificate) (bool, error) {
 	if len(interCA) == 0 || len(rootCA) == 0 {
-		return false, errors.New("VerifyQEIdentityCertChain: InterCA/RootCA is empty")
+		return false, errors.New("VerifyQeIdCertChain: InterCA/RootCA is empty")
 	}
 
 	for i := 0; i < len(interCA); i++ {
-		_, err := VerifyInterCACertificate(interCA[i], rootCA, constants.SGXQEInfoSubjectStr)
+		_, err := verifyInterCaCert(interCA[i], rootCA, constants.SGXQEInfoSubjectStr)
 		if err != nil {
-			return false, errors.Wrap(err, "VerifyQEIdentityCertChain: VerifyInterCACertificate failed")
+			return false, errors.Wrap(err, "VerifyQeIdCertChain: verifyInterCaCert failed")
 		}
 	}
 	for i := 0; i < len(rootCA); i++ {
-		_, err := VerifyRootCACertificate(rootCA[i], constants.SGXRootCACertSubjectStr)
+		_, err := verifyRootCaCert(rootCA[i], constants.SGXRootCACertSubjectStr)
 		if err != nil {
-			return false, errors.Wrap(err, "VerifyQEIdentityCertChain: VerifyRootCACertificate failed")
+			return false, errors.Wrap(err, "VerifyQeIdCertChain: verifyRootCaCert failed")
 		}
 	}
 
 	if strings.Compare(string(trustedRootCA.Signature), string(rootCA[0].Signature)) != 0 {
-		return false, errors.New("VerifyQEIdentityCertChain: Trusted CA Verification Failed")
+		return false, errors.New("VerifyQeIdCertChain: Trusted CA Verification Failed")
 	}
-	log.Info("Verify QEIdentity CertChain is succesfull")
+	log.Debug("Verify QEIdentity CertChain is succesfull")
 	return true, nil
 }
 
-func VerifyReportAttributeSize32(QeReportAttribute [32]uint8, attributeName string, attribute string) (bool, error) {
+func VerifyReportAttrSize(QeReportAttribute [32]uint8, attributeName string, attribute string) (bool, error) {
 	attrArr, err := hex.DecodeString(attribute)
 	if err != nil {
-		return false, errors.Wrap(err, "VerifyReportAttributeSize32: "+attributeName+": hex decode failed:")
+		return false, errors.Wrap(err, "VerifyReportAttrSize: "+attributeName+": hex decode failed:")
 	}
 
 	if len(attrArr) != 32 {
-		return false, errors.New("VerifyReportAttributeSize32: " + attributeName + ": Invalid Report attribute")
+		return false, errors.New("VerifyReportAttrSize: " + attributeName + ": Invalid Report attribute")
 	}
 
 	for i := 0; i < len(attrArr); i++ {
 		if byte(QeReportAttribute[i]) != attrArr[i] {
-			return false, errors.New("VerifyReportAttributeSize32: " + attributeName + " validation failed")
+			return false, errors.New("VerifyReportAttrSize: " + attributeName + " validation failed")
 		}
 	}
-	log.Debug("VerifyReportAttributeSize32: " + attributeName + ": validation passed")
+	log.Debug("VerifyReportAttrSize: " + attributeName + ": validation passed")
 	return true, nil
 }
 

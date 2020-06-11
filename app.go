@@ -471,7 +471,7 @@ func (a *App) status() error {
 }
 
 func (a *App) uninstall(purge bool) {
-	fmt.Println("Uninstalling sgx Verification Service")
+	fmt.Println("Uninstalling sgx verification service")
 	removeService()
 
 	fmt.Println("removing : ", a.executablePath())
@@ -508,14 +508,14 @@ func (a *App) uninstall(purge bool) {
 	if err != nil {
 		log.WithError(err).Error("error removing home dir")
 	}
-	fmt.Fprintln(a.consoleWriter(), "sgx Verification Service uninstalled")
+	fmt.Fprintln(a.consoleWriter(), "sgx verification service uninstalled")
 	a.stop()
 }
 
 func removeService() {
 	_, _, err := e.RunCommandWithTimeout(constants.ServiceRemoveCmd, 5)
 	if err != nil {
-		fmt.Println("Could not remove sgx Verification Service")
+		fmt.Println("Could not remove sgx verification service")
 		fmt.Println("Error : ", err)
 	}
 }
