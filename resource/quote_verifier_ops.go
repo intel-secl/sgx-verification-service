@@ -253,13 +253,12 @@ func verifyQeIdentityReport(qeIdObj *parser.QeIdentityData, quoteObj *parser.Sgx
 		return false, errors.Wrap(err, "verifyQeIdentityReport")
 	}
 
-	if quoteObj.GetQeReportProdId() != qeIdObj.GetQeIdIsvProdId() {
-		return false, errors.New("verifyQeIdentityReport: IsvProdId in quote does not match with PCS QE response")
+	if quoteObj.GetQeReportProdId() < qeIdObj.GetQeIdIsvProdId() {
+		log.Info("Qe Prod Id in ecdsa quote is below the minimum prod id expected for QE")
 	}
 
-	if quoteObj.GetQeReportIsvSvn() != qeIdObj.GetQeIdIsvSvn() {
-		log.Info("IsvSvn in quote does not match with PCS QE response")
-		//return false, errors.New("verifyQeIdentityReport: IsvSvn in quote does not match with PCS QE response")
+	if quoteObj.GetQeReportIsvSvn() < qeIdObj.GetQeIdIsvSvn() {
+		log.Info("IsvSvn in ecdsa quote is below the minimum IsvSvn expected for QE")
 	}
 	return true, nil
 }
