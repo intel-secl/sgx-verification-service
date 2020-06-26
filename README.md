@@ -49,18 +49,18 @@ make all
 
 ### Deploy
 ```console
-> ./svs-*.bin
+> ./sqvs-*.bin
 ```
 
 ### Manage service
 * Start service
-    * svs start
+    * sqvs start
 * Stop service
-    * svs stop
+    * sqvs stop
 * Restart service
-    * svs restart
+    * sqvs restart
 * Status of service
-    * svs status
+    * sqvs status
 
 # Third Party Dependencies
 

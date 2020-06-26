@@ -5,7 +5,7 @@
 package main
 
 import (
-	"intel/isecl/svs/constants"
+	"intel/isecl/sqvs/constants"
 	"os"
 	"os/user"
 	"strconv"
@@ -30,21 +30,21 @@ func openLogFiles() (logFile *os.File, httpLogFile *os.File, secLogFile *os.File
 	}
 	os.Chmod(constants.SecLogFile, 0664)
 
-	svsUser, err := user.Lookup(constants.SVSUserName)
+	sqvsUser, err := user.Lookup(constants.SQVSUserName)
 	if err != nil {
-		log.Errorf("Could not find user '%s'", constants.SVSUserName)
+		log.Errorf("Could not find user '%s'", constants.SQVSUserName)
 		return nil, nil, nil, err
 	}
 
-	uid, err := strconv.Atoi(svsUser.Uid)
+	uid, err := strconv.Atoi(sqvsUser.Uid)
 	if err != nil {
-		log.Errorf("Could not parse svs user uid '%s'", svsUser.Uid)
+		log.Errorf("Could not parse sqvs user uid '%s'", sqvsUser.Uid)
 		return nil, nil, nil, err
 	}
 
-	gid, err := strconv.Atoi(svsUser.Gid)
+	gid, err := strconv.Atoi(sqvsUser.Gid)
 	if err != nil {
-		log.Errorf("Could not parse svs user gid '%s'", svsUser.Gid)
+		log.Errorf("Could not parse sqvs user gid '%s'", sqvsUser.Gid)
 		return nil, nil, nil, err
 	}
 

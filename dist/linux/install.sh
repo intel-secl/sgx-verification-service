@@ -2,12 +2,12 @@
 
 # READ .env file
 echo PWD IS $(pwd)
-if [ -f ~/svs.env ]; then
-    echo Reading Installation options from `realpath ~/svs.env`
-    env_file=~/svs.env
-elif [ -f ../svs.env ]; then
-    echo Reading Installation options from `realpath ../svs.env`
-    env_file=../svs.env
+if [ -f ~/sqvs.env ]; then
+    echo Reading Installation options from `realpath ~/sqvs.env`
+    env_file=~/sqvs.env
+elif [ -f ../sqvs.env ]; then
+    echo Reading Installation options from `realpath ../sqvs.env`
+    env_file=../sqvs.env
 fi
 
 if [ -n $env_file ]; then
@@ -16,10 +16,10 @@ if [ -n $env_file ]; then
     if [ -n "$env_file_exports" ]; then eval export $env_file_exports; fi
 else
     echo No .env file found
-    SVS_NOSETUP="true"
+    SQVS_NOSETUP="true"
 fi
 
-SERVICE_USERNAME=svs
+SERVICE_USERNAME=sqvs
 
 if [[ $EUID -ne 0 ]]; then
     echo "This installer must be run as root"
@@ -32,7 +32,7 @@ id -u $SERVICE_USERNAME 2> /dev/null || useradd $SERVICE_USERNAME
 echo "Installing SGX Verification Service..."
 
 
-COMPONENT_NAME=svs
+COMPONENT_NAME=sqvs
 PRODUCT_HOME=/opt/$COMPONENT_NAME
 BIN_PATH=$PRODUCT_HOME/bin
 DB_SCRIPT_PATH=$PRODUCT_HOME/dbscripts
@@ -61,21 +61,21 @@ cp $COMPONENT_NAME $BIN_PATH/ && chown $SERVICE_USERNAME:$SERVICE_USERNAME $BIN_
 chmod 700 $BIN_PATH/*
 ln -sfT $BIN_PATH/$COMPONENT_NAME /usr/bin/$COMPONENT_NAME
 
-mkdir -p $CONFIG_PATH/root-ca && chown svs:svs $CONFIG_PATH/root-ca
+mkdir -p $CONFIG_PATH/root-ca && chown sqvs:sqvs $CONFIG_PATH/root-ca
 chmod 700 $CONFIG_PATH/root-ca
 chmod g+s $CONFIG_PATH/root-ca
 
 # Create logging dir in /var/log
-mkdir -p $LOG_PATH && chown svs:svs $LOG_PATH
+mkdir -p $LOG_PATH && chown sqvs:sqvs $LOG_PATH
 chmod 761 $LOG_PATH
 chmod g+s $LOG_PATH
 
 # Install systemd script
-cp svs.service $PRODUCT_HOME && chown $SERVICE_USERNAME:$SERVICE_USERNAME $PRODUCT_HOME/svs.service && chown $SERVICE_USERNAME:$SERVICE_USERNAME $PRODUCT_HOME
+cp sqvs.service $PRODUCT_HOME && chown $SERVICE_USERNAME:$SERVICE_USERNAME $PRODUCT_HOME/sqvs.service && chown $SERVICE_USERNAME:$SERVICE_USERNAME $PRODUCT_HOME
 
 # Enable systemd service
-systemctl disable svs.service > /dev/null 2>&1
-systemctl enable $PRODUCT_HOME/svs.service
+systemctl disable sqvs.service > /dev/null 2>&1
+systemctl enable $PRODUCT_HOME/sqvs.service
 systemctl daemon-reload
 
 #Install log rotation
@@ -125,8 +125,8 @@ export LOG_OLD=${LOG_OLD:-12}
 
 mkdir -p /etc/logrotate.d
 
-if [ ! -a /etc/logrotate.d/svs ]; then
- echo "/var/log/svs/* {
+if [ ! -a /etc/logrotate.d/sqvs ]; then
+ echo "/var/log/sqvs/* {
     missingok
         notifempty
         rotate $LOG_OLD
@@ -136,12 +136,12 @@ if [ ! -a /etc/logrotate.d/svs ]; then
         $LOG_COMPRESS
         $LOG_DELAYCOMPRESS
         $LOG_COPYTRUNCATE
-}" > /etc/logrotate.d/svs
+}" > /etc/logrotate.d/sqvs
 fi
 
-# check if SVS_NOSETUP is defined
-if [ "${SVS_NOSETUP,,}" == "true" ]; then
-    echo "SVS_NOSETUP is true, skipping setup"
+# check if SQVS_NOSETUP is defined
+if [ "${SQVS_NOSETUP,,}" == "true" ]; then
+    echo "SQVS_NOSETUP is true, skipping setup"
     echo "Installation completed successfully!"
 else
     $COMPONENT_NAME setup all

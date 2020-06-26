@@ -7,7 +7,7 @@ package tasks
 import (
 	"github.com/stretchr/testify/assert"
 	"intel/isecl/lib/common/v2/setup"
-	"intel/isecl/svs/config"
+	"intel/isecl/sqvs/config"
 	"os"
 	"testing"
 )
@@ -26,7 +26,7 @@ func TestServerSetup(t *testing.T) {
 }
 
 func TestServerSetupEnv(t *testing.T) {
-	os.Setenv("SVS_PORT", "12000")
+	os.Setenv("SQVS_PORT", "12000")
 	c := config.Configuration{}
 	s := Server{
 		Flags:         nil,

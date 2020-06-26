@@ -2,16 +2,16 @@
 #Get token from AAS
 #to customize, export the correct values before running the script
 
-echo "Setting up SVS Related roles and user in AAS Database"
+echo "Setting up SQVS Related roles and user in AAS Database"
 
 #Get the value of AAS IP address and port. Default vlue is also provided.
 aas_hostname=${AAS_URL:-"https://10.105.167.184:8443"}
 CURL_OPTS="-s -k"
 IPADDR="10.105.167.184,127.0.0.1,localhost"
-CN="SVS TLS Certificate"
+CN="SQVS TLS Certificate"
 
-mkdir -p /tmp/setup/svs
-tmpdir=$(mktemp -d -p /tmp/setup/svs)
+mkdir -p /tmp/setup/sqvs
+tmpdir=$(mktemp -d -p /tmp/setup/sqvs)
 
 cat >$tmpdir/aasAdmin.json <<EOF
 {
@@ -33,18 +33,18 @@ else
 	exit 2
 fi
 
-#Create svsUser also get user id
-create_svs_user() {
+#Create sqvsUser also get user id
+create_sqvs_user() {
 cat > $tmpdir/user.json << EOF
 {
-	"username":"svsuser@svs",
-	"password":"svspassword"
+	"username":"sqvsuser@sqvs",
+	"password":"sqvspassword"
 }
 EOF
 
-curl $CURL_OPTS -X POST -H "Content-Type: application/json" -H "Authorization: Bearer ${Bearer_token}" --data @$tmpdir/user.json -o $tmpdir/user_response.json -w "%{http_code}" $aas_hostname/aas/users > $tmpdir/createsvsuser-response.status
+curl $CURL_OPTS -X POST -H "Content-Type: application/json" -H "Authorization: Bearer ${Bearer_token}" --data @$tmpdir/user.json -o $tmpdir/user_response.json -w "%{http_code}" $aas_hostname/aas/users > $tmpdir/createsqvsuser-response.status
 
-local actual_status=$(cat $tmpdir/createsvsuser-response.status)
+local actual_status=$(cat $tmpdir/createsqvsuser-response.status)
 if [ $actual_status -ne 201 ]; then
 	local response_mesage=$(cat $tmpdir/user_response.json)
 	if [ "$response_mesage" = "same user exists" ]; then
@@ -58,13 +58,13 @@ if [ -s $tmpdir/user_response.json ]; then
 	user_id=$(jq -r '.user_id' < $tmpdir/user_response.json)
 	if [ -n "$user_id" ]; then
 		echo "Created user id: $user_id"
-		SVS_USER_ID=$user_id;
+		SQVS_USER_ID=$user_id;
 	fi
 fi
 }
 
-#Add SVS roles
-#cms role(svs will create these roles where CN=SVS), getroles(api in aas that is to be map with), keyTransfer, keyCrud
+#Add SQVS roles
+#cms role(sqvs will create these roles where CN=SQVS), getroles(api in aas that is to be map with), keyTransfer, keyCrud
 create_user_roles() {
 
 cat > $tmpdir/roles.json << EOF
@@ -99,7 +99,7 @@ create_roles() {
 	echo $ROLE_ID_TO_MAP
 }
 
-#Map svsUser to Roles
+#Map sqvsUser to Roles
 mapUser_to_role() {
 cat >$tmpdir/mapRoles.json <<EOF
 {
@@ -115,34 +115,34 @@ if [ $actual_status -ne 201 ]; then
 fi
 }
 
-SVS_SETUP_API="create_svs_user create_roles mapUser_to_role"
+SQVS_SETUP_API="create_sqvs_user create_roles mapUser_to_role"
 
 status=
-for api in $SVS_SETUP_API
+for api in $SQVS_SETUP_API
 do
 	echo $api
 	eval $api
     	status=$?
     if [ $status -ne 0 ]; then
-        echo "SVS-AAS User/Role creation failed.: $api"
+        echo "SQVS-AAS User/Role creation failed.: $api"
         break;
     fi
 done
 
 if [ $status -eq 0 ]; then
-    echo "SVS Setup for AAS-CMS complete: No errors"
+    echo "SQVS Setup for AAS-CMS complete: No errors"
 fi
 if [ $status -eq 2 ]; then
-    echo "SVS Setup for AAS-CMS already exists in AAS Database: No action will be done"
+    echo "SQVS Setup for AAS-CMS already exists in AAS Database: No action will be done"
 fi
 
-#Get Token for SVS USER and configure it is svs config to be used by JAVA Code.
-curl $CURL_OPTS -X POST -H "Content-Type: application/json" -H "Accept: application/jwt" --data @$tmpdir/user.json -o $tmpdir/svs_token-response.json -w "%{http_code}" $aas_hostname/aas/token > $tmpdir/getsvsusertoken-response.status
+#Get Token for SQVS USER and configure it is sqvs config to be used by JAVA Code.
+curl $CURL_OPTS -X POST -H "Content-Type: application/json" -H "Accept: application/jwt" --data @$tmpdir/user.json -o $tmpdir/sqvs_token-response.json -w "%{http_code}" $aas_hostname/aas/token > $tmpdir/getsqvsusertoken-response.status
 
-status=$(cat $tmpdir/getsvsusertoken-response.status)
+status=$(cat $tmpdir/getsqvsusertoken-response.status)
 if [ $status -ne 200 ]; then
 	echo "Couldn't get bearer token"
 else
-	export BEARER_TOKEN=`cat $tmpdir/svs_token-response.json`
+	export BEARER_TOKEN=`cat $tmpdir/sqvs_token-response.json`
 	echo $BEARER_TOKEN
 fi

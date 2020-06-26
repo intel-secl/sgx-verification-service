@@ -11,10 +11,10 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
-	"intel/isecl/svs/config"
-	"intel/isecl/svs/resource/parser"
-	"intel/isecl/svs/resource/utils"
-	"intel/isecl/svs/resource/verifier"
+	"intel/isecl/sqvs/config"
+	"intel/isecl/sqvs/resource/parser"
+	"intel/isecl/sqvs/resource/utils"
+	"intel/isecl/sqvs/resource/verifier"
 	"net/http"
 )
 

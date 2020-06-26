@@ -35,11 +35,11 @@ import (
 	cos "intel/isecl/lib/common/v2/os"
 	"intel/isecl/lib/common/v2/setup"
 	"intel/isecl/lib/common/v2/validation"
-	"intel/isecl/svs/config"
-	"intel/isecl/svs/constants"
-	"intel/isecl/svs/resource"
-	"intel/isecl/svs/tasks"
-	"intel/isecl/svs/version"
+	"intel/isecl/sqvs/config"
+	"intel/isecl/sqvs/constants"
+	"intel/isecl/sqvs/resource"
+	"intel/isecl/sqvs/tasks"
+	"intel/isecl/sqvs/version"
 )
 
 type App struct {
@@ -60,19 +60,19 @@ func (a *App) printUsage() {
 	w := a.consoleWriter()
 	fmt.Fprintln(w, "Usage:")
 	fmt.Fprintln(w, "")
-	fmt.Fprintln(w, "    svs <command> [arguments]")
+	fmt.Fprintln(w, "    sqvs <command> [arguments]")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "Avaliable Commands:")
 	fmt.Fprintln(w, "    -h|--help			Show this help message")
 	fmt.Fprintln(w, "    setup [task]		Run setup task")
-	fmt.Fprintln(w, "    start			Start svs")
-	fmt.Fprintln(w, "    status			Show the status of svs")
-	fmt.Fprintln(w, "    stop			Stop svs")
+	fmt.Fprintln(w, "    start			Start sqvs")
+	fmt.Fprintln(w, "    status			Show the status of sqvs")
+	fmt.Fprintln(w, "    stop			Stop sqvs")
 	fmt.Fprintln(w, "    tlscertsha384		Show the SHA384 of the certificate used for TLS")
-	fmt.Fprintln(w, "    uninstall [--purge]	Uninstall SVS. --purge option needs to be applied to remove configuration and data files")
-	fmt.Fprintln(w, "    -v|--version		Show the version of svs")
+	fmt.Fprintln(w, "    uninstall [--purge]	Uninstall SQVS. --purge option needs to be applied to remove configuration and data files")
+	fmt.Fprintln(w, "    -v|--version		Show the version of sqvs")
 	fmt.Fprintln(w, "")
-	fmt.Fprintln(w, "Setup command usage:     svs setup [task] [--arguments=<argument_value>] [--force]")
+	fmt.Fprintln(w, "Setup command usage:     sqvs setup [task] [--arguments=<argument_value>] [--force]")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "Avaliable Tasks for setup:")
 	fmt.Fprintln(w, "                              Required env variables:")
@@ -80,15 +80,15 @@ func (a *App) printUsage() {
 	fmt.Fprintln(w, "                              Optional env variables:")
 	fmt.Fprintln(w, "                                  - get optional env variables from all the setup tasks")
 	fmt.Fprintln(w, "")
-	fmt.Fprintln(w, "    svs setup server [--port=<port>]")
+	fmt.Fprintln(w, "    sqvs setup server [--port=<port>]")
 	fmt.Fprintln(w, "        - Setup http server on <port>")
-	fmt.Fprintln(w, "        - Environment variable SVS_PORT=<port> can be set alternatively")
-	fmt.Fprintln(w, "    svs setup tls [--force] [--host_names=<host_names>]")
+	fmt.Fprintln(w, "        - Environment variable SQVS_PORT=<port> can be set alternatively")
+	fmt.Fprintln(w, "    sqvs setup tls [--force] [--host_names=<host_names>]")
 	fmt.Fprintln(w, "        - Use the key and certificate provided in /etc/threat-detection if files exist")
-	fmt.Fprintln(w, "        - Otherwise create its own self-signed TLS keypair in /etc/svs for quality of life")
+	fmt.Fprintln(w, "        - Otherwise create its own self-signed TLS keypair in /etc/sqvs for quality of life")
 	fmt.Fprintln(w, "        - Option [--force] overwrites any existing files, and always generate self-signed keypair")
 	fmt.Fprintln(w, "        - Argument <host_names> is a list of host names used by local machine, seperated by comma")
-	fmt.Fprintln(w, "        - Environment variable SVS_TLS_HOST_NAMES=<host_names> can be set alternatively")
+	fmt.Fprintln(w, "        - Environment variable SQVS_TLS_HOST_NAMES=<host_names> can be set alternatively")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "    download_ca_cert      Download CMS root CA certificate")
 	fmt.Fprintln(w, "                          - Option [--force] overwrites any existing files, and always downloads new root CA cert")
@@ -144,7 +144,7 @@ func (a *App) executablePath() string {
 	}
 	exec, err := os.Executable()
 	if err != nil {
-		log.WithError(err).Error("app:executablePath() Unable to find SVS executable")
+		log.WithError(err).Error("app:executablePath() Unable to find SQVS executable")
 		// if we can't find self-executable path, we're probably in a state that is panic() worthy
 		panic(err)
 	}
@@ -346,22 +346,22 @@ func (a *App) Run(args []string) error {
 			fmt.Println("Error running setup: ", err)
 			return errors.Wrap(err, "app:Run() Error running setup")
 		}
-		svsUser, err := user.Lookup(constants.SVSUserName)
+		sqvsUser, err := user.Lookup(constants.SQVSUserName)
 		if err != nil {
-			return errors.Wrapf(err, "Could not find user '%s'", constants.SVSUserName)
+			return errors.Wrapf(err, "Could not find user '%s'", constants.SQVSUserName)
 		}
 
-		uid, err := strconv.Atoi(svsUser.Uid)
+		uid, err := strconv.Atoi(sqvsUser.Uid)
 		if err != nil {
-			return errors.Wrapf(err, "Could not parse svs user uid '%s'", svsUser.Uid)
+			return errors.Wrapf(err, "Could not parse sqvs user uid '%s'", sqvsUser.Uid)
 		}
 
-		gid, err := strconv.Atoi(svsUser.Gid)
+		gid, err := strconv.Atoi(sqvsUser.Gid)
 		if err != nil {
-			return errors.Wrapf(err, "Could not parse svs user gid '%s'", svsUser.Gid)
+			return errors.Wrapf(err, "Could not parse sqvs user gid '%s'", sqvsUser.Gid)
 		}
 
-		//Change the fileownership to svs user
+		//Change the fileownership to sqvs user
 		err = cos.ChownR(constants.ConfigDir, uid, gid)
 		if err != nil {
 			return errors.Wrap(err, "Error while changing file ownership")
@@ -383,7 +383,7 @@ func (a *App) Run(args []string) error {
 
 func (a *App) startServer() error {
 	c := a.configuration()
-	log.Info("Starting SVS Server")
+	log.Info("Starting SQVS Server")
 	// Create Router, set routes
 	r := mux.NewRouter()
 	r.SkipClean(true)
@@ -444,30 +444,30 @@ func (a *App) startServer() error {
 }
 
 func (a *App) start() error {
-	fmt.Fprintln(a.consoleWriter(), `Forwarding to "systemctl start svs"`)
+	fmt.Fprintln(a.consoleWriter(), `Forwarding to "systemctl start sqvs"`)
 	systemctl, err := exec.LookPath("systemctl")
 	if err != nil {
 		return errors.Wrap(err, "app:start() Could not locate systemctl to start application service")
 	}
-	return syscall.Exec(systemctl, []string{"systemctl", "start", "svs"}, os.Environ())
+	return syscall.Exec(systemctl, []string{"systemctl", "start", "sqvs"}, os.Environ())
 }
 
 func (a *App) stop() error {
-	fmt.Fprintln(a.consoleWriter(), `Forwarding to "systemctl stop svs"`)
+	fmt.Fprintln(a.consoleWriter(), `Forwarding to "systemctl stop sqvs"`)
 	systemctl, err := exec.LookPath("systemctl")
 	if err != nil {
 		return errors.Wrap(err, "app:stop() Could not locate systemctl to stop application service")
 	}
-	return syscall.Exec(systemctl, []string{"systemctl", "stop", "svs"}, os.Environ())
+	return syscall.Exec(systemctl, []string{"systemctl", "stop", "sqvs"}, os.Environ())
 }
 
 func (a *App) status() error {
-	fmt.Fprintln(a.consoleWriter(), `Forwarding to "systemctl status svs"`)
+	fmt.Fprintln(a.consoleWriter(), `Forwarding to "systemctl status sqvs"`)
 	systemctl, err := exec.LookPath("systemctl")
 	if err != nil {
 		return errors.Wrap(err, "app:status() Could not locate systemctl to check status of application service")
 	}
-	return syscall.Exec(systemctl, []string{"systemctl", "status", "svs"}, os.Environ())
+	return syscall.Exec(systemctl, []string{"systemctl", "status", "sqvs"}, os.Environ())
 }
 
 func (a *App) uninstall(purge bool) {
@@ -555,7 +555,7 @@ func validateSetupArgs(cmd string, args []string) error {
 
 	case "tls":
 		env_names_cmd_opts := map[string]string{
-			"SVS_TLS_HOST_NAMES": "host_names",
+			"SQVS_TLS_HOST_NAMES": "host_names",
 		}
 
 		fs = flag.NewFlagSet("tls", flag.ContinueOnError)

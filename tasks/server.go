@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"intel/isecl/lib/common/v2/setup"
-	"intel/isecl/svs/config"
-	"intel/isecl/svs/constants"
+	"intel/isecl/sqvs/config"
+	"intel/isecl/sqvs/constants"
 	"io"
 	"time"
 )
@@ -23,7 +23,7 @@ type Server struct {
 
 func (s Server) Run(c setup.Context) error {
 	fmt.Fprintln(s.ConsoleWriter, "Running server setup...")
-	defaultPort, err := c.GetenvInt("SVS_PORT", "sgx serification service http port")
+	defaultPort, err := c.GetenvInt("SQVS_PORT", "sgx serification service http port")
 	if err != nil {
 		defaultPort = constants.DefaultHttpPort
 	}
@@ -44,42 +44,42 @@ func (s Server) Run(c setup.Context) error {
 	s.Config.AuthDefender.IntervalMins = constants.DefaultAuthDefendIntervalMins
 	s.Config.AuthDefender.LockoutDurationMins = constants.DefaultAuthDefendLockoutMins
 
-	readTimeout, err := c.GetenvInt("SVS_SERVER_READ_TIMEOUT", "SGX Verification Service Read Timeout")
+	readTimeout, err := c.GetenvInt("SQVS_SERVER_READ_TIMEOUT", "SGX Verification Service Read Timeout")
 	if err != nil {
 		s.Config.ReadTimeout = constants.DefaultReadTimeout
 	} else {
 		s.Config.ReadTimeout = time.Duration(readTimeout) * time.Second
 	}
 
-	readHeaderTimeout, err := c.GetenvInt("SVS_SERVER_READ_HEADER_TIMEOUT", "SGX Verification Service Read Header Timeout")
+	readHeaderTimeout, err := c.GetenvInt("SQVS_SERVER_READ_HEADER_TIMEOUT", "SGX Verification Service Read Header Timeout")
 	if err != nil {
 		s.Config.ReadHeaderTimeout = constants.DefaultReadHeaderTimeout
 	} else {
 		s.Config.ReadHeaderTimeout = time.Duration(readHeaderTimeout) * time.Second
 	}
 
-	writeTimeout, err := c.GetenvInt("SVS_SERVER_WRITE_TIMEOUT", "SGX Verification Service Write Timeout")
+	writeTimeout, err := c.GetenvInt("SQVS_SERVER_WRITE_TIMEOUT", "SGX Verification Service Write Timeout")
 	if err != nil {
 		s.Config.WriteTimeout = constants.DefaultWriteTimeout
 	} else {
 		s.Config.WriteTimeout = time.Duration(writeTimeout) * time.Second
 	}
 
-	idleTimeout, err := c.GetenvInt("SVS_SERVER_IDLE_TIMEOUT", "SGX Verification Service Service Idle Timeout")
+	idleTimeout, err := c.GetenvInt("SQVS_SERVER_IDLE_TIMEOUT", "SGX Verification Service Service Idle Timeout")
 	if err != nil {
 		s.Config.IdleTimeout = constants.DefaultIdleTimeout
 	} else {
 		s.Config.IdleTimeout = time.Duration(idleTimeout) * time.Second
 	}
 
-	maxHeaderBytes, err := c.GetenvInt("SVS_SERVER_MAX_HEADER_BYTES", "SGX Verification Service Max Header Bytes Timeout")
+	maxHeaderBytes, err := c.GetenvInt("SQVS_SERVER_MAX_HEADER_BYTES", "SGX Verification Service Max Header Bytes Timeout")
 	if err != nil {
 		s.Config.MaxHeaderBytes = constants.DefaultMaxHeaderBytes
 	} else {
 		s.Config.MaxHeaderBytes = maxHeaderBytes
 	}
 
-	logMaxLen, err := c.GetenvInt("SVS_LOG_MAX_LENGTH", "SGX Verification Service Log maximum length")
+	logMaxLen, err := c.GetenvInt("SQVS_LOG_MAX_LENGTH", "SGX Verification Service Log maximum length")
 	if err != nil || logMaxLen < constants.DefaultLogEntryMaxLength {
 		s.Config.LogMaxLength = constants.DefaultLogEntryMaxLength
 	} else {
@@ -87,7 +87,7 @@ func (s Server) Run(c setup.Context) error {
 	}
 
 	s.Config.LogEnableStdout = false
-	logEnableStdout, err := c.GetenvString("SVS_ENABLE_CONSOLE_LOG", "SGX Verification Service Enable standard output")
+	logEnableStdout, err := c.GetenvString("SQVS_ENABLE_CONSOLE_LOG", "SGX Verification Service Enable standard output")
 	if err != nil || len(logEnableStdout) == 0 {
 		s.Config.LogEnableStdout = false
 	} else {
@@ -96,7 +96,7 @@ func (s Server) Run(c setup.Context) error {
 
 	err = s.Config.Save()
 	if err != nil {
-		return errors.Wrap(err, "failed to save SVS config")
+		return errors.Wrap(err, "failed to save SQVS config")
 	}
 	return nil
 }

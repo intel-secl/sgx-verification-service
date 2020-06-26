@@ -1,4 +1,4 @@
-module intel/isecl/svs
+module intel/isecl/sqvs
 
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible

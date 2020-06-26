@@ -13,7 +13,7 @@ import (
 	"gopkg.in/yaml.v2"
 	commLog "intel/isecl/lib/common/v2/log"
 	"intel/isecl/lib/common/v2/setup"
-	"intel/isecl/svs/constants"
+	"intel/isecl/sqvs/constants"
 	"io/ioutil"
 	"os"
 	"path"
@@ -39,7 +39,7 @@ type Configuration struct {
 		IntervalMins        int
 		LockoutDurationMins int
 	}
-	SVS struct {
+	SQVS struct {
 		User     string
 		Password string
 	}
@@ -112,11 +112,11 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 		return errorLog.Wrap(errors.New("SCS_BASE_URL is not defined in environment"), "SaveConfiguration() ENV variable not found")
 	}
 
-	tlsCertCN, err := c.GetenvString("SVS_TLS_CERT_CN", "SVS TLS Certificate Common Name")
+	tlsCertCN, err := c.GetenvString("SQVS_TLS_CERT_CN", "SQVS TLS Certificate Common Name")
 	if err == nil && tlsCertCN != "" {
 		conf.Subject.TLSCertCommonName = tlsCertCN
 	} else if conf.Subject.TLSCertCommonName == "" {
-		conf.Subject.TLSCertCommonName = constants.DefaultSvsTlsCn
+		conf.Subject.TLSCertCommonName = constants.DefaultSQVSTlsCn
 	}
 
 	tlsKeyPath, err := c.GetenvString("KEY_PATH", "Path of file where TLS key needs to be stored")
@@ -133,9 +133,9 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 		conf.TLSCertFile = constants.DefaultTLSCertFile
 	}
 
-	logLevel, err := c.GetenvString("SVS_LOGLEVEL", "SVS Log Level")
+	logLevel, err := c.GetenvString("SQVS_LOGLEVEL", "SQVS Log Level")
 	if err != nil {
-		slog.Infof("config/config:SaveConfiguration() %s not defined, using default log level: Info", constants.SVSLogLevel)
+		slog.Infof("config/config:SaveConfiguration() %s not defined, using default log level: Info", constants.SQVSLogLevel)
 		conf.LogLevel = log.InfoLevel
 	} else {
 		llp, err := log.ParseLevel(logLevel)
@@ -148,23 +148,23 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 		}
 	}
 
-	svsAASUser, err := c.GetenvString(constants.SVS_USER, "SVS Service Username")
-	if err == nil && svsAASUser != "" {
-		conf.SVS.User = svsAASUser
-	} else if conf.SVS.User == "" {
-		commLog.GetDefaultLogger().Error("SVS_USERNAME is not defined in environment or configuration file")
-		return errorLog.Wrap(err, "SVS_USERNAME is not defined in environment or configuration file")
+	sqvsAASUser, err := c.GetenvString(constants.SQVS_USER, "SQVS Service Username")
+	if err == nil && sqvsAASUser != "" {
+		conf.SQVS.User = sqvsAASUser
+	} else if conf.SQVS.User == "" {
+		commLog.GetDefaultLogger().Error("SQVS_USERNAME is not defined in environment or configuration file")
+		return errorLog.Wrap(err, "SQVS_USERNAME is not defined in environment or configuration file")
 	}
 
-	svsAASPassword, err := c.GetenvSecret(constants.SVS_PASSWORD, "SVS Service Password")
-	if err == nil && svsAASPassword != "" {
-		conf.SVS.Password = svsAASPassword
-	} else if strings.TrimSpace(conf.SVS.Password) == "" {
-		commLog.GetDefaultLogger().Error("SVS_PASSWORD is not defined in environment or configuration file")
-		return errorLog.Wrap(err, "SVS_PASSWORD is not defined in environment or configuration file")
+	sqvsAASPassword, err := c.GetenvSecret(constants.SQVS_PASSWORD, "SQVS Service Password")
+	if err == nil && sqvsAASPassword != "" {
+		conf.SQVS.Password = sqvsAASPassword
+	} else if strings.TrimSpace(conf.SQVS.Password) == "" {
+		commLog.GetDefaultLogger().Error("SQVS_PASSWORD is not defined in environment or configuration file")
+		return errorLog.Wrap(err, "SQVS_PASSWORD is not defined in environment or configuration file")
 	}
 
-	trustedRootPath, err := c.GetenvString("SGX_TRUSTED_ROOT_CA_PATH", "SVS SGX Trusted Root ca")
+	trustedRootPath, err := c.GetenvString("SGX_TRUSTED_ROOT_CA_PATH", "SQVS Trusted Root CA")
 	if err == nil && trustedRootPath != "" {
 		trustedRoot, err := ioutil.ReadFile(trustedRootPath)
 		if err != nil {
@@ -186,7 +186,7 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 	if err == nil && sanList != "" {
 		conf.CertSANList = sanList
 	} else if conf.CertSANList == "" {
-		conf.CertSANList = constants.DefaultSvsTlsSan
+		conf.CertSANList = constants.DefaultSQVSTlsSan
 	}
 
 	return conf.Save()
