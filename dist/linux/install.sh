@@ -27,7 +27,7 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 echo "Setting up SGX Verification Service Linux User..."
-id -u $SERVICE_USERNAME 2> /dev/null || useradd $SERVICE_USERNAME
+id -u $SERVICE_USERNAME 2> /dev/null || useradd --shell /bin/false $SERVICE_USERNAME
 
 echo "Installing SGX Verification Service..."
 
