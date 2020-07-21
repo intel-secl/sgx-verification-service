@@ -67,7 +67,7 @@ chmod g+s $CONFIG_PATH/root-ca
 
 # Create logging dir in /var/log
 mkdir -p $LOG_PATH && chown sqvs:sqvs $LOG_PATH
-chmod 761 $LOG_PATH
+chmod 755 $LOG_PATH
 chmod g+s $LOG_PATH
 
 # Install systemd script
