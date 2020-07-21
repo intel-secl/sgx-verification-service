@@ -21,9 +21,9 @@
 
 ## Install required shell commands
 
-### Install tools from `yum`
+### Install tools from `dnf`
 ```shell
-sudo yum install -y git wget makeself
+sudo dnf install -y git wget makeself
 ```
 
 ### Install `go 1.14.1` or newer

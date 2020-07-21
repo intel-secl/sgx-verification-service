@@ -123,10 +123,10 @@ do
 	echo $api
 	eval $api
     	status=$?
-    if [ $status -ne 0 ]; then
-        echo "SQVS-AAS User/Role creation failed.: $api"
-        break;
-    fi
+	if [ $status -ne 0 ]; then
+		echo "SQVS-AAS User/Role creation failed.: $api"
+		break;
+	fi
 done
 
 if [ $status -eq 0 ]; then
@@ -146,3 +146,5 @@ else
 	export BEARER_TOKEN=`cat $tmpdir/sqvs_token-response.json`
 	echo $BEARER_TOKEN
 fi
+# cleanup
+rm -rf $tmpdir

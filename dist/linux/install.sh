@@ -26,11 +26,10 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
-echo "Setting up SGX Verification Service Linux User..."
+echo "Setting up SGX Quote Verification Service Linux User..."
 id -u $SERVICE_USERNAME 2> /dev/null || useradd --shell /bin/false $SERVICE_USERNAME
 
-echo "Installing SGX Verification Service..."
-
+echo "Installing SGX Quote Verification Service..."
 
 COMPONENT_NAME=sqvs
 PRODUCT_HOME=/opt/$COMPONENT_NAME
@@ -53,9 +52,7 @@ for directory in $BIN_PATH $DB_SCRIPT_PATH $LOG_PATH $CONFIG_PATH $CERTS_PATH $C
   chown -R $SERVICE_USERNAME:$SERVICE_USERNAME $directory
   chmod 700 $directory
   chmod g+s $directory
-
 done
-
 
 cp $COMPONENT_NAME $BIN_PATH/ && chown $SERVICE_USERNAME:$SERVICE_USERNAME $BIN_PATH/*
 chmod 700 $BIN_PATH/*
@@ -82,9 +79,9 @@ systemctl daemon-reload
 auto_install() {
   local component=${1}
   local cprefix=${2}
-  local yum_packages=$(eval "echo \$${cprefix}_YUM_PACKAGES")
+  local dnf_packages=$(eval "echo \$${cprefix}_YUM_PACKAGES")
   # detect available package management tools. start with the less likely ones to differentiate.
-  yum -y install $yum_packages
+  dnf -y install $dnf_packages
 }
 
 # SCRIPT EXECUTION
