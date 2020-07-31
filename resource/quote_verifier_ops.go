@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
+	commLogMsg "intel/isecl/lib/common/v2/log/message"
 	"intel/isecl/sqvs/config"
 	"intel/isecl/sqvs/resource/parser"
 	"intel/isecl/sqvs/resource/utils"
@@ -53,12 +54,14 @@ func quoteVerify(config *config.Configuration) errorHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		var data QuoteData
 		if r.ContentLength == 0 {
+			slog.Error("resource/quote_verifier_ops: quoteVerify() The request body was not provided")
 			return &resourceError{Message: "sgx ecdsa quote not provided", StatusCode: http.StatusBadRequest}
 		}
 		dec := json.NewDecoder(r.Body)
 		dec.DisallowUnknownFields()
 		err := dec.Decode(&data)
 		if err != nil {
+			slog.WithError(err).Errorf("resource/quote_verifier_ops: quoteVerify() %s :  Failed to decode request body", commLogMsg.InvalidInputBadEncoding)
 			return &resourceError{Message: "invalid sgx ecdsa quote" + err.Error(),
 				StatusCode: http.StatusBadRequest}
 		}

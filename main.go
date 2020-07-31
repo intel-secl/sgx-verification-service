@@ -87,6 +87,7 @@ func main() {
 	}
 	err = app.Run(os.Args)
 	if err != nil {
+		log.Error("Application returned with error: ", err)
 		os.Exit(1)
 	}
 }
