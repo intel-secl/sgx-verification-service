@@ -16,6 +16,7 @@ import (
 	"intel/isecl/sqvs/resource/parser"
 	"intel/isecl/sqvs/resource/utils"
 	"intel/isecl/sqvs/resource/verifier"
+	"intel/isecl/sqvs/constants"
 	"net/http"
 )
 
@@ -46,12 +47,21 @@ type QuoteData struct {
 	QuoteBlob string `json:"quote"`
 }
 
-func QuoteVerifyCB(router *mux.Router, config *config.Configuration) {
-	router.Handle("/verifyQuote", handlers.ContentTypeHandler(quoteVerify(config), "application/json")).Methods("POST")
+func QuoteVerifyCB(router *mux.Router, conf *config.Configuration) {
+	router.Handle("/verifyQuote", handlers.ContentTypeHandler(quoteVerify(conf), "application/json")).Methods("POST")
 }
 
-func quoteVerify(config *config.Configuration) errorHandlerFunc {
+func quoteVerify(conf *config.Configuration) errorHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
+
+		c := config.Global()
+		if c.IncludeToken == "true" {
+			err := AuthorizeEndpoint(r, constants.QuoteVerifierGroupName, true)
+			if err != nil {
+				return err
+			}
+		}
+
 		var data QuoteData
 		if r.ContentLength == 0 {
 			slog.Error("resource/quote_verifier_ops: quoteVerify() The request body was not provided")
@@ -75,9 +85,9 @@ func quoteVerify(config *config.Configuration) errorHandlerFunc {
 		}
 
 		if obj.GetQuoteType() == parser.QuoteTypeEcdsa {
-			return sgxEcdsaQuoteVerify(w, r, obj, config)
+			return sgxEcdsaQuoteVerify(w, r, obj, conf)
 		} else if obj.GetQuoteType() == parser.QuoteTypeSw {
-			return swQuoteVerify(w, r, obj, config)
+			return swQuoteVerify(w, r, obj, conf)
 		} else {
 			return &resourceError{Message: "cannot find sw/ecdsa quote",
 				StatusCode: http.StatusBadRequest}
@@ -87,7 +97,7 @@ func quoteVerify(config *config.Configuration) errorHandlerFunc {
 }
 
 func swQuoteVerify(w http.ResponseWriter, r *http.Request,
-	skcBlobParser *parser.SkcBlobParsed, config *config.Configuration) error {
+	skcBlobParser *parser.SkcBlobParsed, conf *config.Configuration) error {
 	rsaBytes, err := skcBlobParser.GetRsaPubKey()
 	if err != nil {
 		return &resourceError{Message: "GetRsaPubKey: Error: " + err.Error(),
@@ -113,7 +123,7 @@ func swQuoteVerify(w http.ResponseWriter, r *http.Request,
 }
 
 func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *parser.SkcBlobParsed,
-	config *config.Configuration) error {
+	conf *config.Configuration) error {
 	if len(skcBlobParser.GetQuoteBlob()) == 0 {
 		return &resourceError{Message: "invalid sgx ecdsa quote", StatusCode: http.StatusBadRequest}
 	}
@@ -135,14 +145,14 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 	}
 
 	_, err = verifier.VerifyPCKCertificate(quoteObj.GetQuotePckCertObj(), quoteObj.GetQuotePckCertInterCAList(),
-		quoteObj.GetQuotePckCertRootCAList(), certObj.GetPckCrlObj(), config.TrustedRootCA)
+		quoteObj.GetQuotePckCertRootCAList(), certObj.GetPckCrlObj(), conf.TrustedRootCA)
 	if err != nil {
 		return &resourceError{Message: "cannot verify pck cert: " + err.Error(),
 			StatusCode: http.StatusBadRequest}
 	}
 
 	_, err = verifier.VerifyPckCrl(certObj.GetPckCrlUrl(), certObj.GetPckCrlObj(), certObj.GetPckCrlInterCaList(),
-		certObj.GetPckCrlRootCaList(), config.TrustedRootCA)
+		certObj.GetPckCrlRootCaList(), conf.TrustedRootCA)
 	if err != nil {
 		return &resourceError{Message: "cannot verify pck crl: " + err.Error(),
 			StatusCode: http.StatusBadRequest}
@@ -154,7 +164,7 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 			StatusCode: http.StatusInternalServerError}
 	}
 
-	err = verifyTcbInfo(certObj, tcbObj, config.TrustedRootCA)
+	err = verifyTcbInfo(certObj, tcbObj, conf.TrustedRootCA)
 	if err != nil {
 		return &resourceError{Message: "TCBInfo Verification failed: " + err.Error(),
 			StatusCode: http.StatusInternalServerError}
@@ -169,7 +179,7 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 			StatusCode: http.StatusInternalServerError}
 	}
 
-	_, err = verifyQeIdentity(qeIdObj, quoteObj, config.TrustedRootCA)
+	_, err = verifyQeIdentity(qeIdObj, quoteObj, conf.TrustedRootCA)
 	if err != nil {
 		return &resourceError{Message: "verifyQeIdentity failed: " + err.Error(),
 			StatusCode: http.StatusInternalServerError}

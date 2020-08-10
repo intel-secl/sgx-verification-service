@@ -47,6 +47,7 @@ type Configuration struct {
 		IncludeKid        bool
 		TokenDurationMins int
 	}
+	IncludeToken   string
 	CMSBaseUrl     string
 	AuthServiceUrl string
 	SCSBaseUrl     string
@@ -102,6 +103,13 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 	} else if conf.AuthServiceUrl == "" {
 		commLog.GetDefaultLogger().Error("AAS_API_URL is not defined in environment")
 		return errorLog.Wrap(errors.New("AAS_API_URL is not defined in environment"), "SaveConfiguration() ENV variable not found")
+	}
+
+	includeToken, err := c.GetenvString("SQVS_INCLUDE_TOKEN", "Boolean value to decide whether to use token based auth or no auth for quote verifier API")
+	if err == nil && includeToken != "" {
+		conf.IncludeToken = includeToken
+	} else if conf.IncludeToken == "" {
+		conf.IncludeToken = constants.DefaultIncludeTokenValue
 	}
 
 	scsBaseUrl, err := c.GetenvString("SCS_BASE_URL", "SGX Caching Service URL")

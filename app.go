@@ -14,6 +14,7 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
+	"intel/isecl/lib/common/v2/middleware"
 	"io"
 	"io/ioutil"
 	stdlog "log"
@@ -386,10 +387,11 @@ func (a *App) startServer() error {
 	// Create Router, set routes
 	r := mux.NewRouter()
 	r.SkipClean(true)
+
 	sr := r.PathPrefix("/svs/v1/").Subrouter()
-	/*	sr.Use(middleware.NewTokenAuth(constants.TrustedJWTSigningCertsDir,
-		constants.TrustedCAsStoreDir, fnGetJwtCerts,
-		constants.DefaultJwtValidateCacheKeyMins))*/
+	if c.IncludeToken == "true" {
+		sr.Use(middleware.NewTokenAuth(constants.TrustedJWTSigningCertsDir, constants.TrustedCAsStoreDir, fnGetJwtCerts, time.Minute*constants.DefaultJwtValidateCacheKeyMins))
+	}
 	func(setters ...func(*mux.Router, *config.Configuration)) {
 		for _, setter := range setters {
 			setter(sr, c)

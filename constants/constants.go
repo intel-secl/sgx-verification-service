@@ -43,6 +43,7 @@ const (
 	SQVSLogLevel                   = "SQVS_LOGLEVEL"
 	SQVS_USER                      = "SQVS_USERNAME"
 	SQVS_PASSWORD                  = "SQVS_PASSWORD"
+	DefaultIncludeTokenValue       = "true"
 	DefaultReadTimeout             = 30 * time.Second
 	DefaultReadHeaderTimeout       = 10 * time.Second
 	DefaultWriteTimeout            = 10 * time.Second
