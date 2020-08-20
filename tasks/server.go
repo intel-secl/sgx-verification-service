@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Intel Corporation
+ * Copyright (C) 2020 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 package tasks
@@ -8,7 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/pkg/errors"
-	"intel/isecl/lib/common/v2/setup"
+	"intel/isecl/lib/common/v3/setup"
 	"intel/isecl/sqvs/config"
 	"intel/isecl/sqvs/constants"
 	"io"

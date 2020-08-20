@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Intel Corporation
+ * Copyright (C) 2020 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 package parser
@@ -13,7 +13,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"github.com/pkg/errors"
-	"intel/isecl/lib/clients/v2"
+	"intel/isecl/lib/clients/v3"
 	"intel/isecl/sqvs/config"
 	"intel/isecl/sqvs/constants"
 	"intel/isecl/sqvs/resource/utils"

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Intel Corporation
+ * Copyright (C) 2020 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 package verifier
@@ -10,7 +10,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"github.com/pkg/errors"
-	clog "intel/isecl/lib/common/v2/log"
+	clog "intel/isecl/lib/common/v3/log"
 	"strings"
 )
 

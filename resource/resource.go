@@ -1,20 +1,20 @@
 /*
- * Copyright (C) 2019 Intel Corporation
+ * Copyright (C) 2020 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 package resource
 
 import (
 	"fmt"
-	"intel/isecl/lib/common/v2/auth"
-	"intel/isecl/lib/common/v2/context"
+	"intel/isecl/lib/common/v3/auth"
+	"intel/isecl/lib/common/v3/context"
 	"intel/isecl/sqvs/constants"
 	"net/http"
 
 	"github.com/jinzhu/gorm"
-	clog "intel/isecl/lib/common/v2/log"
-	commLogMsg "intel/isecl/lib/common/v2/log/message"
-	ct "intel/isecl/lib/common/v2/types/aas"
+	clog "intel/isecl/lib/common/v3/log"
+	commLogMsg "intel/isecl/lib/common/v3/log/message"
+	ct "intel/isecl/lib/common/v3/types/aas"
 )
 
 var log = clog.GetDefaultLogger()
@@ -72,7 +72,7 @@ func AuthorizeEndpoint(r *http.Request, roleName string, retNilCtxForEmptyCtx bo
 		return &resourceError{Message: "Could not get user roles from http context", StatusCode: http.StatusInternalServerError}
 	}
 
-	_, foundRole := auth.ValidatePermissionAndGetRoleContext(privileges, []ct.RoleInfo{ct.RoleInfo{Service: constants.ServiceName, Name: roleName}}, retNilCtxForEmptyCtx)
+	_, foundRole := auth.ValidatePermissionAndGetRoleContext(privileges, []ct.RoleInfo{{Service: constants.ServiceName, Name: roleName}}, retNilCtxForEmptyCtx)
 	if !foundRole {
 		slog.Infof("resource/resource: AuthorizeEndpoint() %s: endpoint access unauthorized, request role: %v", commLogMsg.UnauthorizedAccess, roleName)
 		return &privilegeError{Message: "", StatusCode: http.StatusForbidden}

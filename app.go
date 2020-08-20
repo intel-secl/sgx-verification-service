@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Intel Corporation
+ * Copyright (C) 2020 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 package main
@@ -14,7 +14,7 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
-	"intel/isecl/lib/common/v2/middleware"
+	"intel/isecl/lib/common/v3/middleware"
 	"io"
 	"io/ioutil"
 	stdlog "log"
@@ -27,15 +27,15 @@ import (
 	"strings"
 	"syscall"
 	"time"
-	//"intel/isecl/lib/common/v2/middleware"
-	"intel/isecl/lib/common/v2/crypt"
-	e "intel/isecl/lib/common/v2/exec"
-	commLog "intel/isecl/lib/common/v2/log"
-	commLogMsg "intel/isecl/lib/common/v2/log/message"
-	commLogInt "intel/isecl/lib/common/v2/log/setup"
-	cos "intel/isecl/lib/common/v2/os"
-	"intel/isecl/lib/common/v2/setup"
-	"intel/isecl/lib/common/v2/validation"
+	//"intel/isecl/lib/common/v3/middleware"
+	"intel/isecl/lib/common/v3/crypt"
+	e "intel/isecl/lib/common/v3/exec"
+	commLog "intel/isecl/lib/common/v3/log"
+	commLogMsg "intel/isecl/lib/common/v3/log/message"
+	commLogInt "intel/isecl/lib/common/v3/log/setup"
+	cos "intel/isecl/lib/common/v3/os"
+	"intel/isecl/lib/common/v3/setup"
+	"intel/isecl/lib/common/v3/validation"
 	"intel/isecl/sqvs/config"
 	"intel/isecl/sqvs/constants"
 	"intel/isecl/sqvs/resource"

@@ -78,12 +78,12 @@ make all
 | gorm        | github.com/jinzhu/gorm      | v1.9.12                            |
 | logrus      | github.com/sirupsen/logrus  | v1.4.2                             |
 | testify     | github.com/stretchr/testify | v1.5.1                             |
-| crypto      | golang.org/x/crypto         | v0.0.0-20200320181102-891825fb96df |
+| crypto      | golang.org/x/crypto         | v0.0.0-20190320181102-891825fb96df |
 | time        | golang.org/x/time           | v0.0.0-20191024005414-555d28b269f0 |
-| yaml.v2     | gopkg.in/yaml.v2            | v2.2.2                             |
+| yaml.v2     | gopkg.in/yaml.v2            | v2.2.8                             |
 | restruct    | gopkg.in/restruct           | v1.0.0                             |
-| authservice | intel/isecl/authservice     | v2.1/develop                       |
-| common      | intel/isecl/lib/common      | v2.1/develo                        |
+| authservice | intel/isecl/authservice     | v3.0/develop                       |
+| common      | intel/isecl/lib/common      | v3.0/develop                       |
 
 ### Indirect Dependencies
 

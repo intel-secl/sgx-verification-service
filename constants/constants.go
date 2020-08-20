@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Intel Corporation
+ * Copyright (C) 2020 Intel Corporation
  * SPDX-License-Identifier: BSD-3-Clause
  */
 package constants
@@ -31,13 +31,13 @@ const (
 	DefaultAuthDefendLockoutMins   = 15
 	ServiceName                    = "SQVS"
 	QuoteVerifierGroupName         = "QuoteVerifier"
-	SQVSUserName                    = "sqvs"
+	SQVSUserName                   = "sqvs"
 	DefaultHttpPort                = 12000
 	DefaultKeyAlgorithm            = "rsa"
 	DefaultKeyAlgorithmLength      = 3072
 	DefaultSQVSTlsSan              = "127.0.0.1,localhost"
 	DefaultSQVSTlsCn               = "SQVS TLS Certificate"
-	DefaultIntelProvServerURL      = "https://api.trustedservices.intel.com/sgx/certification/v2/"
+	DefaultIntelProvServerURL      = "https://sbx.api.trustedservices.intel.com/sgx/certification/v3/"
 	DefaultJwtValidateCacheKeyMins = 60
 	CmsTlsCertDigestEnv            = "CMS_TLS_CERT_SHA384"
 	SQVSLogLevel                   = "SQVS_LOGLEVEL"
