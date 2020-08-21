@@ -26,9 +26,6 @@ const (
 	TrustedCAsStoreDir             = ConfigDir + "certs/trustedca/"
 	ServiceRemoveCmd               = "systemctl disable sqvs"
 	HashingAlgorithm               = crypto.SHA384
-	DefaultAuthDefendMaxAttempts   = 5
-	DefaultAuthDefendIntervalMins  = 5
-	DefaultAuthDefendLockoutMins   = 15
 	ServiceName                    = "SQVS"
 	QuoteVerifierGroupName         = "QuoteVerifier"
 	SQVSUserName                   = "sqvs"
