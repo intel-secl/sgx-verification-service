@@ -5,9 +5,9 @@
 echo "Setting up SQVS Related roles and user in AAS Database"
 
 #Get the value of AAS IP address and port. Default vlue is also provided.
-aas_hostname=${AAS_URL:-"https://10.105.167.184:8444"}
+aas_hostname=${AAS_URL:-"https://<aas.server.com>:8444"}
 CURL_OPTS="-s -k"
-IPADDR="10.105.167.184"
+IPADDR="<comma-separated list of IPs and hostnames for SQVS>"
 CN="SQVS TLS Certificate"
 
 mkdir -p /tmp/setup/sqvs
