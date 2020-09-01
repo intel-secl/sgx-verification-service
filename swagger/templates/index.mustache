@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>{{{appName}}}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="UTF-8" />
+  {{>js_jquery}}
+  {{>js_prettify}}
+  {{>js_bootstrap}}
+  {{>marked}}
+  <script>
+    $( document ).ready(function() {
+      marked.setOptions({
+        renderer: new marked.Renderer(),
+        gfm: true,
+        tables: true,
+        breaks: false,
+        pedantic: false,
+        sanitize: false,
+        smartLists: true,
+        smartypants: false
+      });
+
+      var textFile = null;
+
+      /// Function to be used to download a text json schema
+      function makeTextFile(text) {
+
+        var data = new Blob([text], {type: 'text/plain'});
+
+        // If we are replacing a previously generated file we need to
+        // manually revoke the object URL to avoid memory leaks.
+        if (textFile !== null) {
+          window.URL.revokeObjectURL(textFile);
+        }
+
+        textFile = window.URL.createObjectURL(data);
+
+        var a = document.createElement("a");
+        document.body.appendChild(a);
+        a.style = "display: none";
+        a.href = textFile;
+        a.download = 'schema.txt';
+        a.click();
+
+        return textFile;
+      };
+
+      /// TODO: Implement resizing for expanding within iframe
+      function callResize() {
+        window.parent.postMessage('resize', "*");
+      }
+
+      function processMarked() {
+        $(".marked").each(function() {
+          $(this).html(marked($(this).html()));
+        });
+      }
+
+      // Bootstrap Scrollspy
+      $(this).scrollspy({ target: '#scrollingNav', offset: 18 });
+
+      // Content-Scroll on Navigation click.
+      $('.sidenav').find('a').on('click', function(e) {
+          e.preventDefault();
+          var id = $(this).attr('href');
+          if ($(id).length > 0)
+              $('html,body').animate({ scrollTop: parseInt($(id).offset().top) }, 400);
+          window.location.hash = $(this).attr('href');
+      });
+
+      // Quickjump on Pageload to hash position.
+      if(window.location.hash) {
+          var id = window.location.hash;
+          if ($(id).length > 0)
+              $('html,body').animate({ scrollTop: parseInt($(id).offset().top) }, 0);
+      }
+
+
+      function initDynamic() {
+        // tabs
+        $('.nav-tabs-examples a').click(function (e) {
+            e.preventDefault();
+            $(this).tab('show');
+        });
+
+
+        $('.nav-tabs-examples').find('a:first').tab('show');
+
+        // call scrollspy refresh method
+        $(window).scrollspy('refresh');
+      }
+
+      initDynamic();
+
+      // Pre- / Code-Format
+      prettyPrint();
+
+      //Convert elements with "marked" class to markdown
+      processMarked();
+    });
+  </script>
+  <style type="text/css">
+  {{>css_bootstrap}}
+  {{>css_prettify}}
+  {{>styles}}
+  </style>
+</head>
+<body>
+  <script>
+    // Script section to load models into a JS Var
+    var defs = {}
+        {{#models}}
+        {{#model}}
+            defs.{{name}} = {{{modelJson}}};
+        {{/model}}
+    {{/models}}
+  </script>
+
+  <div class="container-fluid">
+    <div class="row-fluid">
+      <div id="sidenav" class="span2">
+        <nav id="scrollingNav">
+          <ul class="sidenav nav nav-list">
+            <!-- Logo Area -->
+              <!--<div style="width: 80%; background-color: #4c8eca; color: white; padding: 20px; text-align: center; margin-bottom: 20px; ">
+
+              API Docs 2
+
+              </div>
+            -->
+            <li class="nav-fixed nav-header active" data-group="_"><a href="#api-_">Info</a></li>
+
+            {{#apiInfo}}
+              {{#apis}}
+                {{#operations}}
+                  <li class="nav-header" data-group="{{baseName}}"><a href="#api-{{baseName}}">{{baseName}}</a></li>
+                  {{#operation}}
+                    <li data-group="{{baseName}}" data-name="{{nickname}}" class="">
+                      <a href="#api-{{baseName}}-{{nickname}}">{{nickname}}</a>
+                    </li>
+                  {{/operation}}
+                {{/operations}}
+              {{/apis}}
+            {{/apiInfo}}
+          </ul>
+        </nav>
+      </div>
+      <div id="content">
+        <div id="project">
+          <div class="pull-left">
+            <h1>{{{appName}}}</h1>
+            {{#version}}<div>Version: {{{version}}}</div>{{/version}}
+            {{#basePath}}<div>BasePath: {{basePath}}</div>{{/basePath}}
+            {{#licenseInfo}}<div>{{{licenseInfo}}}</div>{{/licenseInfo}}
+          </div>
+          <div class="clearfix"></div>
+        </div>
+        <hr>
+        <div id="header">
+          <div id="api-_">
+            <div>{{{appDescription}}}</div>
+	    </br>
+          </div>
+        </div>
+        <div id="sections">
+          {{#apiInfo}}
+            {{#apis}}
+              {{#operations}}
+                <section id="api-{{baseName}}">
+                  <h1>{{baseName}}</h1>
+                  {{#operation}}
+                  {{#contents}}
+                  {{#@first}}
+                    <div id="api-{{baseName}}-{{nickname}}">
+                      <article id="api-{{baseName}}-{{nickname}}-0" data-group="User" data-name="{{nickname}}" data-version="0">
+                        <div class="pull-left">
+                          <h1>{{nickname}}</h1>
+                          <!-- <p>{{summary}}</p> -->
+                        </div>
+                        <div class="pull-right"></div>
+                        <div class="clearfix"></div>
+                        <!-- <p></p> -->
+                        <p class="marked">{{notes}}</p>
+                        <p></p>
+                        <!-- <br /> -->
+                        <pre class="prettyprint language-html prettyprinted" data-type="{{httpMethod}}"><code><span class="pln">{{path}}</span></code></pre>
+
+    			<h2>Authorization</h2>
+                        {{#hasAuthMethods}}
+                        <ul>
+                        {{#authMethods}}
+                        {{#isBasic}}<li>HTTP Basic Authentication</li>{{/isBasic}}
+      			{{#isOAuth}}<li>OAuth AuthorizationUrl:{{authorizationUrl}}TokenUrl:{{tokenUrl}}</li>{{/isOAuth}}
+			{{#isBearer}}
+      			<li>Bearer Token Authorization.
+      			<ul>
+         			<li>Enter your bearer token in the format: Bearer &lt;token&gt;</li>
+         			<li>Name of header: Authorization</li> 
+      			</ul></li>
+			{{/isBearer}}
+      			{{#isApiKey}}
+      			<li>Bearer Token Authorization.
+      			<ul>
+         			<li>Enter your bearer token in the format: Bearer &lt;token&gt;</li>
+         			{{#keyParamName}}<li>Name of header: {{keyParamName}}</li>{{/keyParamName}} 
+      			</ul></li>
+      			{{/isApiKey}}
+    			{{/authMethods}}
+    			</ul>
+  			{{/hasAuthMethods}}
+  			{{^hasAuthMethods}}
+  			<ul>
+    				<li>None</li>
+  			</ul>
+  			{{/hasAuthMethods}}
+
+			  {{#hasConsumes}}
+    			  <h2>Consumes</h2>
+    			    {{#consumes}}
+    			    <ul>
+      			    <li>{{{mediaType}}}</li>
+    			    </ul>
+    			    {{/consumes}}
+    			  {{/hasConsumes}}
+
+                          <!-- <h2>Parameters</h2> -->
+
+                          {{#hasPathParams}}
+                            <h2>Path parameters</h2>
+                            <!-- <div class="methodsubtabletitle">Path parameters</div> -->
+                            <table id="methodsubtable">
+                                <tr>
+                                  <th width="150px">Name</th>
+                                  <th width="150px">Type</th>
+                                  <th>Description</th>
+                                </tr>
+                                {{#pathParams}}
+				  <tr>
+				  <td style="width:150px;">{{baseName}}{{^required}}{{/required}}{{#required}}*{{/required}}
+				  </td>
+				  <td style="width:150px;"><span class="type">{{dataType}}</span></td>
+				  <td>{{#description}}
+					<div class="inner description">{{description}}</div>
+					{{/description}}
+				  </td>
+				  </tr>
+                                {{/pathParams}}
+                            </table>
+                          {{/hasPathParams}}
+
+                          {{#hasBodyParam}}
+                            <h2>Request Body</h2>
+                            {{#bodyParams}}
+                            <ul class="nav nav-tabs nav-tabs-examples" >
+                                <li class="active">
+                                  <a data-toggle="tab" href="#responses-{{nickname}}-{{code}}-schema">Schema</a>
+                                </li>
+                            </ul>
+
+                            <div class="tab-content" style='margin-bottom: 10px;'>
+                                <div class="tab-pane active" id="responses-{{nickname}}-{{code}}-schema">
+                                  <div id='body-{{nickname}}-{{code}}-schema-{{code}}' style="padding: 30px; border-left: 1px solid #eee; border-right: 1px solid #eee; border-bottom: 1px solid #eee;">
+                                    <script>
+                                      $(document).ready(function() {
+                                        var schemaWrapper = {{{jsonSchema}}};
+                                        var schema = schemaWrapper.content["{{contentType}}"].schema;
+                                        if (schema.$ref != null) {
+                                          schema = defsParser.$refs.get(schema.$ref);
+                                        } else {
+                                          schemaWrapper.components = {};
+                                          schemaWrapper.components.schemas = Object.assign({}, defs);
+                                          $RefParser.dereference(schemaWrapper).catch(function(err) {
+                                            console.log(err);
+                                          });
+                                        }
+
+                                        var view = new JSONSchemaView(schema, 3);
+                                        $('#body-{{nickname}}-{{code}}-schema-data').val(stringify(schema));
+                                        var result = $('#body-{{nickname}}-{{code}}-schema-{{code}}');
+                                        result.empty();
+                                        result.append(view.render());
+                                      });
+                                    </script>
+                                  </div>
+                                  <input id='body-{{nickname}}-{{code}}-schema-data' type='hidden' value=''></input>
+                                </div>
+				</br>
+                            {{/bodyParams}}
+                          {{/hasBodyParam}}
+
+                          {{#hasQueryParams}}
+                            <h2>Query parameters</h2>
+                            <!-- <div class="methodsubtabletitle">Query parameters</div> -->
+                            <table id="methodsubtable">
+                              <tr>
+                                <th width="150px">Name</th>
+                                <th width="150px">Type</th>
+                                <th>Description</th>
+                              </tr>
+                              {{#queryParams}}
+				<tr>
+				<td style="width:150px;">{{baseName}}{{^required}}{{/required}}{{#required}}*{{/required}}
+				</td>
+				<td style="width:150px;"><span class="type">{{dataType}}</span></td>
+				<td>{{#description}}
+					<div class="inner description">{{description}}</div>
+					{{/description}}
+				</td>
+				</tr>
+                              {{/queryParams}}
+                            </table>
+                          {{/hasQueryParams}}
+
+			  {{#hasProduces}}
+    			  <h2>Produces</h2>
+    			    {{#produces}}
+    			    <ul>
+      			    <li>{{{mediaType}}}</li>
+    			    </ul>
+    			    {{/produces}}
+    			  {{/hasProduces}}
+
+                          <h2>Response</h2>
+                           {{#responses}}
+                            <!-- <h3> {{code}} - {{message}} </h3> -->
+                            <div class="methodsubtabletitle">{{code}} - {{message}}</div>
+
+			    {{#returnType}}
+			    {{#hasReference}}
+                            {{#schema}}
+			    </br>
+                            <ul class="nav nav-tabs nav-tabs-examples" >
+                                <li class="active">
+                                  <a data-toggle="tab" href="#responses-{{nickname}}-{{code}}-schema">Schema</a>
+                                </li>
+                            </ul>
+                            {{/schema}}
+
+                            <div class="tab-content" style='margin-bottom: 10px;'>
+                              {{#schema}}
+                                <div class="tab-pane active" id="responses-{{nickname}}-{{code}}-schema">
+                                  <div id='responses-{{nickname}}-{{code}}-schema-{{code}}' style="padding: 30px; border-left: 1px solid #eee; border-right: 1px solid #eee; border-bottom: 1px solid #eee;">
+                                    <script>
+                                      $(document).ready(function() {
+                                        var schemaWrapper = {{{jsonSchema}}};
+                                        var schema = schemaWrapper.content["{{extensions.x-content-type}}"].schema;
+                                        if (schema.$ref != null) {
+                                          schema = defsParser.$refs.get(schema.$ref);
+                                        } else {
+                                          schemaWrapper.components = {};
+                                          schemaWrapper.components.schemas = Object.assign({}, defs);
+                                          $RefParser.dereference(schemaWrapper).catch(function(err) {
+                                            console.log(err);
+                                          });
+                                        }
+
+                                        //console.log(JSON.stringify(schema));
+                                        var view = new JSONSchemaView(schema, 3);
+                                        $('#responses-{{nickname}}-{{code}}-schema-data').val(stringify(schema));
+                                        var result = $('#responses-{{nickname}}-{{code}}-schema-{{code}}');
+                                        result.empty();
+                                        result.append(view.render());
+                                      });
+                                    </script>
+                                  </div>
+                                  <input id='responses-{{nickname}}-{{code}}-schema-data' type='hidden' value=''></input>
+                                </div>
+                              {{/schema}}
+                            </div>
+			   {{/hasReference}}
+			   {{/returnType}}
+                          {{/responses}}
+
+                        <p>
+                          <h2>Sample REST Call</h2>
+                        </p>
+                        <ul class="nav nav-tabs nav-tabs-examples">
+			  <li class="active"><a href="#examples-{{baseName}}-{{nickname}}-0-curl">Curl</a></li> 
+			  <li class=""><a href="#examples-{{baseName}}-{{nickname}}-0-support"></a></li> 
+			</ul> 
+
+                        <div class="tab-content">
+                          <div class="tab-pane active" id="examples-{{baseName}}-{{nickname}}-0-curl">
+			  <pre><code class="language-bsh">curl -X {{vendorExtensions.x-codegen-httpMethodUpperCase}} "{{#vendorExtensions.x-sample-call-endpoint}}{{{vendorExtensions.x-sample-call-endpoint}}}{{/vendorExtensions.x-sample-call-endpoint}}"{{#authMethods}}{{#is this 'api-key'}}{{#is this 'key-in-header'}} -H "{{keyParamName}}: Bearer &lt;token&gt;"{{/is}}{{/is}}{{#is this 'basic'}} -H "Authorization: Basic &lt;basicHash&gt;"{{/is}}{{/authMethods}}{{#hasProduces}} -H "Accept: {{#produces}}{{{mediaType}}}{{#hasMore}},{{/hasMore}}{{/produces}}"{{/hasProduces}}{{#hasConsumes}} -H "Content-Type: {{#consumes}}{{{mediaType}}}{{#hasMore}},{{/hasMore}}{{/consumes}}"{{/hasConsumes}}</br>{{#vendorExtensions.x-sample-call-input}}Input: </br>{{{vendorExtensions.x-sample-call-input}}}{{/vendorExtensions.x-sample-call-input}}</br>{{#vendorExtensions.x-sample-call-output}}Output: </br>{{{vendorExtensions.x-sample-call-output}}}{{/vendorExtensions.x-sample-call-output}}</code></pre> 
+			  </div>
+			  <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-support">
+			  </div> 
+                          </div>
+                        </article>
+                      </div>
+                      <hr>
+                    {{/@first}}
+                    {{/contents}}
+                    {{/operation}}
+                  </section>
+                {{/operations}}
+              {{/apis}}
+            {{/apiInfo}}
+          </div>
+{{^hideGenerationTimestamp}}          <div id="generator">
+            <div class="content">
+              Generated {{generatedDate}}
+            </div>
+          </div>
+{{/hideGenerationTimestamp}}      </div>
+    </div>
+  </div>
+  </div>
+  {{>js_jsonformatter}}
+  {{>js_jsonschemaview}}
+  {{>js_json_schema_ref_parser}}
+  {{>js_json_stringify_safe}}
+  {{>js_webfontloader}}
+  <script>
+    var schemaWrapper = {};
+    schemaWrapper.components = {};
+    schemaWrapper.components.schemas = Object.assign({}, defs);
+    defsParser = new $RefParser();
+    defsParser.dereference(schemaWrapper).catch(function(err) {
+      console.log(err);
+    });
+  </script>
+  <script>
+  $(document).ready(function () {
+    $('.nav-tabs-examples').find('a:first').tab('show');
+    $(this).scrollspy({ target: '#scrollingNav', offset: 18 });
+  });
+  </script>
+</body>
+</html>
