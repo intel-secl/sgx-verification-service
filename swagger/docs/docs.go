@@ -1,11 +1,11 @@
 // SGX Quote Verification Service
 //
-// SGX Quote Verification service (SQVS) resource is used to verify the quote provided by the Quote verifier. 
-// SQVS checks whether the quote signature and PCK Certificate are valid, checks other parameters in the quote and returns the verification result. 
-// SQVS contacts SGX Caching service (SCS) to make sure that PCKCRL, TCBInfo, and QEIdentity in the quote are correct. 
+// SGX Quote Verification service (SQVS) resource is used to verify the quote provided by the Quote verifier.
+// SQVS checks whether the quote signature and PCK Certificate are valid, checks other parameters in the quote and returns the verification result.
+// SQVS contacts SGX Caching service (SCS) to make sure that PCKCRL, TCBInfo, and QEIdentity in the quote are correct.
 // SQVS listening port is user-configurable.
 //
-//  License: Copyright (C) 2020 Intel Corporation. SPDX-License-Identifier: BSD-3-Clause 
+//  License: Copyright (C) 2020 Intel Corporation. SPDX-License-Identifier: BSD-3-Clause
 //
 //  Version: 1.0
 //  Host: svs.com:12000
@@ -21,23 +21,23 @@ import "intel/isecl/sqvs/resource"
 // QuoteData request payload
 // swagger:parameters QuoteData
 type QuoteDataInfo struct {
-        // in:body
-        Body resource.QuoteData
+	// in:body
+	Body resource.QuoteData
 }
 
 // SGXResponse response payload
 // swagger:response SGXResponse
 type SGXResponseInfo struct {
-        // in:body
-        Body resource.SGXResponse
+	// in:body
+	Body resource.SGXResponse
 }
 
-// swagger:operation POST /verifyQuote Quote quoteVerify 
+// swagger:operation POST /verifyQuote Quote quoteVerify
 // ---
 // description: |
-//   Verifies the quote provided in the request body by checking whether the quote is ECDSA or software quote (for testing purpose) and 
+//   Verifies the quote provided in the request body by checking whether the quote is ECDSA or software quote (for testing purpose) and
 //   performs the set of validation steps if the quote is ECDSA.
-//   Quote verifier requests SGX Quote Verification Service (SQVS) to verify a quote. 
+//   Quote verifier requests SGX Quote Verification Service (SQVS) to verify a quote.
 //   SQVS parses the quote, verifies all the parameters in the quote and returns the response.
 //
 // consumes:
