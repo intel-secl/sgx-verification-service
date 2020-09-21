@@ -13,6 +13,13 @@
 //
 //  Schemes: https
 //
+//  SecurityDefinitions:
+//   bearerAuth:
+//     type: apiKey
+//     in: header
+//     name: Authorization
+//     description: Enter your bearer token in the format **Bearer &lt;token&gt;**
+//
 // swagger:meta
 package docs
 
@@ -40,6 +47,8 @@ type SGXResponseInfo struct {
 //   Quote verifier requests SGX Quote Verification Service (SQVS) to verify a quote.
 //   SQVS parses the quote, verifies all the parameters in the quote and returns the response.
 //
+// security:
+//  - bearerAuth: []
 // consumes:
 // - application/json
 // produces:
