@@ -5,6 +5,8 @@ BUILDDATE := $(shell TZ=UTC date +%Y-%m-%dT%H:%M:%S%z)
 
 .PHONY: sqvs installer all test clean
 
+all: clean installer
+
 sqvs:
 	env GOOS=linux GOSUMDB=off GOPROXY=direct go build -ldflags "-X intel/isecl/sqvs/version.BuildDate=$(BUILDDATE) -X intel/isecl/sqvs/version.Version=$(VERSION) -X intel/isecl/sqvs/version.GitHash=$(GITCOMMIT)" -o out/sqvs
 
@@ -31,8 +33,6 @@ installer: sqvs
 	cp dist/linux/install.sh out/installer/install.sh && chmod +x out/installer/install.sh
 	cp out/sqvs out/installer/sqvs
 	makeself out/installer out/sqvs-$(VERSION).bin "sgx Verification Service $(VERSION)" ./install.sh
-
-all: clean installer test
 
 clean:
 	rm -f cover.*
