@@ -113,11 +113,11 @@ logRotate_install() {
 
 logRotate_install
 
-export LOG_ROTATION_PERIOD=${LOG_ROTATION_PERIOD:-hourly}
+export LOG_ROTATION_PERIOD=${LOG_ROTATION_PERIOD:-weekly}
 export LOG_COMPRESS=${LOG_COMPRESS:-compress}
 export LOG_DELAYCOMPRESS=${LOG_DELAYCOMPRESS:-delaycompress}
 export LOG_COPYTRUNCATE=${LOG_COPYTRUNCATE:-copytruncate}
-export LOG_SIZE=${LOG_SIZE:-1K}
+export LOG_SIZE=${LOG_SIZE:-100M}
 export LOG_OLD=${LOG_OLD:-12}
 
 mkdir -p /etc/logrotate.d
@@ -159,4 +159,3 @@ else
         echo "Installation completed with errors"
     fi
 fi
-
