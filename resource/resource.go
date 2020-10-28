@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"intel/isecl/lib/common/v3/auth"
 	"intel/isecl/lib/common/v3/context"
-	"intel/isecl/sqvs/constants"
+	"intel/isecl/sqvs/v3/constants"
 	"net/http"
 
 	"github.com/jinzhu/gorm"

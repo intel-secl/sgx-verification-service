@@ -8,7 +8,7 @@ BUILDDATE := $(shell TZ=UTC date +%Y-%m-%dT%H:%M:%S%z)
 all: clean installer
 
 sqvs:
-	env GOOS=linux GOSUMDB=off GOPROXY=direct go build -ldflags "-X intel/isecl/sqvs/version.BuildDate=$(BUILDDATE) -X intel/isecl/sqvs/version.Version=$(VERSION) -X intel/isecl/sqvs/version.GitHash=$(GITCOMMIT)" -o out/sqvs
+	env GOOS=linux GOSUMDB=off GOPROXY=direct go build -ldflags "-X intel/isecl/sqvs/v3/version.BuildDate=$(BUILDDATE) -X intel/isecl/sqvs/v3/version.Version=$(VERSION) -X intel/isecl/sqvs/v3/version.GitHash=$(GITCOMMIT)" -o out/sqvs
 
 swagger-get:
 	wget https://github.com/go-swagger/go-swagger/releases/download/v0.21.0/swagger_linux_amd64 -O /usr/local/bin/swagger

@@ -7,7 +7,7 @@ package verifier
 import (
 	"crypto/x509"
 	"github.com/pkg/errors"
-	"intel/isecl/sqvs/constants"
+	"intel/isecl/sqvs/v3/constants"
 	"strings"
 )
 

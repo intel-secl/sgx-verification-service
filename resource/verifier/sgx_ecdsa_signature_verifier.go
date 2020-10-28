@@ -64,7 +64,7 @@ func VerifySGXECDSASign2(sigBlob []byte, blob []byte, pubKeyBlob []byte) (bool, 
 	x.SetBytes(pubKeyBlob[:(keyLen / 2)])
 	y.SetBytes(pubKeyBlob[(keyLen / 2):])
 
-	pubKey := ecdsa.PublicKey{curve, &x, &y}
+	pubKey := ecdsa.PublicKey{Curve: curve, X: &x, Y: &y}
 	ret := verifyECDSA256Signature(blob, &pubKey, sigBlob)
 	if !ret {
 		return false, errors.New("ECDSA Signature Verification(2) is Failed")

@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"intel/isecl/lib/common/v3/setup"
-	"intel/isecl/sqvs/config"
-	"intel/isecl/sqvs/constants"
+	"intel/isecl/sqvs/v3/config"
+	"intel/isecl/sqvs/v3/constants"
 	"io"
 	"time"
 )

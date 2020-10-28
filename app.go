@@ -36,11 +36,11 @@ import (
 	cos "intel/isecl/lib/common/v3/os"
 	"intel/isecl/lib/common/v3/setup"
 	"intel/isecl/lib/common/v3/validation"
-	"intel/isecl/sqvs/config"
-	"intel/isecl/sqvs/constants"
-	"intel/isecl/sqvs/resource"
-	"intel/isecl/sqvs/tasks"
-	"intel/isecl/sqvs/version"
+	"intel/isecl/sqvs/v3/config"
+	"intel/isecl/sqvs/v3/constants"
+	"intel/isecl/sqvs/v3/resource"
+	"intel/isecl/sqvs/v3/tasks"
+	"intel/isecl/sqvs/v3/version"
 )
 
 type App struct {
