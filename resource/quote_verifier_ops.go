@@ -12,11 +12,11 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	commLogMsg "intel/isecl/lib/common/v3/log/message"
-	"intel/isecl/sqvs/config"
-	"intel/isecl/sqvs/constants"
-	"intel/isecl/sqvs/resource/parser"
-	"intel/isecl/sqvs/resource/utils"
-	"intel/isecl/sqvs/resource/verifier"
+	"intel/isecl/sqvs/v3/config"
+	"intel/isecl/sqvs/v3/constants"
+	"intel/isecl/sqvs/v3/resource/parser"
+	"intel/isecl/sqvs/v3/resource/utils"
+	"intel/isecl/sqvs/v3/resource/verifier"
 	"net/http"
 )
 

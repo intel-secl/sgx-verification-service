@@ -5,8 +5,8 @@
 package main
 
 import (
-	"intel/isecl/sqvs/constants"
-	_ "intel/isecl/sqvs/swagger/docs"
+	"intel/isecl/sqvs/v3/constants"
+	_ "intel/isecl/sqvs/v3/swagger/docs"
 	"os"
 	"os/user"
 	"strconv"

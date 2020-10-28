@@ -9,7 +9,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"github.com/pkg/errors"
-	"intel/isecl/sqvs/constants"
+	"intel/isecl/sqvs/v3/constants"
 	"strings"
 )
 

@@ -11,17 +11,17 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"intel/isecl/lib/clients/v3"
-	"intel/isecl/sqvs/config"
-	"intel/isecl/sqvs/constants"
-	"intel/isecl/sqvs/resource/utils"
+	"intel/isecl/sqvs/v3/config"
+	"intel/isecl/sqvs/v3/constants"
+	"intel/isecl/sqvs/v3/resource/utils"
 	"io/ioutil"
 	"net/http"
 	"strings"
 )
 
 type QeIdentityJson struct {
-	EnclaveIdentity EnclaveIdentityType `json: "enclaveIdentity"`
-	Signature       string              `json: "signature"`
+	EnclaveIdentity EnclaveIdentityType `json:"enclaveIdentity"`
+	Signature       string              `json:"signature"`
 }
 
 type QeIdentityData struct {
@@ -32,28 +32,28 @@ type QeIdentityData struct {
 }
 
 type TcbInfo struct {
-	IsvSvn uint16 `json: "isvsvn"`
+	IsvSvn uint16 `json:"isvsvn"`
 }
 
 type TcbLevelsInfo struct {
-	Tcb       TcbInfo `json: "tcb"`
-	TcbDate   string  `json: "tcbDate"`
-	TcbStatus string  `json: "tcbStatus"`
+	Tcb       TcbInfo `json:"tcb"`
+	TcbDate   string  `json:"tcbDate"`
+	TcbStatus string  `json:"tcbStatus"`
 }
 
 type EnclaveIdentityType struct {
-	Id                      string          `json: "id"`
-	Version                 uint16          `json: "version"`
-	IssueDate               string          `json: "issueDate"`
-	NextUpdate              string          `json: "nextUpdate"`
-	TcbEvaluationDataNumber uint16          `json: "tcbEvaluationDataNumber"`
-	MiscSelect              string          `json: "miscselect"`
-	MiscSelectMask          string          `json: "miscselectMask"`
-	Attributes              string          `json: "attributes"`
-	AttributesMask          string          `json: "attributesMask"`
-	MrSigner                string          `json: "mrsigner"`
-	IsvProdId               uint16          `json: "isvprodid"`
-	TcbLevels               []TcbLevelsInfo `json: "tcbLevels"`
+	Id                      string          `json:"id"`
+	Version                 uint16          `json:"version"`
+	IssueDate               string          `json:"issueDate"`
+	NextUpdate              string          `json:"nextUpdate"`
+	TcbEvaluationDataNumber uint16          `json:"tcbEvaluationDataNumber"`
+	MiscSelect              string          `json:"miscselect"`
+	MiscSelectMask          string          `json:"miscselectMask"`
+	Attributes              string          `json:"attributes"`
+	AttributesMask          string          `json:"attributesMask"`
+	MrSigner                string          `json:"mrsigner"`
+	IsvProdId               uint16          `json:"isvprodid"`
+	TcbLevels               []TcbLevelsInfo `json:"tcbLevels"`
 }
 
 func NewQeIdentity() (*QeIdentityData, error) {

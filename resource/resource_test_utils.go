@@ -7,7 +7,7 @@ package resource
 import (
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
-	"intel/isecl/sqvs/config"
+	"intel/isecl/sqvs/v3/config"
 	"net/http/httptest"
 	"testing"
 )
