@@ -123,16 +123,16 @@ export LOG_OLD=${LOG_OLD:-12}
 mkdir -p /etc/logrotate.d
 
 if [ ! -a /etc/logrotate.d/sqvs ]; then
- echo "/var/log/sqvs/* {
+ echo "/var/log/sqvs/*.log {
     missingok
-        notifempty
-        rotate $LOG_OLD
-        maxsize $LOG_SIZE
+    notifempty
+    rotate $LOG_OLD
+    maxsize $LOG_SIZE
     nodateext
-        $LOG_ROTATION_PERIOD
-        $LOG_COMPRESS
-        $LOG_DELAYCOMPRESS
-        $LOG_COPYTRUNCATE
+    $LOG_ROTATION_PERIOD
+    $LOG_COMPRESS
+    $LOG_DELAYCOMPRESS
+    $LOG_COPYTRUNCATE
 }" > /etc/logrotate.d/sqvs
 fi
 
