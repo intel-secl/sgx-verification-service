@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
@@ -265,11 +266,11 @@ func (e *PckCert) parsePckCrl() error {
 		if !strings.Contains(url, scsUrl) {
 			a := regexp.MustCompile(`v\d`)
 			splitUrl := a.Split(url, -1)
-			log.Debug("Split string:", splitUrl)
 			if len(splitUrl) != 2 {
 				return errors.Wrap(err, "parsePckCrl: Invalid PCK CRL Url")
 			}
-			url = scsUrl + splitUrl[1]
+			finalUrl := strings.Trim(splitUrl[1], "&encoding")
+			url = scsUrl + finalUrl
 		}
 
 		req, err := http.NewRequest("GET", url, nil)
@@ -296,9 +297,15 @@ func (e *PckCert) parsePckCrl() error {
 			return errors.Wrap(err, "read Response failed ")
 		}
 		resp.Body.Close()
-		crlObj, err := x509.ParseCRL(crlBody)
+
+		crlDer, err := base64.StdEncoding.DecodeString(string(crlBody))
 		if err != nil {
-			return errors.Wrap(err, "failed to ParseCRL")
+			return errors.Wrap(err, "failed to base64 decode crl blob")
+		}
+
+		crlObj, err := x509.ParseDERCRL(crlDer)
+		if err != nil {
+			return errors.Wrap(err, "failed to Parse der encoded crl")
 		}
 
 		e.PckCRL.PckCRLObjs[i] = crlObj
