@@ -140,18 +140,6 @@ func ParseEcdsaQuoteBlob(rawBlob []byte) *SgxQuoteParsed {
 	return parsedObj
 }
 
-func swapByte32(val uint32) uint32 {
-	return val
-	var swapped uint32 = ((val << 24) & 0xff000000) | ((val << 8) & 0x00ff0000) | ((val >> 8) & 0x0000ff00) | ((val >> 24) & 0x000000ff)
-	return swapped
-}
-
-func swapByte16(val uint16) uint16 {
-	return val
-	var swapped uint16 = ((val << 8) | (val >> 8))
-	return swapped
-}
-
 func (e *SgxQuoteParsed) GetRawBlob1() ([]byte, error) {
 	var err error
 	BlobLen := len(e.EcdsaBlob1)
@@ -194,9 +182,8 @@ func (e *SgxQuoteParsed) generateRawBlob1() error {
 		offset += 1
 	}
 
-	miscSelect := swapByte32(report.MiscSelect)
 	miscSelectArr := make([]byte, 4)
-	binary.LittleEndian.PutUint32(miscSelectArr, miscSelect)
+	binary.LittleEndian.PutUint32(miscSelectArr, report.MiscSelect)
 
 	for i := 0; i < len(miscSelectArr); i++ {
 		e.EcdsaBlob1[offset] = miscSelectArr[i]
@@ -254,18 +241,16 @@ func (e *SgxQuoteParsed) generateRawBlob1() error {
 		offset += 1
 	}
 
-	sgxIsvProdId := swapByte16(report.SgxIsvProdId)
 	sgxIsvProdIdArr := make([]byte, 2)
-	binary.LittleEndian.PutUint16(sgxIsvProdIdArr, sgxIsvProdId)
+	binary.LittleEndian.PutUint16(sgxIsvProdIdArr, report.SgxIsvProdId)
 
 	for i := 0; i < len(sgxIsvProdIdArr); i++ {
 		e.EcdsaBlob1[offset] = sgxIsvProdIdArr[i]
 		offset += 1
 	}
 
-	sgxIsvSvn := swapByte16(report.SgxIsvSvn)
 	sgxIsvSvnArr := make([]byte, 2)
-	binary.LittleEndian.PutUint16(sgxIsvSvnArr, sgxIsvSvn)
+	binary.LittleEndian.PutUint16(sgxIsvSvnArr, report.SgxIsvSvn)
 
 	for i := 0; i < len(sgxIsvSvnArr); i++ {
 		e.EcdsaBlob1[offset] = sgxIsvSvnArr[i]

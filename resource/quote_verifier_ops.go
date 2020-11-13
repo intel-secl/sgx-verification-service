@@ -20,14 +20,6 @@ import (
 	"net/http"
 )
 
-type SwResponse struct {
-	Status                string
-	Message               string
-	SwIssuer              string
-	ChallengeKeyType      string
-	ChallengeRsaPublicKey string
-}
-
 type SGXResponse struct {
 	Status                 string
 	Message                string
@@ -76,56 +68,26 @@ func quoteVerify(conf *config.Configuration) errorHandlerFunc {
 				StatusCode: http.StatusBadRequest}
 		}
 
-		blob := data.QuoteBlob
-
-		obj := parser.ParseSkcQuoteBlob(blob)
+		obj := parser.ParseSkcQuoteBlob(data.QuoteBlob)
 		if obj == nil {
-			return &resourceError{Message: "cannot parse sgx ecdsa quote",
+			return &resourceError{Message: "could not parse sgx ecdsa quote",
 				StatusCode: http.StatusBadRequest}
 		}
 
 		if obj.GetQuoteType() == parser.QuoteTypeEcdsa {
 			return sgxEcdsaQuoteVerify(w, r, obj, conf)
-		} else if obj.GetQuoteType() == parser.QuoteTypeSw {
-			return swQuoteVerify(w, r, obj, conf)
 		} else {
-			return &resourceError{Message: "cannot find sw/ecdsa quote",
+			return &resourceError{Message: "not a sgx ecdsa quote",
 				StatusCode: http.StatusBadRequest}
 		}
 		return nil
 	}
 }
 
-func swQuoteVerify(w http.ResponseWriter, r *http.Request,
-	skcBlobParser *parser.SkcBlobParsed, conf *config.Configuration) error {
-	rsaBytes, err := skcBlobParser.GetRsaPubKey()
-	if err != nil {
-		return &resourceError{Message: "GetRsaPubKey: Error: " + err.Error(),
-			StatusCode: http.StatusInternalServerError}
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK) // HTTP 200
-
-	res := SwResponse{
-		Status:                "Success",
-		Message:               "Software(SW) Quote Verification Successful",
-		ChallengeKeyType:      "RSA",
-		SwIssuer:              "Intel",
-		ChallengeRsaPublicKey: string(rsaBytes),
-	}
-	js, err := json.Marshal(res)
-	if err != nil {
-		return &resourceError{Message: err.Error(), StatusCode: http.StatusInternalServerError}
-	}
-	w.Write(js)
-	return nil
-}
-
 func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *parser.SkcBlobParsed,
 	conf *config.Configuration) error {
 	if len(skcBlobParser.GetQuoteBlob()) == 0 {
-		return &resourceError{Message: "invalid sgx ecdsa quote", StatusCode: http.StatusBadRequest}
+		return &resourceError{Message: "invalid sgx ecdsa quote length", StatusCode: http.StatusBadRequest}
 	}
 
 	quoteObj := parser.ParseEcdsaQuoteBlob(skcBlobParser.GetQuoteBlob())
@@ -135,7 +97,7 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 
 	pckCertBytes, err := utils.GetCertPemData(quoteObj.GetQuotePckCertObj())
 	if err != nil {
-		return &resourceError{Message: "invalid sgx ecdsa quote: " + err.Error(),
+		return &resourceError{Message: "cannot extract cert pem data: " + err.Error(),
 			StatusCode: http.StatusBadRequest}
 	}
 
@@ -186,7 +148,7 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 	}
 	rsaBytes, err := skcBlobParser.GetRsaPubKey()
 	if err != nil {
-		return &resourceError{Message: "GetRsaPubKey: Error: " + err.Error(),
+		return &resourceError{Message: "Cannot extract enclave public key from quote: Error: " + err.Error(),
 			StatusCode: http.StatusInternalServerError}
 	}
 
