@@ -3,31 +3,36 @@
 `SGX Verification Service` is a web service whose job is to verify SGX ECDSA Quotes
 
 ## Key features
+
 - Verify if PCK Certificate in a quote is genuine
 - Verify TcbInfo, PCKCRL, QEIdentity for a platform
 - RESTful APIs for easy and versatile access to above features
 
 ## System Requirements
+
 - RHEL 8.1
 - Epel 8 Repo
 - Proxy settings if applicable
 
 ## Software requirements
+
 - git
 - makeself
 - Go 1.13.1 or newer
 
-# Step By Step Build Instructions
+## Step By Step Build Instructions
 
-## Install required shell commands
+### Install required shell commands
 
-### Install tools from `dnf`
+#### Install tools from `dnf`
+
 ```shell
 sudo dnf install -y git wget makeself
 ```
 
 ### Install `go 1.14.1` or newer
 The `SGX Verification Service` requires Go version 1.14 that has support for `go modules`. The build was validated with version 14.1 version of `go`. It is recommended that you use a newer version of `go` - but please keep in mind that the product has been validated with 1.14.1 and newer versions of `go` may introduce compatibility issues. You can use the following to install `go`.
+
 ```shell
 wget https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz
 tar -xzf go1.14.2.linux-amd64.tar.gz
@@ -49,11 +54,13 @@ make all
 ```
 
 ### Deploy
-```console
+
+```shell
 > ./sqvs-*.bin
 ```
 
 ### Manage service
+
 * Start service
     * sqvs start
 * Stop service
@@ -63,9 +70,9 @@ make all
 * Status of service
     * sqvs status
 
-# Third Party Dependencies
+## Third Party Dependencies
 
-## Certificate Management Service
+- Certificate Management Service
 
 ### Direct dependencies
 
