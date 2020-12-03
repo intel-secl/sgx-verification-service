@@ -78,6 +78,26 @@ func ParseSkcQuoteBlob(rawBlob string) *SkcBlobParsed {
 	return parsedObj
 }
 
+func ParseQVLQuoteBlob(rawBlob string) *SkcBlobParsed {
+	log.Trace("parser/skc_quote_parser:ParseQVLQuoteBlob() Entering")
+	defer log.Trace("parser/skc_quote_parser:ParseQVLQuoteBlob() Leaving")
+	if len(rawBlob) < 1 {
+		log.Error("ParseQVLQuoteBlob: SKC Blob is Empty")
+		return nil
+	}
+
+	parsedObj := new(SkcBlobParsed)
+	decodedBlob, err := base64.StdEncoding.DecodeString(rawBlob)
+	if err != nil {
+		log.Error("Failed to Base64 Decode Quote")
+		return nil
+	}
+	quoteSize := len(decodedBlob)
+	parsedObj.QuoteBlob = make([]byte, quoteSize)
+	copy(parsedObj.QuoteBlob, decodedBlob)
+	return parsedObj
+}
+
 func (e *SkcBlobParsed) getKeyType() uint32 {
 	return e.Header.KeyType
 }

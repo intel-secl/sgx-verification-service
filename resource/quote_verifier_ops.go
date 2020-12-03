@@ -18,6 +18,7 @@ import (
 	"intel/isecl/sqvs/v3/resource/utils"
 	"intel/isecl/sqvs/v3/resource/verifier"
 	"net/http"
+	"strconv"
 )
 
 type SGXResponse struct {
@@ -35,12 +36,32 @@ type SGXResponse struct {
 	TcbLevel               string
 }
 
+type SGXQVLResponse struct {
+	Message                string
+	ReportData             string `json:"reportData"`
+	UserDataHashMatch      string `json:"userDataMatch,omitempty"`
+	EnclaveIssuer          string
+	EnclaveMeasurement     string
+	EnclaveIssuerProdID    string
+	EnclaveIssuerExtProdID string
+	ConfigSvn              string
+	IsvSvn                 string
+	ConfigId               string
+	TcbLevel               string
+}
+
 type QuoteData struct {
 	QuoteBlob string `json:"quote"`
 }
 
+type QVLQuoteData struct {
+	QuoteBlob string `json:"quote"`
+	UserData  string `json:"userData"`
+}
+
 func QuoteVerifyCB(router *mux.Router, conf *config.Configuration) {
 	router.Handle("/verifyQuote", handlers.ContentTypeHandler(quoteVerify(conf), "application/json")).Methods("POST")
+	router.Handle("/sgx_qv_verify_quote", handlers.ContentTypeHandler(sgx_qv_verify_quote(conf), "application/json")).Methods("POST")
 }
 
 func quoteVerify(conf *config.Configuration) errorHandlerFunc {
@@ -75,7 +96,7 @@ func quoteVerify(conf *config.Configuration) errorHandlerFunc {
 		}
 
 		if obj.GetQuoteType() == parser.QuoteTypeEcdsa {
-			return sgxEcdsaQuoteVerify(w, r, obj, conf)
+			return sgxEcdsaQuoteVerify(w, r, obj, conf, "", false)
 		} else {
 			return &resourceError{Message: "not a sgx ecdsa quote",
 				StatusCode: http.StatusBadRequest}
@@ -84,8 +105,44 @@ func quoteVerify(conf *config.Configuration) errorHandlerFunc {
 	}
 }
 
+func sgx_qv_verify_quote(conf *config.Configuration) errorHandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		log.Trace("resource/quote_verifier_ops:sgx_qv_verify_quote() Entering")
+		defer log.Trace("resource/quote_verifier_ops:sgx_qv_verify_quote() Leaving")
+
+		c := config.Global()
+		if c.IncludeToken == "true" {
+			err := AuthorizeEndpoint(r, constants.QuoteVerifierGroupName, true)
+			if err != nil {
+				return err
+			}
+		}
+
+		var data QVLQuoteData
+		if r.ContentLength == 0 {
+			slog.Error("resource/quote_verifier_ops: sgx_qv_verify_quote() The request body was not provided")
+			return &resourceError{Message: "SGX_QL_ERROR_INVALID_PARAMETER", StatusCode: http.StatusBadRequest}
+		}
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		err := dec.Decode(&data)
+		if err != nil {
+			slog.WithError(err).Errorf("resource/quote_verifier_ops: sgx_qv_verify_quote() %s :  Failed to decode request body", commLogMsg.InvalidInputBadEncoding)
+			return &resourceError{Message: "invalid sgx ecdsa quote" + err.Error(),
+				StatusCode: http.StatusBadRequest}
+		}
+
+		obj := parser.ParseQVLQuoteBlob(data.QuoteBlob)
+		if obj == nil {
+			return &resourceError{Message: "could not parse sgx ecdsa quote",
+				StatusCode: http.StatusBadRequest}
+		}
+		return sgxEcdsaQuoteVerify(w, r, obj, conf, data.UserData, true)
+	}
+}
+
 func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *parser.SkcBlobParsed,
-	conf *config.Configuration) error {
+	conf *config.Configuration, userData string, isQVLVerified bool) error {
 	if len(skcBlobParser.GetQuoteBlob()) == 0 {
 		return &resourceError{Message: "invalid sgx ecdsa quote length", StatusCode: http.StatusBadRequest}
 	}
@@ -146,17 +203,32 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 		return &resourceError{Message: "verifyQeIdentity failed: " + err.Error(),
 			StatusCode: http.StatusInternalServerError}
 	}
-	rsaBytes, err := skcBlobParser.GetRsaPubKey()
-	if err != nil {
-		return &resourceError{Message: "Cannot extract enclave public key from quote: Error: " + err.Error(),
-			StatusCode: http.StatusInternalServerError}
+	var rsaBytes []byte
+	if !isQVLVerified {
+		rsaBytes, err = skcBlobParser.GetRsaPubKey()
+		if err != nil {
+			return &resourceError{Message: "Cannot extract enclave public key from quote: Error: " + err.Error(),
+				StatusCode: http.StatusInternalServerError}
+		}
 	}
 
-	_, err = verifier.VerifiySHA256Hash(quoteObj.GetSHA256Hash(), skcBlobParser.GetPubKeyBlob())
-	if err != nil {
-		log.Error(err.Error())
-		return &resourceError{Message: "VerifiySHA256Hash failed: " + err.Error(),
-			StatusCode: http.StatusInternalServerError}
+	hashMatched := true
+
+	if !isQVLVerified {
+		_, err = verifier.VerifiySHA256Hash(quoteObj.GetSHA256Hash(), skcBlobParser.GetPubKeyBlob())
+		if err != nil {
+			log.Error(err.Error())
+			return &resourceError{Message: "VerifiySHA256Hash failed: " + err.Error(),
+				StatusCode: http.StatusInternalServerError}
+		}
+	} else if userData != "" {
+		_, err = verifier.VerifiySHA256Hash(quoteObj.GetSHA256Hash(), []byte(userData))
+		if err != nil {
+			log.Error(err.Error())
+			hashMatched = false
+		} else {
+			log.Info("Hash is matched: ", hashMatched)
+		}
 	}
 
 	blob1, err := quoteObj.GetRawBlob1()
@@ -186,27 +258,53 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK) // HTTP 200
+	if isQVLVerified {
+		w.Header().Set("Content-Type", "application/json")
+		var resp SGXQVLResponse
+		resp.Message = "SGX_QL_QV_RESULT_OK"
+		if userData != "" {
+			resp.UserDataHashMatch = strconv.FormatBool(hashMatched)
+		}
+		resp.ReportData = fmt.Sprintf("%02x", quoteObj.GetSHA256Hash())
+		resp.EnclaveIssuer = fmt.Sprintf("%02x", quoteObj.Header.ReportBody.MrSigner)
+		resp.EnclaveIssuerProdID = fmt.Sprintf("%02x", quoteObj.Header.ReportBody.SgxIsvProdId)
+		resp.EnclaveIssuerExtProdID = fmt.Sprintf("%02x", quoteObj.Header.ReportBody.SgxIsvextProdId)
+		resp.EnclaveMeasurement = fmt.Sprintf("%02x", quoteObj.Header.ReportBody.MrEnclave)
+		resp.ConfigSvn = fmt.Sprintf("%02x", quoteObj.Header.ReportBody.SgxConfigSvn)
+		resp.IsvSvn = fmt.Sprintf("%02x", quoteObj.Header.ReportBody.SgxIsvSvn)
+		resp.ConfigId = fmt.Sprintf("%02x", quoteObj.Header.ReportBody.ConfigId)
+		resp.TcbLevel = tcbUptoDateStatus
 
-	res := SGXResponse{
-		Status:                 "Success",
-		Message:                "SGX ECDSA Quote Verification Successful",
-		ChallengeKeyType:       "RSA",
-		ChallengeRsaPublicKey:  string(rsaBytes),
-		EnclaveIssuer:          fmt.Sprintf("%02x", quoteObj.Header.ReportBody.MrSigner),
-		EnclaveIssuerProdID:    fmt.Sprintf("%02x", quoteObj.Header.ReportBody.SgxIsvProdId),
-		EnclaveIssuerExtProdID: fmt.Sprintf("%02x", quoteObj.Header.ReportBody.SgxIsvextProdId),
-		EnclaveMeasurement:     fmt.Sprintf("%02x", quoteObj.Header.ReportBody.MrEnclave),
-		ConfigSvn:              fmt.Sprintf("%02x", quoteObj.Header.ReportBody.SgxConfigSvn),
-		IsvSvn:                 fmt.Sprintf("%02x", quoteObj.Header.ReportBody.SgxIsvSvn),
-		ConfigId:               fmt.Sprintf("%02x", quoteObj.Header.ReportBody.ConfigId),
-		TcbLevel:               tcbUptoDateStatus,
+		js, err := json.Marshal(resp)
+		if err != nil {
+			return &resourceError{Message: err.Error(), StatusCode: http.StatusInternalServerError}
+		}
+		w.Write(js)
+		log.Info("Sgx Ecdsa Quote Verification completed:", string(js))
+
+	} else {
+		res := SGXResponse{
+			Status:                 "Success",
+			Message:                "SGX ECDSA Quote Verification Successful",
+			ChallengeKeyType:       "RSA",
+			ChallengeRsaPublicKey:  string(rsaBytes),
+			EnclaveIssuer:          fmt.Sprintf("%02x", quoteObj.Header.ReportBody.MrSigner),
+			EnclaveIssuerProdID:    fmt.Sprintf("%02x", quoteObj.Header.ReportBody.SgxIsvProdId),
+			EnclaveIssuerExtProdID: fmt.Sprintf("%02x", quoteObj.Header.ReportBody.SgxIsvextProdId),
+			EnclaveMeasurement:     fmt.Sprintf("%02x", quoteObj.Header.ReportBody.MrEnclave),
+			ConfigSvn:              fmt.Sprintf("%02x", quoteObj.Header.ReportBody.SgxConfigSvn),
+			IsvSvn:                 fmt.Sprintf("%02x", quoteObj.Header.ReportBody.SgxIsvSvn),
+			ConfigId:               fmt.Sprintf("%02x", quoteObj.Header.ReportBody.ConfigId),
+			TcbLevel:               tcbUptoDateStatus,
+		}
+
+		js, err := json.Marshal(res)
+		if err != nil {
+			return &resourceError{Message: err.Error(), StatusCode: http.StatusInternalServerError}
+		}
+		w.Write(js)
+		log.Info("Sgx Ecdsa Quote Verification completed:", string(js))
 	}
-	js, err := json.Marshal(res)
-	if err != nil {
-		return &resourceError{Message: err.Error(), StatusCode: http.StatusInternalServerError}
-	}
-	w.Write(js)
-	log.Info("Sgx Ecdsa Quote Verification completed:", string(js))
 	return nil
 }
 
