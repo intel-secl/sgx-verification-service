@@ -83,12 +83,6 @@ func (a *App) printUsage() {
 	fmt.Fprintln(w, "    sqvs setup server [--port=<port>]")
 	fmt.Fprintln(w, "        - Setup http server on <port>")
 	fmt.Fprintln(w, "        - Environment variable SQVS_PORT=<port> can be set alternatively")
-	fmt.Fprintln(w, "    sqvs setup tls [--force] [--host_names=<host_names>]")
-	fmt.Fprintln(w, "        - Use the key and certificate provided in /etc/threat-detection if files exist")
-	fmt.Fprintln(w, "        - Otherwise create its own self-signed TLS keypair in /etc/sqvs for quality of life")
-	fmt.Fprintln(w, "        - Option [--force] overwrites any existing files, and always generate self-signed keypair")
-	fmt.Fprintln(w, "        - Argument <host_names> is a list of host names used by local machine, seperated by comma")
-	fmt.Fprintln(w, "        - Environment variable SQVS_TLS_HOST_NAMES=<host_names> can be set alternatively")
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "    download_ca_cert      Download CMS root CA certificate")
 	fmt.Fprintln(w, "                          - Option [--force] overwrites any existing files, and always downloads new root CA cert")
@@ -266,8 +260,7 @@ func (a *App) Run(args []string) error {
 		if args[2] != "download_ca_cert" &&
 			args[2] != "download_cert" &&
 			args[2] != "server" &&
-			args[2] != "all" &&
-			args[2] != "tls" {
+			args[2] != "all" {
 			a.printUsage()
 			return errors.New("No such setup task")
 		}
@@ -370,7 +363,7 @@ func (a *App) Run(args []string) error {
 
 func (a *App) startServer() error {
 	c := a.configuration()
-	log.Info("Starting SQVS Server")
+	log.Info("Starting SGX Quote Verification Server")
 	// Create Router, set routes
 	r := mux.NewRouter()
 	r.SkipClean(true)
@@ -532,8 +525,6 @@ func validateCmdAndEnv(env_names_cmd_opts map[string]string, flags *flag.FlagSet
 }
 
 func validateSetupArgs(cmd string, args []string) error {
-	var fs *flag.FlagSet
-
 	switch cmd {
 	default:
 		return errors.New("Unknown command")
@@ -547,39 +538,10 @@ func validateSetupArgs(cmd string, args []string) error {
 	case "server":
 		return nil
 
-	case "tls":
-		env_names_cmd_opts := map[string]string{
-			"SQVS_TLS_HOST_NAMES": "host_names",
-		}
-
-		fs = flag.NewFlagSet("tls", flag.ContinueOnError)
-		fs.String("host_names", "", "comma separated list of hostnames to add to TLS cert")
-
-		err := fs.Parse(args)
-		if err != nil {
-			return errors.Wrap(err, "Fail to parse arguments")
-		}
-		return validateCmdAndEnv(env_names_cmd_opts, fs)
-
 	case "all":
 		if len(args) != 0 {
 			return errors.New("Please setup the arguments with env")
 		}
-	}
-	return nil
-}
-
-func (a *App) PrintDirFileContents(dir string) error {
-	if dir == "" {
-		return fmt.Errorf("PrintDirFileContents needs a directory path to look for files")
-	}
-	data, err := cos.GetDirFileContents(dir, "")
-	if err != nil {
-		return err
-	}
-	for i, fileData := range data {
-		fmt.Println("File :", i)
-		fmt.Printf("%s", fileData)
 	}
 	return nil
 }
