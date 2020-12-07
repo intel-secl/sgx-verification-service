@@ -4,13 +4,13 @@
 
 ## Key features
 
-- Verify if PCK Certificate in a quote is genuine
+- Verify if PCK Certificate in a quote is valid
 - Verify TcbInfo, PCKCRL, QEIdentity for a platform
 - RESTful APIs for easy and versatile access to above features
 
 ## System Requirements
 
-- RHEL 8.1
+- RHEL 8.2
 - Epel 8 Repo
 - Proxy settings if applicable
 
@@ -49,14 +49,14 @@ export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 ```shell
 git clone https://github.com/intel-secl/sgx-verification-service.git
 cd sgx-verification-service
-git checkout v3.2.0
-make all
+git checkout v3.3.0
+make
 ```
 
 ### Deploy
 
 ```shell
-> ./sqvs-*.bin
+> ./out/sqvs-*.bin
 ```
 
 ### Manage service
@@ -82,14 +82,12 @@ make all
 | context     | github.com/gorilla/context  | v1.1.1                             |
 | handlers    | github.com/gorilla/handlers | v1.4.2                             |
 | mux         | github.com/gorilla/mux      | v1.7.4                             |
-| jwt-go      | github.com/dgrijalva/jwt-go | v3.2.0+incompatible                |
-| gorm        | github.com/jinzhu/gorm      | v1.9.12                            |
-| logrus      | github.com/sirupsen/logrus  | v1.4.2                             |
+| logrus      | github.com/sirupsen/logrus  | v1.5.0                             |
 | testify     | github.com/stretchr/testify | v1.5.1                             |
 | yaml.v2     | gopkg.in/yaml.v2            | v2.2.8                             |
 | restruct    | gopkg.in/restruct           | v1.0.0                             |
-| common      | github.com/intel-secl/common| v3.2.0                             |
-| clients     | github.com/intel-secl/clients| v3.2.0                            |
+| common      | github.com/intel-secl/common| v3.3.0                             |
+| clients     | github.com/intel-secl/clients| v3.3.0                            |
 
 ### Indirect Dependencies
 

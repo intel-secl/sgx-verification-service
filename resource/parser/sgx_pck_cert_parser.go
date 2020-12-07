@@ -284,6 +284,10 @@ func (e *PckCert) parsePckCrl() error {
 			return errors.Wrap(err, "parsePckCrl: failed to add JWT token")
 		}
 		resp, err := client.Do(req)
+		if resp != nil {
+			defer resp.Body.Close()
+		}
+
 		if err != nil {
 			return errors.Wrap(err, "Client request Failed")
 		}
@@ -296,7 +300,6 @@ func (e *PckCert) parsePckCrl() error {
 		if err != nil {
 			return errors.Wrap(err, "read Response failed ")
 		}
-		resp.Body.Close()
 
 		crlDer, err := base64.StdEncoding.DecodeString(string(crlBody))
 		if err != nil {

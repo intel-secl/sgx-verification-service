@@ -66,8 +66,11 @@ func QuoteVerifyCB(router *mux.Router, conf *config.Configuration) {
 
 func quoteVerify(conf *config.Configuration) errorHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
-
 		c := config.Global()
+		if c == nil {
+			return &resourceError{Message: "could not read config",
+				StatusCode: http.StatusInternalServerError}
+		}
 		if c.IncludeToken == "true" {
 			err := AuthorizeEndpoint(r, constants.QuoteVerifierGroupName, true)
 			if err != nil {
@@ -111,6 +114,10 @@ func sgx_qv_verify_quote(conf *config.Configuration) errorHandlerFunc {
 		defer log.Trace("resource/quote_verifier_ops:sgx_qv_verify_quote() Leaving")
 
 		c := config.Global()
+		if c == nil {
+			return &resourceError{Message: "could not read config",
+				StatusCode: http.StatusInternalServerError}
+		}
 		if c.IncludeToken == "true" {
 			err := AuthorizeEndpoint(r, constants.QuoteVerifierGroupName, true)
 			if err != nil {
@@ -257,7 +264,7 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 			StatusCode: http.StatusInternalServerError}
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK) // HTTP 200
+	w.WriteHeader(http.StatusOK)
 	if isQVLVerified {
 		w.Header().Set("Content-Type", "application/json")
 		var resp SGXQVLResponse
@@ -279,8 +286,11 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 		if err != nil {
 			return &resourceError{Message: err.Error(), StatusCode: http.StatusInternalServerError}
 		}
-		w.Write(js)
-		log.Info("Sgx Ecdsa Quote Verification completed:", string(js))
+		_, err = w.Write(js)
+		if err != nil {
+			return &resourceError{Message: err.Error(), StatusCode: http.StatusInternalServerError}
+		}
+		log.Info("Sgx Ecdsa Quote Verification completed")
 
 	} else {
 		res := SGXResponse{
@@ -302,8 +312,11 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 		if err != nil {
 			return &resourceError{Message: err.Error(), StatusCode: http.StatusInternalServerError}
 		}
-		w.Write(js)
-		log.Info("Sgx Ecdsa Quote Verification completed:", string(js))
+		_, err = w.Write(js)
+		if err != nil {
+			return &resourceError{Message: err.Error(), StatusCode: http.StatusInternalServerError}
+		}
+		log.Info("Sgx Ecdsa Quote Verification completed")
 	}
 	return nil
 }

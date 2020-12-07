@@ -246,7 +246,10 @@ func (a *App) Run(args []string) error {
 	case "uninstall":
 		var purge bool
 		flag.CommandLine.BoolVar(&purge, "purge", false, "purge config when uninstalling")
-		flag.CommandLine.Parse(args[2:])
+		err := flag.CommandLine.Parse(args[2:])
+		if err != nil {
+			return err
+		}
 		a.uninstall(purge)
 		log.Info("app:Run() Uninstalled SGX Verification Service")
 		os.Exit(0)
@@ -407,11 +410,14 @@ func (a *App) startServer() error {
 
 	// dispatch web server go routine
 	go func() {
-		tlsCert := config.Global().TLSCertFile
-		tlsKey := config.Global().TLSKeyFile
-		if err := h.ListenAndServeTLS(tlsCert, tlsKey); err != nil {
-			log.WithError(err).Info("Failed to start HTTPS server")
-			stop <- syscall.SIGTERM
+		conf := config.Global()
+		if conf != nil {
+			tlsCert := conf.TLSCertFile
+			tlsKey := conf.TLSKeyFile
+			if err := h.ListenAndServeTLS(tlsCert, tlsKey); err != nil {
+				log.WithError(err).Info("Failed to start HTTPS server")
+				stop <- syscall.SIGTERM
+			}
 		}
 	}()
 
@@ -494,7 +500,10 @@ func (a *App) uninstall(purge bool) {
 		log.WithError(err).Error("error removing home dir")
 	}
 	fmt.Fprintln(a.consoleWriter(), "sgx verification service uninstalled")
-	a.stop()
+	err = a.stop()
+	if err != nil {
+		log.WithError(err).Error("error stopping service")
+	}
 }
 
 func removeService() {
@@ -577,6 +586,9 @@ func (a *App) PrintDirFileContents(dir string) error {
 
 func fnGetJwtCerts() error {
 	conf := config.Global()
+	if conf == nil {
+		return errors.New("failed to read config")
+	}
 	if !strings.HasSuffix(conf.AuthServiceUrl, "/") {
 		conf.AuthServiceUrl = conf.AuthServiceUrl + "/"
 	}

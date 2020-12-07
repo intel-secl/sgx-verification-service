@@ -61,15 +61,3 @@ const (
 	SGXQEInfoSubjectStr            = "CN=Intel SGX TCB Signing,O=Intel Corporation,L=Santa Clara,ST=CA,C=US"
 	MaxTcbLevels                   = 16
 )
-
-// State represents whether or not a daemon is running or not
-type State bool
-
-const (
-	// Stopped is the default nil value, indicating not running
-	Stopped State = false
-	// Running means the daemon is active
-	Running      State = true
-	ProxyEnable        = true
-	ProxyDisable       = false
-)

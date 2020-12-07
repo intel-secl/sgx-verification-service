@@ -57,7 +57,6 @@ for directory in $BIN_PATH $DB_SCRIPT_PATH $LOG_PATH $CONFIG_PATH $CERTS_PATH $C
   fi
   chown -R $SERVICE_USERNAME:$SERVICE_USERNAME $directory
   chmod 700 $directory
-  chmod g+s $directory
 done
 
 cp $COMPONENT_NAME $BIN_PATH/ && chown $SERVICE_USERNAME:$SERVICE_USERNAME $BIN_PATH/*
@@ -66,12 +65,10 @@ ln -sfT $BIN_PATH/$COMPONENT_NAME /usr/bin/$COMPONENT_NAME
 
 mkdir -p $CONFIG_PATH/root-ca && chown sqvs:sqvs $CONFIG_PATH/root-ca
 chmod 700 $CONFIG_PATH/root-ca
-chmod g+s $CONFIG_PATH/root-ca
 
 # Create logging dir in /var/log
 mkdir -p $LOG_PATH && chown sqvs:sqvs $LOG_PATH
 chmod 700 $LOG_PATH
-chmod g+s $LOG_PATH
 
 # Install systemd script
 cp sqvs.service $PRODUCT_HOME && chown $SERVICE_USERNAME:$SERVICE_USERNAME $PRODUCT_HOME/sqvs.service && chown $SERVICE_USERNAME:$SERVICE_USERNAME $PRODUCT_HOME
@@ -87,11 +84,9 @@ auto_install() {
   local cprefix=${2}
   local packages=$(eval "echo \$${cprefix}_PACKAGES")
   # detect available package management tools. start with the less likely ones to differentiate.
-if [ "$OS" == "rhel" ]
-then
+if [ "$OS" == "rhel" ]; then
   dnf -y install $packages
-elif [ "$OS" == "ubuntu" ]
-then
+elif [ "$OS" == "ubuntu" ]; then
   apt -y install $packages
 fi
 }
