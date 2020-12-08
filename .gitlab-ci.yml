@@ -1,0 +1,61 @@
+---
+stages:
+  - scan
+
+variables:
+  HTTPS_PROXY: "${HTTPS_PROXY}"
+  HTTP_PROXY: "${HTTP_PROXY}"
+  NO_PROXY: "${NO_PROXY}"
+  http_proxy: "${HTTP_PROXY}"
+  https_proxy: "${HTTPS_PROXY}"
+  no_proxy: "${NO_PROXY}"
+
+Stylechecker:
+    stage: scan
+    only:
+      - merge_requests
+    image: gta-devel
+    tags:
+       - gta
+    script:
+       - gofmt -l .
+       - gofmt -l . | wc -l 
+       
+checkmarx:
+  stage: scan
+  only:
+     - merge_requests
+  allow_failure: true
+  services:
+      - docker:dind
+  image:
+    name: ${DOCKER_REGISTRY_SERVER}:${DOCKER_REGISTRY_PORT}/checkmarx:isecl
+    entrypoint: ['']
+  tags:
+    - docker-checkmarx
+  script:
+    - cat ${CX_FLOW_CONFIG} > application.yml
+    - |
+      if [ "$CI_PIPELINE_SOURCE" == "merge_request_event" ]; then 
+        java -jar /app/cx-flow.jar --spring.config.location=./application.yml \
+          --scan \
+          --cx-team="${CHECKMARX_TEAM}" \
+          --cx-project="${CI_PROJECT_NAME}-${CI_COMMIT_REF_NAME}" \
+          --app="${CI_PROJECT_NAME}" \
+          --project-id=${CI_PROJECT_ID} \
+          --merge-id=${CI_MERGE_REQUEST_IID} \
+          --bug-tracker=GITLABMERGE \
+          --cx-flow.break-build=false \
+          --f=.
+      else
+        java -jar /app/cx-flow.jar --spring.config.location=./application.yml \
+          --scan \
+          --cx-team="${CHECKMARX_TEAM}" \
+          --cx-project="${CI_PROJECT_NAME}-${CI_COMMIT_REF_NAME}" \
+          --app="${CI_PROJECT_NAME}-${CI_COMMIT_REF_NAME}" \
+          --branch="${CI_COMMIT_REF_NAME}" \
+          --repo-name="${CI_PROJECT_NAME}" \
+          --namespace="${CI_PROJECT_NAMESPACE##*/}" \
+          --cx-flow.break-build=false \
+          --f=.
+      fi
