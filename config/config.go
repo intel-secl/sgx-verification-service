@@ -225,9 +225,9 @@ func Load(path string) *Configuration {
 	file, err := os.Open(path)
 	if file != nil {
 		defer func() {
-			err = file.Close()
-			if err != nil {
-				log.WithError(err).Error("Failed to close config.yml")
+			derr := file.Close()
+			if derr != nil {
+				log.WithError(derr).Error("Failed to close config.yml")
 			}
 		}()
 		err = yaml.NewDecoder(file).Decode(&c)
