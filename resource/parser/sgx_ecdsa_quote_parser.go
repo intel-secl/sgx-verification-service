@@ -459,21 +459,37 @@ func (e *SgxQuoteParsed) parseRawECDSAQuote(decodedQuote []byte) (bool, error) {
 	e.RawQuoteLen = len(decodedQuote)
 	copy(e.RawQuoteFull, decodedQuote)
 
-	restruct.Unpack(e.RawQuoteFull, binary.LittleEndian, &e.Header)
+	err := restruct.Unpack(e.RawQuoteFull, binary.LittleEndian, &e.Header)
+	if err != nil {
+		log.Error("Failed to extract header from extended quote")
+		return false, errors.Wrap(err, "ParseSkcBlob: Failed to extract header from extended quote")
+	}
 
 	log.Debug("Version = ", e.Header.Version)
 	log.Debug("SignType = ", e.Header.SignType)
-	restruct.Unpack(decodedQuote[436:], binary.LittleEndian, &e.Ecdsa256SignatureData)
+	err = restruct.Unpack(decodedQuote[436:], binary.LittleEndian, &e.Ecdsa256SignatureData)
+	if err != nil {
+		log.Error("Failed to extract ecdsa signature from quote")
+		return false, errors.Wrap(err, "ParseSkcBlob: Failed to extract ecdsa signature from extended quote")
+	}
 
-	err := e.generateRawBlob1()
+	err = e.generateRawBlob1()
 	if err != nil {
 		return false, errors.Wrap(err, "resource/parser/sgx_ecdsa_quote_parser:parseRawECDSAQuote() Failed to generateRawBlob1")
 	}
 
 	err = e.generateRawBlob2()
-	restruct.Unpack(decodedQuote[1012:], binary.LittleEndian, &e.QuoteAuthData)
+	err = restruct.Unpack(decodedQuote[1012:], binary.LittleEndian, &e.QuoteAuthData)
+	if err != nil {
+		log.Error("Failed to extract quote auth data from quote")
+		return false, errors.Wrap(err, "ParseSkcBlob: Failed to extract quote auth data from quote")
+	}
 
-	restruct.Unpack(decodedQuote[1046:], binary.LittleEndian, &e.QuoteCertData)
+	err = restruct.Unpack(decodedQuote[1046:], binary.LittleEndian, &e.QuoteCertData)
+	if err != nil {
+		log.Error("Failed to extract certification data from quote")
+		return false, errors.Wrap(err, "ParseSkcBlob: Failed to extract certification data from  quote")
+	}
 	e.QuoteCertData.Data = make([]byte, e.QuoteCertData.ParsedDataSize)
 	copy(e.QuoteCertData.Data, decodedQuote[1052:])
 

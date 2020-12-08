@@ -154,7 +154,12 @@ func (e *TcbInfoStruct) getTcbInfoStruct(fmspc string) error {
 
 	resp, err := client.Do(req)
 	if resp != nil {
-		defer resp.Body.Close()
+		defer func() {
+			err = resp.Body.Close()
+			if err != nil {
+				log.WithError(err).Error("Error closing response")
+			}
+		}()
 	}
 
 	if err != nil {
