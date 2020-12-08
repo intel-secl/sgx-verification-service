@@ -85,6 +85,15 @@ func NewQeIdentity() (*QeIdentityData, error) {
 	}
 
 	resp, err := client.Do(req)
+	if resp != nil {
+		defer func() {
+			derr := resp.Body.Close()
+			if derr != nil {
+				log.WithError(derr).Error("Error closing response")
+			}
+		}()
+	}
+
 	if err != nil {
 		return nil, errors.Wrap(err, "NewQeIdentity: failed to do client request")
 	}
@@ -97,7 +106,6 @@ func NewQeIdentity() (*QeIdentityData, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "read Response failed ")
 	}
-	resp.Body.Close()
 
 	if len(content) == 0 {
 		return nil, errors.Wrap(err, "NewQeIdentity: buffer lenght is zero")

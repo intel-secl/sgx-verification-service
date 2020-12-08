@@ -129,13 +129,25 @@ func (e *SkcBlobParsed) parseSkcBlobData(blob string) (bool, error) {
 	copy(e.RawBlob, decodedBlob)
 
 	e.RawBlobLen = len(e.RawBlob)
-	restruct.Unpack(e.RawBlob, binary.LittleEndian, &e.Header)
+	err = restruct.Unpack(e.RawBlob, binary.LittleEndian, &e.Header)
+	if err != nil {
+		log.Error("Failed to extract header from quote")
+		return false, errors.Wrap(err, "ParseSkcBlob: Failed to extract header from quote")
+	}
 
 	if e.getKeyType() == KeyTypeRsa {
-		restruct.Unpack(e.RawBlob[20:], binary.LittleEndian, &e.RsaKeyDetails)
+		err = restruct.Unpack(e.RawBlob[20:], binary.LittleEndian, &e.RsaKeyDetails)
+		if err != nil {
+			log.Error("Failed to extract RSA Key Details from quote")
+			return false, errors.Wrap(err, "ParseSkcBlob: Failed to extract RSA key details from quote")
+		}
 		keyDetailsLen = 8
 	} else if e.getKeyType() == KeyTypeEc {
-		restruct.Unpack(e.RawBlob[20:], binary.LittleEndian, &e.ECKeyDetails)
+		err = restruct.Unpack(e.RawBlob[20:], binary.LittleEndian, &e.ECKeyDetails)
+		if err != nil {
+			log.Error("Failed to extract EC key details from quote")
+			return false, errors.Wrap(err, "ParseSkcBlob: Failed to extract EC key details from quote")
+		}
 		keyDetailsLen = 4
 	} else {
 		return false, errors.Wrap(err, "ParseSkcBlob: Invalid Key Type Received")
@@ -145,9 +157,17 @@ func (e *SkcBlobParsed) parseSkcBlobData(blob string) (bool, error) {
 	quoteDetailsOffset := 20 + keyDetailsLen
 
 	if e.GetQuoteType() == QuoteTypeEcdsa {
-		restruct.Unpack(e.RawBlob[quoteDetailsOffset:], binary.LittleEndian, &e.EcdsaQuoteInfo)
+		err = restruct.Unpack(e.RawBlob[quoteDetailsOffset:], binary.LittleEndian, &e.EcdsaQuoteInfo)
+		if err != nil {
+			log.Error("Failed to extract ECDSA quote from extended quote")
+			return false, errors.Wrap(err, "ParseSkcBlob: Failed to extract ECDSA quote from extended quote")
+		}
 	} else if e.GetQuoteType() == QuoteTypeSw {
-		restruct.Unpack(e.RawBlob[quoteDetailsOffset:], binary.LittleEndian, &e.SwQuoteInfo)
+		err = restruct.Unpack(e.RawBlob[quoteDetailsOffset:], binary.LittleEndian, &e.SwQuoteInfo)
+		if err != nil {
+			log.Error("Failed to extract SW quote from extended quote")
+			return false, errors.Wrap(err, "ParseSkcBlob: Failed to extract SW quote from extended quote")
+		}
 	} else {
 		return false, errors.Wrap(err, "parseSkcBlobData: Invalid Quote Type Received: ")
 	}

@@ -153,6 +153,15 @@ func (e *TcbInfoStruct) getTcbInfoStruct(fmspc string) error {
 	}
 
 	resp, err := client.Do(req)
+	if resp != nil {
+		defer func() {
+			derr := resp.Body.Close()
+			if derr != nil {
+				log.WithError(derr).Error("Error closing response")
+			}
+		}()
+	}
+
 	if err != nil {
 		return errors.Wrap(err, "getTcbInfoStruct: Failed to Get http client")
 	}
@@ -166,7 +175,6 @@ func (e *TcbInfoStruct) getTcbInfoStruct(fmspc string) error {
 	if err != nil {
 		return errors.Wrap(err, "read Response failed ")
 	}
-	resp.Body.Close()
 
 	e.RawBlob = make([]byte, len(content))
 

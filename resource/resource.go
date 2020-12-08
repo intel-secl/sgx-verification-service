@@ -11,7 +11,6 @@ import (
 	"intel/isecl/sqvs/v3/constants"
 	"net/http"
 
-	"github.com/jinzhu/gorm"
 	clog "intel/isecl/lib/common/v3/log"
 	commLogMsg "intel/isecl/lib/common/v3/log/message"
 	ct "intel/isecl/lib/common/v3/types/aas"
@@ -25,10 +24,6 @@ type errorHandlerFunc func(w http.ResponseWriter, r *http.Request) error
 func (ehf errorHandlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := ehf(w, r); err != nil {
 		slog.WithError(err).Error("HTTP Error")
-		if gorm.IsRecordNotFoundError(err) {
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
-		}
 		switch t := err.(type) {
 		case *resourceError:
 			http.Error(w, t.Message, t.StatusCode)
