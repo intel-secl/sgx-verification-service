@@ -6,6 +6,7 @@ package resource
 
 import (
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/handlers"
@@ -219,7 +220,7 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 		}
 	}
 
-	hashMatched := true
+	hashMatched := false
 
 	if !isQVLVerified {
 		_, err = verifier.VerifiySHA256Hash(quoteObj.GetSHA256Hash(), skcBlobParser.GetPubKeyBlob())
@@ -229,12 +230,16 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 				StatusCode: http.StatusInternalServerError}
 		}
 	} else if userData != "" {
-		_, err = verifier.VerifiySHA256Hash(quoteObj.GetSHA256Hash(), []byte(userData))
+		data, err := base64.StdEncoding.DecodeString(userData)
+		if err != nil {
+			log.Error("Failed to Base64 Decode User Data")
+		}
+		_, err = verifier.VerifiySHA256Hash(quoteObj.GetSHA256Hash(), []byte(data))
 		if err != nil {
 			log.Error(err.Error())
-			hashMatched = false
 		} else {
-			log.Info("Hash is matched: ", hashMatched)
+			hashMatched = true
+			log.Info("Hash is matched")
 		}
 	}
 
