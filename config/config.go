@@ -211,9 +211,9 @@ func (c *Configuration) Save() error {
 		}
 	}
 	defer func() {
-		err = file.Close()
-		if err != nil {
-			log.WithError(err).Error("Failed to flush config.yml")
+		derr := file.Close()
+		if derr != nil {
+			log.WithError(derr).Error("Failed to flush config.yml")
 		}
 	}()
 
