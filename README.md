@@ -18,7 +18,7 @@
 
 - git
 - makeself
-- Go 1.13.1 or newer
+- Go 1.14.1 or newer
 
 ## Step By Step Build Instructions
 

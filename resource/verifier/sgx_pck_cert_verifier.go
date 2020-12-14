@@ -26,6 +26,10 @@ func VerifyPCKCertificate(pckCert *x509.Certificate, interCA []*x509.Certificate
 		return false, errors.New("VerifyPCKCertificate: Invalid Issuer info in PCK Certicate")
 	}
 
+	if strings.Compare(string(trustedRootCA.Signature), string(RootCA[0].Signature)) != 0 {
+		return false, errors.New("VerifyPCKCertificate: Trusted CA Verification Failed")
+	}
+
 	var opts x509.VerifyOptions
 	opts.Intermediates = x509.NewCertPool()
 	for i := 0; i < len(interCA); i++ {
@@ -42,10 +46,6 @@ func VerifyPCKCertificate(pckCert *x509.Certificate, interCA []*x509.Certificate
 			return false, errors.Wrap(err, "Invalid Root CA Certificate")
 		}
 		opts.Roots.AddCert(RootCA[i])
-	}
-
-	if strings.Compare(string(trustedRootCA.Signature), string(RootCA[0].Signature)) != 0 {
-		return false, errors.New("VerifyPCKCertificate: Trusted CA Verification Failed")
 	}
 
 	_, err := pckCert.Verify(opts)

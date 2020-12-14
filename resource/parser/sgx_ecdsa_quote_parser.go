@@ -14,7 +14,9 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/restruct.v1"
 	clog "intel/isecl/lib/common/v3/log"
+	"intel/isecl/sqvs/v3/constants"
 	"strings"
+	"unsafe"
 )
 
 var log = clog.GetDefaultLogger()
@@ -77,8 +79,8 @@ type ReportBodyT struct {
 		Flags uint64
 		Xfrm  uint64
 	}
-	MrEnclave      [SgxHashSize]uint8                 /* ( 64) The value of the enclave's ENCLAVE measurement */
-	Reserved2      [SgxReportBodyReserved2Bytes]uint8 /* ( 96) */
+	MrEnclave      [SgxHashSize]uint8                 /* (64) The value of the enclave's ENCLAVE measurement */
+	Reserved2      [SgxReportBodyReserved2Bytes]uint8 /* (96) */
 	MrSigner       [SgxHashSize]uint8                 /* (128) The value of the enclave's SIGNER measurement */
 	Reserved3      [SgxReportBodyReserved3Bytes]uint8 /* (160) */
 	ConfigId       [SgxConfigIdSize]uint8             /* (192) CONFIGID */
@@ -127,7 +129,7 @@ type SgxQuoteParsed struct {
 }
 
 func ParseEcdsaQuoteBlob(rawBlob []byte) *SgxQuoteParsed {
-	if len(rawBlob) < 1 {
+	if len(rawBlob) < int(unsafe.Sizeof(SgxQuoteParsed{})) {
 		log.Error("ParseEcdsaQuoteBlob: Raw SGX ECDSA Quote is Empty: ")
 		return nil
 	}
@@ -173,7 +175,7 @@ func (e *SgxQuoteParsed) generateRawBlob2() error {
 }
 
 func (e *SgxQuoteParsed) generateRawBlob1() error {
-	var offset int = 0
+	var offset int
 	report := e.Ecdsa256SignatureData.ReportBody
 	e.EcdsaBlob1 = make([]byte, 384)
 
@@ -383,7 +385,7 @@ func (e *SgxQuoteParsed) GetQuotePckCertObj() *x509.Certificate {
 
 func (e *SgxQuoteParsed) GetQuotePckCertInterCAList() []*x509.Certificate {
 	interMediateCAArr := make([]*x509.Certificate, len(e.InterMediateCA))
-	var i int = 0
+	var i int
 	for _, v := range e.InterMediateCA {
 		interMediateCAArr[i] = v
 		i += 1
@@ -393,7 +395,7 @@ func (e *SgxQuoteParsed) GetQuotePckCertInterCAList() []*x509.Certificate {
 
 func (e *SgxQuoteParsed) GetQuotePckCertRootCAList() []*x509.Certificate {
 	RootCAArr := make([]*x509.Certificate, len(e.RootCA))
-	var i int = 0
+	var i int
 	for _, v := range e.RootCA {
 		RootCAArr[i] = v
 		i += 1
@@ -402,16 +404,16 @@ func (e *SgxQuoteParsed) GetQuotePckCertRootCAList() []*x509.Certificate {
 }
 
 func (e *SgxQuoteParsed) parseQuoteCerts() error {
-	if e.QuoteCertData.Type != 5 {
+	if e.QuoteCertData.Type != constants.PCKCertType {
 		return errors.New(fmt.Sprintf("Invalid Certificate type in Quote Info: %d", e.QuoteCertData.Type))
 	}
 
 	certs := strings.SplitAfterN(string(e.QuoteCertData.Data), "-----END CERTIFICATE-----",
 		strings.Count(string(e.QuoteCertData.Data), "-----END CERTIFICATE-----"))
 
-	var PckCertCount int = 0
-	var IntermediateCACount int = 0
-	var RootCACount int = 0
+	var PckCertCount int
+	var IntermediateCACount int
+	var RootCACount int
 
 	e.RootCA = make(map[string]*x509.Certificate)
 	e.InterMediateCA = make(map[string]*x509.Certificate)
@@ -442,7 +444,6 @@ func (e *SgxQuoteParsed) parseQuoteCerts() error {
 			IntermediateCACount += 1
 			e.InterMediateCA[cert.Subject.String()] = cert
 		}
-
 		log.Debug("Cert[", i, "]Issuer:", cert.Issuer.String(), ", Subject:", cert.Subject.String())
 	}
 
@@ -479,6 +480,9 @@ func (e *SgxQuoteParsed) parseRawECDSAQuote(decodedQuote []byte) (bool, error) {
 	}
 
 	err = e.generateRawBlob2()
+	if err != nil {
+		return false, errors.Wrap(err, "resource/parser/sgx_ecdsa_quote_parser:parseRawECDSAQuote() Failed to generateRawBlob2")
+	}
 	err = restruct.Unpack(decodedQuote[1012:], binary.LittleEndian, &e.QuoteAuthData)
 	if err != nil {
 		log.Error("Failed to extract quote auth data from quote")

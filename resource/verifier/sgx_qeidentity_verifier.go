@@ -18,6 +18,10 @@ func VerifyQeIdCertChain(interCA []*x509.Certificate, rootCA []*x509.Certificate
 		return false, errors.New("VerifyQeIdCertChain: InterCA/RootCA is empty")
 	}
 
+	if strings.Compare(string(trustedRootCA.Signature), string(rootCA[0].Signature)) != 0 {
+		return false, errors.New("VerifyQeIdCertChain: Trusted CA Verification Failed")
+	}
+
 	for i := 0; i < len(interCA); i++ {
 		_, err := verifyInterCaCert(interCA[i], rootCA, constants.SGXQEInfoSubjectStr)
 		if err != nil {
@@ -31,9 +35,6 @@ func VerifyQeIdCertChain(interCA []*x509.Certificate, rootCA []*x509.Certificate
 		}
 	}
 
-	if strings.Compare(string(trustedRootCA.Signature), string(rootCA[0].Signature)) != 0 {
-		return false, errors.New("VerifyQeIdCertChain: Trusted CA Verification Failed")
-	}
 	log.Debug("Verify QEIdentity CertChain is succesfull")
 	return true, nil
 }
@@ -61,13 +62,13 @@ func VerifyMiscSelect(reportMiscSelect uint32, miscSelect string, miscSelectMask
 	miscSelectQeArr, err := hex.DecodeString(miscSelect)
 
 	if err != nil {
-		return false, errors.Wrap(err, "VerifyMiscSelect: hex decode failed(1)")
+		return false, errors.Wrap(err, "VerifyMiscSelect: miscSelect hex decode failed")
 	}
 	miscSelectQe := binary.LittleEndian.Uint32(miscSelectQeArr)
 
 	miscSelectMaskQeArr, err := hex.DecodeString(miscSelectMask)
 	if err != nil {
-		return false, errors.Wrap(err, "VerifyMiscSelect: hex decode failed(1)")
+		return false, errors.Wrap(err, "VerifyMiscSelect: miscSelectMask hex decode failed")
 	}
 	miscSelectMaskQe := binary.LittleEndian.Uint32(miscSelectMaskQeArr)
 

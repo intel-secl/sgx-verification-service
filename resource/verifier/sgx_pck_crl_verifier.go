@@ -32,6 +32,10 @@ func VerifyPckCrl(crlUrl []string, crlList []*pkix.CertificateList, interCA []*x
 		return false, errors.New("VerifyPckCrl: CRL List/InterCA/RootCA is empty")
 	}
 
+	if strings.Compare(string(trustedRootCA.Signature), string(rootCA[0].Signature)) != 0 {
+		return false, errors.New("VerifyPckCrl: Trusted CA Verification Failed")
+	}
+
 	for i := 0; i < len(interCA); i++ {
 		_, err := verifyInterCaCert(interCA[i], rootCA, constants.SGXInterCACertSubjectStr)
 		if err != nil {
@@ -45,14 +49,14 @@ func VerifyPckCrl(crlUrl []string, crlList []*pkix.CertificateList, interCA []*x
 		}
 	}
 
-	var signPassCount int = 0
+	var signPassCount int
 	for i := 0; i < len(crlList); i++ {
 		ret := checkExpiry(crlList[i])
-		if ret != true {
+		if !ret {
 			return false, errors.New("VerifyPckCrl: Revocation List has Expired" + crlUrl[i])
 		}
 		ret = verifyPckCrlIssuer(crlList[i])
-		if ret != true {
+		if !ret {
 			return false, errors.New("VerifyPckCrl: CRL Issuer info is Invalid: " + crlUrl[i])
 		}
 
@@ -68,8 +72,5 @@ func VerifyPckCrl(crlUrl []string, crlList []*pkix.CertificateList, interCA []*x
 		}
 	}
 
-	if strings.Compare(string(trustedRootCA.Signature), string(rootCA[0].Signature)) != 0 {
-		return false, errors.New("VerifyPckCrl: Trusted CA Verification Failed")
-	}
 	return true, nil
 }

@@ -67,6 +67,9 @@ func AddJWTToken(req *http.Request) error {
 		if err != nil {
 			aasClient.AddUser(c.SQVS.User, c.SQVS.Password)
 			err = aasClient.FetchAllTokens()
+			if err != nil {
+				return errors.Wrap(err, "addJWTToken: Could not fetch all tokens from aas")
+			}
 			jwtToken, err = aasClient.GetUserToken(c.SQVS.User)
 			if err != nil {
 				return errors.Wrap(err, "addJWTToken: Could not fetch token")
@@ -100,7 +103,7 @@ func GetCertObjList(certChainStr string) ([]*x509.Certificate, error) {
 
 	certCount := strings.Count(certChainEscapedStr, "-----END CERTIFICATE-----")
 	if certCount == 0 {
-		return nil, errors.Wrap(err, "GetCertObjList: Invalid Certificate PEM string")
+		return nil, errors.Wrap(err, "GetCertObjList: no certificates were found")
 	}
 
 	certs := strings.SplitAfterN(certChainEscapedStr, "-----END CERTIFICATE-----", certCount)
@@ -130,8 +133,6 @@ func IntToBool(i int) bool {
 }
 
 func CheckDate(issueDate string, nextUpdate string) bool {
-	universalTime := time.Now().UTC()
-
 	iDate, err := time.Parse(time.RFC3339, issueDate)
 	if err != nil {
 		log.Error("CheckData: IssueDate parse:" + err.Error())
@@ -144,12 +145,12 @@ func CheckDate(issueDate string, nextUpdate string) bool {
 		return false
 	}
 
+	universalTime := time.Now().UTC()
+
 	curTimeAfterIssDate := universalTime.After(iDate)
 	curTimeBeforeNextUpdate := universalTime.Before(nUpdate)
 
-	log.Debug("Issuedate:", issueDate, ", nextUpdate:", nextUpdate,
-		", Current Date:", universalTime)
-	if curTimeAfterIssDate == false || curTimeBeforeNextUpdate == false {
+	if !curTimeAfterIssDate || !curTimeBeforeNextUpdate {
 		log.Error(fmt.Sprintf("CheckDate: CheckDate Validataion Failed, Time After IssueDate : %v, Time Before NextUpdate : %v",
 			curTimeAfterIssDate, curTimeBeforeNextUpdate))
 		return false

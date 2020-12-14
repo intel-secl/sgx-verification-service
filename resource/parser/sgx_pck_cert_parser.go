@@ -122,8 +122,7 @@ func (e *PckCert) genCertObj(certBlob []byte) error {
 }
 
 func (e *PckCert) GetFmspcValue() string {
-	fmspcValue := e.FmspcStr
-	return fmspcValue
+	return e.FmspcStr
 }
 
 func (e *PckCert) GetPckCertTcbLevels() []byte {
@@ -135,7 +134,7 @@ func (e *PckCert) parseFMSPCValue() error {
 	var err error
 	for i := 0; i < len(e.PckCertObj.Extensions); i++ {
 		ext = e.PckCertObj.Extensions[i]
-		if verifier.ExtSgxOid.Equal(ext.Id) == true {
+		if verifier.ExtSgxOid.Equal(ext.Id) {
 
 			var asn1Extensions []asn1.RawValue
 			_, err := asn1.Unmarshal(ext.Value, &asn1Extensions)
@@ -150,7 +149,7 @@ func (e *PckCert) parseFMSPCValue() error {
 				if err != nil {
 					log.Info("Asn1 Extension Unmarshal failed for index:", j)
 				}
-				if verifier.ExtSgxFMSPCOid.Equal(sgxExtension.Id) == true {
+				if verifier.ExtSgxFMSPCOid.Equal(sgxExtension.Id) {
 					e.FmspcStr = hex.EncodeToString(sgxExtension.Value)
 					log.WithField("FMSPC hex value", e.FmspcStr).Debug("Fmspc Value from cert")
 					return nil
@@ -169,11 +168,11 @@ type TcbExtn struct {
 
 func (e *PckCert) parseTcbExtensions() error {
 	var ext pkix.Extension
-	e.tcbCompLevels = make([]byte, 18)
+	e.tcbCompLevels = make([]byte, constants.MaxTCBCompLevels)
 
 	for i := 0; i < len(e.PckCertObj.Extensions); i++ {
 		ext = e.PckCertObj.Extensions[i]
-		if verifier.ExtSgxOid.Equal(ext.Id) == true {
+		if verifier.ExtSgxOid.Equal(ext.Id) {
 			var asn1Extensions []asn1.RawValue
 			_, err := asn1.Unmarshal(ext.Value, &asn1Extensions)
 			if err != nil {
@@ -225,7 +224,7 @@ func (e *PckCert) GetPckCrlObj() []*pkix.CertificateList {
 
 func (e *PckCert) GetPckCrlInterCaList() []*x509.Certificate {
 	interMediateCAArr := make([]*x509.Certificate, len(e.PckCRL.IntermediateCA))
-	var i int = 0
+	var i int
 	for _, v := range e.PckCRL.IntermediateCA {
 		interMediateCAArr[i] = v
 		i += 1
@@ -236,7 +235,7 @@ func (e *PckCert) GetPckCrlInterCaList() []*x509.Certificate {
 
 func (e *PckCert) GetPckCrlRootCaList() []*x509.Certificate {
 	RootCAArr := make([]*x509.Certificate, len(e.PckCRL.RootCA))
-	var i int = 0
+	var i int
 	for _, v := range e.PckCRL.RootCA {
 		RootCAArr[i] = v
 		i += 1
@@ -288,13 +287,13 @@ func (e *PckCert) parsePckCrl() error {
 			defer func() {
 				derr := resp.Body.Close()
 				if derr != nil {
-					log.WithError(derr).Error("Error closing response")
+					log.WithError(derr).Error("Error closing pckcrl response")
 				}
 			}()
 		}
 
 		if err != nil {
-			return errors.Wrap(err, "Client request Failed")
+			return errors.Wrap(err, "failed to get pckcrl response from scs")
 		}
 
 		if resp.StatusCode != 200 {
@@ -303,7 +302,7 @@ func (e *PckCert) parsePckCrl() error {
 
 		crlBody, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return errors.Wrap(err, "read Response failed ")
+			return errors.Wrap(err, "failed to read pckcrl response body")
 		}
 
 		crlDer, err := base64.StdEncoding.DecodeString(string(crlBody))
@@ -325,8 +324,8 @@ func (e *PckCert) parsePckCrl() error {
 		e.PckCRL.RootCA = make(map[string]*x509.Certificate)
 		e.PckCRL.IntermediateCA = make(map[string]*x509.Certificate)
 
-		var IntermediateCACount int = 0
-		var RootCACount int = 0
+		var IntermediateCACount int
+		var RootCACount int
 		for i := 0; i < len(certChainList); i++ {
 			cert := certChainList[i]
 			if strings.Contains(cert.Subject.String(), "CN=Intel SGX Root CA") {

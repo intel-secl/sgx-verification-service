@@ -5,6 +5,7 @@
 package verifier
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -35,7 +36,7 @@ func CheckMandatoryExt(cert *x509.Certificate, requiredExtDict map[string]asn1.O
 	}
 
 	var ext pkix.Extension
-	var present int = 0
+	var present int
 	for i := 0; i < len(cert.Extensions); i++ {
 		ext = cert.Extensions[i]
 		if _, ok := requiredExtDict[ext.Id.String()]; ok {
@@ -70,18 +71,18 @@ func verifyCaSubject(input string, cmpStr string) bool {
 		}
 	}
 
-	log.Errorf("verifyCaSubject: Input:%s not mached with %s\n", input, cmpStr)
+	log.Errorf("verifyCaSubject: Input:%s did not match with %s\n", input, cmpStr)
 	return false
 }
 
 func verifyInterCaCert(interCA *x509.Certificate, rootCA []*x509.Certificate, subjectStr string) (bool, error) {
 	if rootCA == nil || len(subjectStr) == 0 {
-		return false, errors.New("verifyInterCaCert: Certificate Object is nul or requiredExtDict is Empty")
+		return false, errors.New("verifyInterCaCert: Certificate Object is nul or intermediate CA cert not provided")
 	}
 
 	if !verifyCaSubject(interCA.Subject.String(), subjectStr) {
 		return false, errors.New("verifyInterCaCert: Invalid Certificate Subject: " + interCA.Subject.String() +
-			"not matched with " + subjectStr)
+			"did not match with " + subjectStr)
 	}
 	_, err := CheckMandatoryExt(interCA, getMandatoryCertExtMap())
 	if err != nil {
@@ -102,7 +103,7 @@ func verifyInterCaCert(interCA *x509.Certificate, rootCA []*x509.Certificate, su
 
 func verifyRootCaCert(rootCA *x509.Certificate, subjectStr string) (bool, error) {
 	if rootCA == nil || len(subjectStr) == 0 {
-		return false, errors.New("verifyRootCaCert: Certificate Object is nul or requiredExtDict is Empty")
+		return false, errors.New("verifyRootCaCert: Certificate Object is nul or root CA cert not provided")
 	}
 
 	var opts x509.VerifyOptions
@@ -112,7 +113,7 @@ func verifyRootCaCert(rootCA *x509.Certificate, subjectStr string) (bool, error)
 	}
 
 	if strings.Compare(rootCA.Issuer.String(), rootCA.Subject.String()) != 0 {
-		return false, errors.New("verifyRootCaCert: Invalid Certificate Subject/Verifier differed: " + rootCA.Subject.String())
+		return false, errors.New("verifyRootCaCert: the certificate does not appear to be a Root CA")
 	}
 
 	_, err := CheckMandatoryExt(rootCA, getMandatoryCertExtMap())
@@ -125,12 +126,12 @@ func verifyRootCaCert(rootCA *x509.Certificate, subjectStr string) (bool, error)
 
 	_, err = rootCA.Verify(opts)
 	if err != nil {
-		return false, errors.Wrap(err, "verifyRootCaCert: Verification failure:")
+		return false, errors.Wrap(err, "verifyRootCaCert: Root CA Verification failure:")
 	}
 
 	err = rootCA.CheckSignature(rootCA.SignatureAlgorithm, rootCA.RawTBSCertificate, rootCA.Signature)
 	if err != nil {
-		return false, errors.Wrap(err, "verifyRootCaCert: Signature check failed ")
+		return false, errors.Wrap(err, "verifyRootCaCert: Root CA Signature check failed ")
 	}
 	return true, nil
 }
@@ -140,13 +141,13 @@ func CheckMandatorySGXExt(cert *x509.Certificate, requiredExtDict map[string]asn
 		return false, errors.New("CheckMandatorySGXExt: Certificate Object is nul or requiredExtDict is Empty")
 	}
 
-	var present int = 0
+	var present int
 	var ext, sgxExt pkix.Extension
 	var sgxExtensions []asn1.RawValue
 
 	for i := 0; i < len(cert.Extensions); i++ {
 		ext = cert.Extensions[i]
-		if ExtSgxOid.Equal(ext.Id) == true {
+		if ExtSgxOid.Equal(ext.Id) {
 			_, err := asn1.Unmarshal(ext.Value, &sgxExtensions)
 			if err != nil {
 				return false, errors.Wrap(err, "CheckMandatorySGXExt: unmarshal failed")
@@ -155,6 +156,9 @@ func CheckMandatorySGXExt(cert *x509.Certificate, requiredExtDict map[string]asn
 			log.Debug("Required Extension Dictionary", requiredExtDict)
 			for j := 0; j < len(sgxExtensions); j++ {
 				_, err = asn1.Unmarshal(sgxExtensions[j].FullBytes, &sgxExt)
+				if err != nil {
+					log.Debug("failed to unmarshal sgx extensions")
+				}
 				log.Debug("SGXExtension[", j, "]:", sgxExt.Id.String())
 				if _, ok := requiredExtDict[sgxExt.Id.String()]; ok {
 					log.Debug("SGXExtension[", j, "]:", sgxExt.Id.String(), " found in list")
@@ -182,11 +186,11 @@ func VerifiySHA256Hash(hash []byte, blob []byte) (bool, error) {
 		return false, errors.New("VerifiySHA256Hash: Error in Hash generation")
 	}
 
-	for i := 0; i < len(hash); i++ {
-		if hashValue[i] != hash[i] {
-			return false, errors.New("VerifiySHA256Hash: Public 256 validation failed")
-		}
+	ret := bytes.Compare(hashValue, hash)
+	if ret != 0 {
+		return false, errors.New("VerifiySHA256Hash: hash verification failed")
 	}
+
 	log.Debug("Verify SHA256 Hash Passed...")
 	return true, nil
 }

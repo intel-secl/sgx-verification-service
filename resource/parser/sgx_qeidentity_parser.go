@@ -89,7 +89,7 @@ func NewQeIdentity() (*QeIdentityData, error) {
 		defer func() {
 			derr := resp.Body.Close()
 			if derr != nil {
-				log.WithError(derr).Error("Error closing response")
+				log.WithError(derr).Error("Error closing qe identity response")
 			}
 		}()
 	}
@@ -108,14 +108,14 @@ func NewQeIdentity() (*QeIdentityData, error) {
 	}
 
 	if len(content) == 0 {
-		return nil, errors.Wrap(err, "NewQeIdentity: buffer lenght is zero")
+		return nil, errors.Wrap(err, "NewQeIdentity: no qe identity data received")
 	}
 
 	obj.RawBlob = make([]byte, len(content))
 	copy(obj.RawBlob, content)
 
 	if err := json.Unmarshal(content, &obj.QEJson); err != nil {
-		return nil, errors.Wrap(err, "NewQeIdentity: QeIdentity Unmarshal Failed")
+		return nil, errors.Wrap(err, "NewQeIdentity: cannot unmarshal qeidentity data")
 	}
 
 	certChainList, err := utils.GetCertObjList(string(resp.Header.Get("Sgx-Qe-Identity-Issuer-Chain")))
@@ -126,8 +126,8 @@ func NewQeIdentity() (*QeIdentityData, error) {
 	obj.RootCA = make(map[string]*x509.Certificate)
 	obj.IntermediateCA = make(map[string]*x509.Certificate)
 
-	var IntermediateCACount int = 0
-	var RootCACount int = 0
+	var IntermediateCACount int
+	var RootCACount int
 	for i := 0; i < len(certChainList); i++ {
 		cert := certChainList[i]
 		if strings.Contains(cert.Subject.String(), "CN=Intel SGX Root CA") {
@@ -150,7 +150,7 @@ func NewQeIdentity() (*QeIdentityData, error) {
 
 func (e *QeIdentityData) GetQeInfoInterCaList() []*x509.Certificate {
 	interMediateCAArr := make([]*x509.Certificate, len(e.IntermediateCA))
-	var i int = 0
+	var i int
 	for _, v := range e.IntermediateCA {
 		interMediateCAArr[i] = v
 		i += 1
@@ -161,7 +161,7 @@ func (e *QeIdentityData) GetQeInfoInterCaList() []*x509.Certificate {
 
 func (e *QeIdentityData) GetQeInfoRootCaList() []*x509.Certificate {
 	RootCAArr := make([]*x509.Certificate, len(e.RootCA))
-	var i int = 0
+	var i int
 	for _, v := range e.RootCA {
 		RootCAArr[i] = v
 		i += 1

@@ -17,6 +17,10 @@ func VerifyTcbInfoCertChain(interCA []*x509.Certificate, rootCA []*x509.Certific
 		return false, errors.New("VerifyTcbInfo: InterCA/RootCA is empty")
 	}
 
+	if strings.Compare(string(trustedRootCA.Signature), string(rootCA[0].Signature)) != 0 {
+		return false, errors.New("VerifyTcbInfo: Trusted CA Verification Failed")
+	}
+
 	for i := 0; i < len(interCA); i++ {
 		_, err := verifyInterCaCert(interCA[i], rootCA, constants.SGXTCBInfoSubjectStr)
 		if err != nil {
@@ -30,9 +34,6 @@ func VerifyTcbInfoCertChain(interCA []*x509.Certificate, rootCA []*x509.Certific
 		}
 	}
 
-	if strings.Compare(string(trustedRootCA.Signature), string(rootCA[0].Signature)) != 0 {
-		return false, errors.New("VerifyTcbInfo: Trusted CA Verification Failed")
-	}
 	log.Debug("VerifyTcbInfoCertChain is succesfull")
 	return true, nil
 }

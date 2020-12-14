@@ -30,22 +30,22 @@ const (
 )
 
 type TcbType struct {
-	SgxTcbComp01Svn uint   `json: "sgxtcbcomp01svn"`
-	SgxTcbComp02Svn uint   `json: "sgxtcbcomp02svn"`
-	SgxTcbComp03Svn uint   `json: "sgxtcbcomp03svn"`
-	SgxTcbComp04Svn uint   `json: "sgxtcbcomp04svn"`
-	SgxTcbComp05Svn uint   `json: "sgxtcbcomp05svn"`
-	SgxTcbComp06Svn uint   `json: "sgxtcbcomp06svn"`
-	SgxTcbComp07Svn uint   `json: "sgxtcbcomp07svn"`
-	SgxTcbComp08Svn uint   `json: "sgxtcbcomp08svn"`
-	SgxTcbComp09Svn uint   `json: "sgxtcbcomp09svn"`
-	SgxTcbComp10Svn uint   `json: "sgxtcbcomp10svn"`
-	SgxTcbComp11Svn uint   `json: "sgxtcbcomp11svn"`
-	SgxTcbComp12Svn uint   `json: "sgxtcbcomp12svn"`
-	SgxTcbComp13Svn uint   `json: "sgxtcbcomp13svn"`
-	SgxTcbComp14Svn uint   `json: "sgxtcbcomp14svn"`
-	SgxTcbComp15Svn uint   `json: "sgxtcbcomp15svn"`
-	SgxTcbComp16Svn uint   `json: "sgxtcbcomp16svn"`
+	SgxTcbComp01Svn uint8  `json: "sgxtcbcomp01svn"`
+	SgxTcbComp02Svn uint8  `json: "sgxtcbcomp02svn"`
+	SgxTcbComp03Svn uint8  `json: "sgxtcbcomp03svn"`
+	SgxTcbComp04Svn uint8  `json: "sgxtcbcomp04svn"`
+	SgxTcbComp05Svn uint8  `json: "sgxtcbcomp05svn"`
+	SgxTcbComp06Svn uint8  `json: "sgxtcbcomp06svn"`
+	SgxTcbComp07Svn uint8  `json: "sgxtcbcomp07svn"`
+	SgxTcbComp08Svn uint8  `json: "sgxtcbcomp08svn"`
+	SgxTcbComp09Svn uint8  `json: "sgxtcbcomp09svn"`
+	SgxTcbComp10Svn uint8  `json: "sgxtcbcomp10svn"`
+	SgxTcbComp11Svn uint8  `json: "sgxtcbcomp11svn"`
+	SgxTcbComp12Svn uint8  `json: "sgxtcbcomp12svn"`
+	SgxTcbComp13Svn uint8  `json: "sgxtcbcomp13svn"`
+	SgxTcbComp14Svn uint8  `json: "sgxtcbcomp14svn"`
+	SgxTcbComp15Svn uint8  `json: "sgxtcbcomp15svn"`
+	SgxTcbComp16Svn uint8  `json: "sgxtcbcomp16svn"`
 	PceSvn          uint16 `json: "pcesvn"`
 }
 
@@ -83,7 +83,7 @@ type ECDSASignature struct {
 
 func NewTcbInfo(fmspc string) (*TcbInfoStruct, error) {
 	var err error
-	if len(fmspc) < 0 {
+	if len(fmspc) < constants.FmspcLen {
 		return nil, errors.Wrap(err, "NewTcbInfo: FMSPC value not found")
 	}
 
@@ -97,7 +97,7 @@ func NewTcbInfo(fmspc string) (*TcbInfoStruct, error) {
 
 func (e *TcbInfoStruct) GetTcbInfoInterCaList() []*x509.Certificate {
 	interMediateCAArr := make([]*x509.Certificate, len(e.IntermediateCA))
-	var i int = 0
+	var i int
 	for _, v := range e.IntermediateCA {
 		interMediateCAArr[i] = v
 		i += 1
@@ -107,7 +107,7 @@ func (e *TcbInfoStruct) GetTcbInfoInterCaList() []*x509.Certificate {
 
 func (e *TcbInfoStruct) GetTcbInfoRootCaList() []*x509.Certificate {
 	RootCAArr := make([]*x509.Certificate, len(e.RootCA))
-	var i int = 0
+	var i int
 	for _, v := range e.RootCA {
 		RootCAArr[i] = v
 		i += 1
@@ -157,23 +157,27 @@ func (e *TcbInfoStruct) getTcbInfoStruct(fmspc string) error {
 		defer func() {
 			derr := resp.Body.Close()
 			if derr != nil {
-				log.WithError(derr).Error("Error closing response")
+				log.WithError(derr).Error("Error closing tcbinfo response")
 			}
 		}()
 	}
 
 	if err != nil {
-		return errors.Wrap(err, "getTcbInfoStruct: Failed to Get http client")
+		return errors.Wrap(err, "getTcbInfoStruct: Failed to Get tcbinfo response from scs")
 	}
 	log.Debug("getTcbInfoStruct: Got status:", resp.StatusCode, ", content-len:", resp.ContentLength, " resp body:", resp.Body)
 
 	if resp.StatusCode != 200 {
-		return errors.New(fmt.Sprintf("GetTcbInfoJson: Invalid Status code received: %d", resp.StatusCode))
+		return errors.New(fmt.Sprintf("getTcbInfoStruct: Invalid Status code received: %d", resp.StatusCode))
 	}
 
 	content, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return errors.Wrap(err, "read Response failed ")
+		return errors.Wrap(err, "tcbinfo read response failed ")
+	}
+
+	if len(content) == 0 {
+		return errors.Wrap(err, "getTcbInfoStruct: no tcbinfo data received")
 	}
 
 	e.RawBlob = make([]byte, len(content))
@@ -194,8 +198,8 @@ func (e *TcbInfoStruct) getTcbInfoStruct(fmspc string) error {
 	e.RootCA = make(map[string]*x509.Certificate)
 	e.IntermediateCA = make(map[string]*x509.Certificate)
 
-	var IntermediateCACount int = 0
-	var RootCACount int = 0
+	var IntermediateCACount int
+	var RootCACount int
 	for i := 0; i < len(certChainList); i++ {
 		cert := certChainList[i]
 		if strings.Contains(cert.Subject.String(), "CN=Intel SGX Root CA") {
@@ -209,7 +213,7 @@ func (e *TcbInfoStruct) getTcbInfoStruct(fmspc string) error {
 		log.Debug("Cert[", i, "]Issuer:", cert.Issuer.String(), ", Subject:", cert.Subject.String())
 	}
 	if IntermediateCACount == 0 || RootCACount == 0 {
-		return errors.Wrap(err, "TCB INFO - Root CA/Intermediate CA Invalid count")
+		return errors.Wrap(err, "getTcbInfoStruct: intermediate CA or Root CA is empty")
 	}
 
 	return nil
@@ -276,22 +280,22 @@ func compareTcbComponents(pckComponents []byte, pckpcesvn uint16, tcbComponents 
 func getTcbCompList(TcbLevelList *TcbType) []byte {
 	TcbCompLevel := make([]byte, constants.MaxTcbLevels)
 
-	TcbCompLevel[0] = byte(TcbLevelList.SgxTcbComp01Svn)
-	TcbCompLevel[1] = byte(TcbLevelList.SgxTcbComp02Svn)
-	TcbCompLevel[2] = byte(TcbLevelList.SgxTcbComp03Svn)
-	TcbCompLevel[3] = byte(TcbLevelList.SgxTcbComp04Svn)
-	TcbCompLevel[4] = byte(TcbLevelList.SgxTcbComp05Svn)
-	TcbCompLevel[5] = byte(TcbLevelList.SgxTcbComp06Svn)
-	TcbCompLevel[6] = byte(TcbLevelList.SgxTcbComp07Svn)
-	TcbCompLevel[7] = byte(TcbLevelList.SgxTcbComp08Svn)
-	TcbCompLevel[8] = byte(TcbLevelList.SgxTcbComp09Svn)
-	TcbCompLevel[9] = byte(TcbLevelList.SgxTcbComp10Svn)
-	TcbCompLevel[10] = byte(TcbLevelList.SgxTcbComp11Svn)
-	TcbCompLevel[11] = byte(TcbLevelList.SgxTcbComp12Svn)
-	TcbCompLevel[12] = byte(TcbLevelList.SgxTcbComp13Svn)
-	TcbCompLevel[13] = byte(TcbLevelList.SgxTcbComp14Svn)
-	TcbCompLevel[14] = byte(TcbLevelList.SgxTcbComp15Svn)
-	TcbCompLevel[15] = byte(TcbLevelList.SgxTcbComp16Svn)
+	TcbCompLevel[0] = TcbLevelList.SgxTcbComp01Svn
+	TcbCompLevel[1] = TcbLevelList.SgxTcbComp02Svn
+	TcbCompLevel[2] = TcbLevelList.SgxTcbComp03Svn
+	TcbCompLevel[3] = TcbLevelList.SgxTcbComp04Svn
+	TcbCompLevel[4] = TcbLevelList.SgxTcbComp05Svn
+	TcbCompLevel[5] = TcbLevelList.SgxTcbComp06Svn
+	TcbCompLevel[6] = TcbLevelList.SgxTcbComp07Svn
+	TcbCompLevel[7] = TcbLevelList.SgxTcbComp08Svn
+	TcbCompLevel[8] = TcbLevelList.SgxTcbComp09Svn
+	TcbCompLevel[9] = TcbLevelList.SgxTcbComp10Svn
+	TcbCompLevel[10] = TcbLevelList.SgxTcbComp11Svn
+	TcbCompLevel[11] = TcbLevelList.SgxTcbComp12Svn
+	TcbCompLevel[12] = TcbLevelList.SgxTcbComp13Svn
+	TcbCompLevel[13] = TcbLevelList.SgxTcbComp14Svn
+	TcbCompLevel[14] = TcbLevelList.SgxTcbComp15Svn
+	TcbCompLevel[15] = TcbLevelList.SgxTcbComp16Svn
 
 	return TcbCompLevel
 }

@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/restruct.v1"
 	"math/big"
-	"strconv"
+	"unsafe"
 )
 
 type EcdsaQuoteData struct {
@@ -55,16 +55,14 @@ type SkcBlobParsed struct {
 
 const (
 	KeyTypeRsa = 1
-	KeyTypeEc  = 2
 )
 
 const (
 	QuoteTypeEcdsa = 1
-	QuoteTypeSw    = 2
 )
 
 func ParseSkcQuoteBlob(rawBlob string) *SkcBlobParsed {
-	if len(rawBlob) < 1 {
+	if len(rawBlob) < int(unsafe.Sizeof(SkcBlobParsed{})) {
 		log.Error("ParseSkcQuoteBlob: SKC Blob is Empty")
 		return nil
 	}
@@ -81,7 +79,7 @@ func ParseSkcQuoteBlob(rawBlob string) *SkcBlobParsed {
 func ParseQVLQuoteBlob(rawBlob string) *SkcBlobParsed {
 	log.Trace("parser/skc_quote_parser:ParseQVLQuoteBlob() Entering")
 	defer log.Trace("parser/skc_quote_parser:ParseQVLQuoteBlob() Leaving")
-	if len(rawBlob) < 1 {
+	if len(rawBlob) < int(unsafe.Sizeof(SkcBlobParsed{})) {
 		log.Error("ParseQVLQuoteBlob: SKC Blob is Empty")
 		return nil
 	}
@@ -122,8 +120,7 @@ func (e *SkcBlobParsed) parseSkcBlobData(blob string) (bool, error) {
 	}
 
 	var keyDetailsLen int
-	var quoteDetailsLen int
-	var pubKeySize int = 0
+	var pubKeySize int
 
 	e.RawBlob = make([]byte, len(decodedBlob))
 	copy(e.RawBlob, decodedBlob)
@@ -142,13 +139,6 @@ func (e *SkcBlobParsed) parseSkcBlobData(blob string) (bool, error) {
 			return false, errors.Wrap(err, "ParseSkcBlob: Failed to extract RSA key details from quote")
 		}
 		keyDetailsLen = 8
-	} else if e.getKeyType() == KeyTypeEc {
-		err = restruct.Unpack(e.RawBlob[20:], binary.LittleEndian, &e.ECKeyDetails)
-		if err != nil {
-			log.Error("Failed to extract EC key details from quote")
-			return false, errors.Wrap(err, "ParseSkcBlob: Failed to extract EC key details from quote")
-		}
-		keyDetailsLen = 4
 	} else {
 		return false, errors.Wrap(err, "ParseSkcBlob: Invalid Key Type Received")
 	}
@@ -162,17 +152,11 @@ func (e *SkcBlobParsed) parseSkcBlobData(blob string) (bool, error) {
 			log.Error("Failed to extract ECDSA quote from extended quote")
 			return false, errors.Wrap(err, "ParseSkcBlob: Failed to extract ECDSA quote from extended quote")
 		}
-	} else if e.GetQuoteType() == QuoteTypeSw {
-		err = restruct.Unpack(e.RawBlob[quoteDetailsOffset:], binary.LittleEndian, &e.SwQuoteInfo)
-		if err != nil {
-			log.Error("Failed to extract SW quote from extended quote")
-			return false, errors.Wrap(err, "ParseSkcBlob: Failed to extract SW quote from extended quote")
-		}
 	} else {
 		return false, errors.Wrap(err, "parseSkcBlobData: Invalid Quote Type Received: ")
 	}
 
-	quoteDetailsLen = 4
+	quoteDetailsLen := 4
 	pubKeyStrOfset := quoteDetailsOffset + quoteDetailsLen
 	quoteStrOffset := quoteDetailsOffset + quoteDetailsLen
 	if e.GetQuoteType() == QuoteTypeEcdsa {
@@ -181,7 +165,7 @@ func (e *SkcBlobParsed) parseSkcBlobData(blob string) (bool, error) {
 	}
 
 	if e.getKeyType() == KeyTypeRsa {
-		pubKeySize = (int(e.RsaKeyDetails.ModulusLen) + int(e.RsaKeyDetails.ExponentLen))
+		pubKeySize = int(e.RsaKeyDetails.ModulusLen) + int(e.RsaKeyDetails.ExponentLen)
 		quoteStrOffset = quoteStrOffset + pubKeySize
 	} else {
 		quoteStrOffset += 8 //Because of union member
@@ -218,8 +202,6 @@ func (e *SkcBlobParsed) DumpSkcBlobHeader() {
 
 	if e.GetQuoteType() == QuoteTypeEcdsa {
 		log.Debug("EcdsaQuoteInfo->PckCertSize = ", e.EcdsaQuoteInfo.PckCertSize)
-	} else if e.GetQuoteType() == QuoteTypeSw {
-		log.Debug("SwQuoteInfo->Dummy = ", e.SwQuoteInfo.Dummy)
 	}
 }
 
@@ -242,21 +224,14 @@ func (e *SkcBlobParsed) GetRsaPubKey() ([]byte, error) {
 		return nil, errors.Wrap(err, "GetRsaPubKey: Invalid Public Key length")
 	}
 
-	exponentLen := int(e.GetRsaExponentLen())
-	exponentArr := pubKeyBlob[:exponentLen]
-	modulusStrOffset := exponentLen
+	exponentLen := e.GetRsaExponentLen()
 
 	n := big.Int{}
-	n.SetBytes(pubKeyBlob[modulusStrOffset:])
+	n.SetBytes(pubKeyBlob[exponentLen:])
 	eb := big.Int{}
-	eb.SetBytes(exponentArr)
+	eb.SetBytes(pubKeyBlob[:exponentLen])
 
-	ex, err := strconv.Atoi(eb.String())
-	if err != nil {
-		return nil, errors.Wrap(err, "GetRsaPubKey: Strconv to int")
-	}
-
-	pubKey := rsa.PublicKey{N: &n, E: int(ex)}
+	pubKey := rsa.PublicKey{N: &n, E: int(eb.Int64())}
 
 	pubKeyBytes, err := x509.MarshalPKIXPublicKey(&pubKey)
 	if err != nil {

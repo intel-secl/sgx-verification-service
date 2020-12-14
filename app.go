@@ -27,7 +27,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-	//"intel/isecl/lib/common/v3/middleware"
 	"intel/isecl/lib/common/v3/crypt"
 	e "intel/isecl/lib/common/v3/exec"
 	commLog "intel/isecl/lib/common/v3/log"
@@ -588,7 +587,15 @@ func fnGetJwtCerts() error {
 		log.Error("Failed to fetch JWT cert")
 		return errors.Wrap(err, "Could not retrieve jwt certificate")
 	}
-	defer res.Body.Close()
+	if res != nil {
+		defer func() {
+			derr := res.Body.Close()
+			if derr != nil {
+				log.WithError(derr).Error("Error closing jwtcert response")
+			}
+		}()
+	}
+
 	body, _ := ioutil.ReadAll(res.Body)
 	err = crypt.SavePemCertWithShortSha1FileName(body, constants.TrustedJWTSigningCertsDir)
 	if err != nil {

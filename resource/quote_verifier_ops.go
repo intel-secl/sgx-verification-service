@@ -367,11 +367,11 @@ func verifyQeIdentity(qeIdObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteP
 	}
 
 	status := qeIdObj.GetQeIdentityStatus()
-	if status == false {
+	if !status {
 		return false, errors.New("verifyQeIdentity: GetQeIdentityStatus is invalid")
 	}
 
-	if utils.CheckDate(qeIdObj.GetQeIdIssueDate(), qeIdObj.GetQeIdNextUpdate()) == false {
+	if !utils.CheckDate(qeIdObj.GetQeIdIssueDate(), qeIdObj.GetQeIdNextUpdate()) {
 		return false, errors.New("verifyQeIdentity: Date Check validation failed")
 	}
 
@@ -389,7 +389,7 @@ func verifyTcbInfo(certObj *parser.PckCert, tcbObj *parser.TcbInfoStruct, truste
 		return errors.Wrap(err, "verifyTcbInfo: failed to verify Tcbinfo Certchain")
 	}
 
-	if utils.CheckDate(tcbObj.GetTcbInfoIssueDate(), tcbObj.GetTcbInfoNextUpdate()) == false {
+	if !utils.CheckDate(tcbObj.GetTcbInfoIssueDate(), tcbObj.GetTcbInfoNextUpdate()) {
 		return errors.New("verifyTcbInfo: Date Check validation failed")
 	}
 

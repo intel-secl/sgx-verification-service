@@ -60,4 +60,7 @@ const (
 	SGXTCBInfoSubjectStr           = "CN=Intel SGX TCB Signing,O=Intel Corporation,L=Santa Clara,ST=CA,C=US"
 	SGXQEInfoSubjectStr            = "CN=Intel SGX TCB Signing,O=Intel Corporation,L=Santa Clara,ST=CA,C=US"
 	MaxTcbLevels                   = 16
+	MaxTCBCompLevels               = 18
+	FmspcLen                       = 12
+	PCKCertType                    = 5
 )
