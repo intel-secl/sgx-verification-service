@@ -122,6 +122,15 @@ func (e *SkcBlobParsed) parseSkcBlobData(blob string) (bool, error) {
 	var keyDetailsLen int
 	var pubKeySize int
 
+	// invoke golang in-built recover() function to recover from the panic
+	// recover function will receive the error from out of bound slice access
+	// and will prevent the program from crashing
+	defer func() {
+		if perr := recover(); perr != nil {
+			log.Error("ParseSkcBlob: slice out of bound access")
+		}
+	}()
+
 	e.RawBlob = make([]byte, len(decodedBlob))
 	copy(e.RawBlob, decodedBlob)
 

@@ -5,7 +5,6 @@
 package parser
 
 import (
-	"C"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/binary"
@@ -136,7 +135,7 @@ func ParseEcdsaQuoteBlob(rawBlob []byte) *SgxQuoteParsed {
 	parsedObj := new(SgxQuoteParsed)
 	_, err := parsedObj.parseRawECDSAQuote(rawBlob)
 	if err != nil {
-		log.Error("parseRawECDSAQuote: Raw SGX ECDSA Quote parsing error: ", err.Error())
+		log.Error("ParseEcdsaQuoteBlob: Raw SGX ECDSA Quote parsing error: ", err.Error())
 		return nil
 	}
 	return parsedObj
@@ -463,43 +462,53 @@ func (e *SgxQuoteParsed) parseRawECDSAQuote(decodedQuote []byte) (bool, error) {
 	err := restruct.Unpack(e.RawQuoteFull, binary.LittleEndian, &e.Header)
 	if err != nil {
 		log.Error("Failed to extract header from extended quote")
-		return false, errors.Wrap(err, "ParseSkcBlob: Failed to extract header from extended quote")
+		return false, errors.Wrap(err, "parseRawECDSAQuote: Failed to extract header from extended quote")
 	}
 
 	log.Debug("Version = ", e.Header.Version)
 	log.Debug("SignType = ", e.Header.SignType)
+
+	// invoke golang in-built recover() function to recover from the panic
+	// recover function will receive the error from out of bound slice access
+	// and will prevent the program from crashing
+	defer func() {
+		if perr := recover(); perr != nil {
+			log.Error("parseRawECDSAQuote: slice out of bound access")
+		}
+	}()
+
 	err = restruct.Unpack(decodedQuote[436:], binary.LittleEndian, &e.Ecdsa256SignatureData)
 	if err != nil {
 		log.Error("Failed to extract ecdsa signature from quote")
-		return false, errors.Wrap(err, "ParseSkcBlob: Failed to extract ecdsa signature from extended quote")
+		return false, errors.Wrap(err, "parseRawECDSAQuote: Failed to extract ecdsa signature from extended quote")
 	}
 
 	err = e.generateRawBlob1()
 	if err != nil {
-		return false, errors.Wrap(err, "resource/parser/sgx_ecdsa_quote_parser:parseRawECDSAQuote() Failed to generateRawBlob1")
+		return false, errors.Wrap(err, "parseRawECDSAQuote: Failed to generateRawBlob1")
 	}
 
 	err = e.generateRawBlob2()
 	if err != nil {
-		return false, errors.Wrap(err, "resource/parser/sgx_ecdsa_quote_parser:parseRawECDSAQuote() Failed to generateRawBlob2")
+		return false, errors.Wrap(err, "parseRawECDSAQuote: Failed to generateRawBlob2")
 	}
 	err = restruct.Unpack(decodedQuote[1012:], binary.LittleEndian, &e.QuoteAuthData)
 	if err != nil {
 		log.Error("Failed to extract quote auth data from quote")
-		return false, errors.Wrap(err, "ParseSkcBlob: Failed to extract quote auth data from quote")
+		return false, errors.Wrap(err, "parseRawECDSAQuote: Failed to extract quote auth data from quote")
 	}
 
 	err = restruct.Unpack(decodedQuote[1046:], binary.LittleEndian, &e.QuoteCertData)
 	if err != nil {
 		log.Error("Failed to extract certification data from quote")
-		return false, errors.Wrap(err, "ParseSkcBlob: Failed to extract certification data from  quote")
+		return false, errors.Wrap(err, "parseRawECDSAQuote: Failed to extract certification data from  quote")
 	}
 	e.QuoteCertData.Data = make([]byte, e.QuoteCertData.ParsedDataSize)
 	copy(e.QuoteCertData.Data, decodedQuote[1052:])
 
 	err = e.parseQuoteCerts()
 	if err != nil {
-		return false, errors.Wrap(err, "Failed to Parse PCK certificates in Quote")
+		return false, errors.Wrap(err, "parseRawECDSAQuote: Failed to Parse PCK certificates in Quote")
 	}
 	return true, nil
 }

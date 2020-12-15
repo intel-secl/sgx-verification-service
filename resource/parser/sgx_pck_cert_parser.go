@@ -302,23 +302,23 @@ func (e *PckCert) parsePckCrl() error {
 
 		crlBody, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return errors.Wrap(err, "failed to read pckcrl response body")
+			return errors.Wrap(err, "parsePckCrl: failed to read pckcrl response body")
 		}
 
 		crlDer, err := base64.StdEncoding.DecodeString(string(crlBody))
 		if err != nil {
-			return errors.Wrap(err, "failed to base64 decode crl blob")
+			return errors.Wrap(err, "parsePckCrl: failed to base64 decode crl blob")
 		}
 
 		crlObj, err := x509.ParseDERCRL(crlDer)
 		if err != nil {
-			return errors.Wrap(err, "failed to Parse der encoded crl")
+			return errors.Wrap(err, "parsePckCrl: failed to Parse der encoded crl")
 		}
 
 		e.PckCRL.PckCRLObjs[i] = crlObj
 		certChainList, err := utils.GetCertObjList(string(resp.Header.Get("SGX-PCK-CRL-Issuer-Chain")))
 		if err != nil {
-			return errors.Wrap(err, "Failed to ger object list from string")
+			return errors.Wrap(err, "parsePckCrl: failed to get cert list")
 		}
 
 		e.PckCRL.RootCA = make(map[string]*x509.Certificate)
@@ -341,8 +341,8 @@ func (e *PckCert) parsePckCrl() error {
 		}
 
 		if IntermediateCACount == 0 || RootCACount == 0 {
-			return errors.Wrap(err, "PCK CRL- Root CA/Intermediate CA Invalid count")
+			return errors.Wrap(err, "parsePckCrl: PCK CRL- Root CA/Intermediate CA Invalid count")
 		}
 	}
-	return nil
+	return err
 }

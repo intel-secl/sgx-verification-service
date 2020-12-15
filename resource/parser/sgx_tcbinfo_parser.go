@@ -173,7 +173,7 @@ func (e *TcbInfoStruct) getTcbInfoStruct(fmspc string) error {
 
 	content, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return errors.Wrap(err, "tcbinfo read response failed ")
+		return errors.Wrap(err, "getTcbInfoStruct: tcbinfo read response failed ")
 	}
 
 	if len(content) == 0 {
@@ -188,11 +188,11 @@ func (e *TcbInfoStruct) getTcbInfoStruct(fmspc string) error {
 
 	certChainList, err := utils.GetCertObjList(string(resp.Header.Get("SGX-TCB-Info-Issuer-Chain")))
 	if err != nil {
-		return errors.Wrap(err, "getTcbInfoStruct: failed to get object")
+		return errors.Wrap(err, "getTcbInfoStruct: failed to get cert object")
 	}
 
 	if err := json.Unmarshal(content, &e.TcbInfoData); err != nil {
-		return errors.Wrap(err, "TcbInfo Unmarshal Failed")
+		return errors.Wrap(err, "getTcbInfoStruct: TcbInfo Unmarshal Failed")
 	}
 
 	e.RootCA = make(map[string]*x509.Certificate)
@@ -215,7 +215,6 @@ func (e *TcbInfoStruct) getTcbInfoStruct(fmspc string) error {
 	if IntermediateCACount == 0 || RootCACount == 0 {
 		return errors.Wrap(err, "getTcbInfoStruct: intermediate CA or Root CA is empty")
 	}
-
 	return nil
 }
 
@@ -234,7 +233,7 @@ func (e *TcbInfoStruct) getTcbInfoBlob() []byte {
 func (e *TcbInfoStruct) getTcbInfoSignature() ([]byte, error) {
 	signatureBytes, err := hex.DecodeString(e.TcbInfoData.Signature)
 	if err != nil {
-		return nil, errors.Wrap(err, "getTcbInfoSignature: error in decode string")
+		return nil, errors.Wrap(err, "getTcbInfoSignature: failed to hex decode TCBInfo signature")
 	}
 
 	rBytes, sBytes := signatureBytes[:32], signatureBytes[32:]
