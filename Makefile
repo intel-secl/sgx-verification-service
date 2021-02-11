@@ -2,6 +2,11 @@ GITTAG := $(shell git describe --tags --abbrev=0 2> /dev/null)
 GITCOMMIT := $(shell git describe --always)
 VERSION := $(or ${GITTAG}, v0.0.0)
 BUILDDATE := $(shell TZ=UTC date +%Y-%m-%dT%H:%M:%S%z)
+PROXY_EXISTS := $(shell if [[ "${https_proxy}" || "${http_proxy}" ]]; then echo 1; else echo 0; fi)
+DOCKER_PROXY_FLAGS := ""
+ifeq ($(PROXY_EXISTS),1)
+        DOCKER_PROXY_FLAGS = --build-arg http_proxy=${http_proxy} --build-arg https_proxy=${https_proxy}
+endif
 
 .PHONY: sqvs installer all test clean
 
@@ -33,6 +38,16 @@ installer: sqvs
 	cp dist/linux/install.sh out/installer/install.sh && chmod +x out/installer/install.sh
 	cp out/sqvs out/installer/sqvs
 	makeself out/installer out/sqvs-$(VERSION).bin "sgx Verification Service $(VERSION)" ./install.sh
+
+docker: installer
+ifeq ($(PROXY_EXISTS),1)
+	docker build ${DOCKER_PROXY_FLAGS} -f dist/image/Dockerfile -t isecl/sqvs:$(VERSION) .
+else
+	docker build -f dist/image/Dockerfile -t isecl/sqvs:$(VERSION) .
+endif
+
+sqvs-oci-archive: docker
+	skopeo copy docker-daemon:isecl/sqvs:$(VERSION) oci-archive:out/sqvs-$(VERSION)-$(GITCOMMIT).tar
 
 clean:
 	rm -f cover.*
