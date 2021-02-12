@@ -162,7 +162,7 @@ func (e *SgxQuoteParsed) GetSHA256Hash() []byte {
 
 func (e *SgxQuoteParsed) generateRawBlob2() error {
 	var err error
-	var rawBlobSize2 = 48 + 384
+	var rawBlobSize2 = 48 + int(unsafe.Sizeof(ReportBodyT{}))
 	if e.RawQuoteFull == nil || len(e.RawQuoteFull) < rawBlobSize2 {
 		return errors.Wrap(err, "generateRawBlob2: Invalid raw blob2 data")
 	}
@@ -176,7 +176,7 @@ func (e *SgxQuoteParsed) generateRawBlob2() error {
 func (e *SgxQuoteParsed) generateRawBlob1() error {
 	var offset int
 	report := e.Ecdsa256SignatureData.ReportBody
-	e.EcdsaBlob1 = make([]byte, 384)
+	e.EcdsaBlob1 = make([]byte, unsafe.Sizeof(ReportBodyT{}))
 
 	for i := 0; i < len(report.CpuSvn); i++ {
 		e.EcdsaBlob1[offset] = report.CpuSvn[i]
@@ -281,7 +281,6 @@ func (e *SgxQuoteParsed) generateRawBlob1() error {
 		offset += 1
 	}
 
-	log.Debug("Offset :", offset)
 	return nil
 }
 

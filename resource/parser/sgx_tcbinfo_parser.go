@@ -147,11 +147,6 @@ func (e *TcbInfoStruct) getTcbInfoStruct(fmspc string) error {
 	q.Add("fmspc", fmspc)
 	req.URL.RawQuery = q.Encode()
 
-	err = utils.AddJWTToken(req)
-	if err != nil {
-		return errors.Wrap(err, "getTcbInfoStruct: failed to add JWT token")
-	}
-
 	resp, err := client.Do(req)
 	if resp != nil {
 		defer func() {

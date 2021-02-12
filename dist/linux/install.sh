@@ -40,19 +40,17 @@ echo "Installing SGX Quote Verification Service..."
 COMPONENT_NAME=sqvs
 PRODUCT_HOME=/opt/$COMPONENT_NAME
 BIN_PATH=$PRODUCT_HOME/bin
-DB_SCRIPT_PATH=$PRODUCT_HOME/dbscripts
 LOG_PATH=/var/log/$COMPONENT_NAME/
 CONFIG_PATH=/etc/$COMPONENT_NAME/
 CERTS_PATH=$CONFIG_PATH/certs
-CERTDIR_TOKENSIGN=$CERTS_PATH/tokensign
 CERTDIR_TRUSTEDJWTCERTS=$CERTS_PATH/trustedjwt
 CERTDIR_TRUSTEDJWTCAS=$CERTS_PATH/trustedca
 
-for directory in $BIN_PATH $DB_SCRIPT_PATH $LOG_PATH $CONFIG_PATH $CERTS_PATH $CERTDIR_TOKENSIGN $CERTDIR_TRUSTEDJWTCERTS $CERTDIR_TRUSTEDJWTCAS; do
+for directory in $BIN_PATH $LOG_PATH $CONFIG_PATH $CERTS_PATH $CERTDIR_TRUSTEDJWTCERTS $CERTDIR_TRUSTEDJWTCAS; do
   # mkdir -p will return 0 if directory exists or is a symlink to an existing directory or directory and parents can be created
   mkdir -p $directory
   if [ $? -ne 0 ]; then
-    echo_failure "Cannot create directory: $directory"
+    echo "Cannot create directory: $directory"
     exit 1
   fi
   chown -R $SERVICE_USERNAME:$SERVICE_USERNAME $directory
@@ -62,9 +60,6 @@ done
 cp $COMPONENT_NAME $BIN_PATH/ && chown $SERVICE_USERNAME:$SERVICE_USERNAME $BIN_PATH/*
 chmod 700 $BIN_PATH/*
 ln -sfT $BIN_PATH/$COMPONENT_NAME /usr/bin/$COMPONENT_NAME
-
-mkdir -p $CONFIG_PATH/root-ca && chown sqvs:sqvs $CONFIG_PATH/root-ca
-chmod 700 $CONFIG_PATH/root-ca
 
 # Create logging dir in /var/log
 mkdir -p $LOG_PATH && chown sqvs:sqvs $LOG_PATH
@@ -83,7 +78,6 @@ auto_install() {
   local component=${1}
   local cprefix=${2}
   local packages=$(eval "echo \$${cprefix}_PACKAGES")
-  # detect available package management tools. start with the less likely ones to differentiate.
 if [ "$OS" == "rhel" ]; then
   dnf -y install $packages
 elif [ "$OS" == "ubuntu" ]; then
@@ -108,11 +102,11 @@ logRotate_install() {
   LOGROTATE_PACKAGES="logrotate"
   if [ "$(whoami)" == "root" ]; then
     auto_install "Log Rotate" "LOGROTATE"
-    if [ $? -ne 0 ]; then echo_failure "Failed to install logrotate"; exit -1; fi
+    if [ $? -ne 0 ]; then echo "Failed to install logrotate"; exit -1; fi
   fi
   logRotate_clear; logRotate_detect;
     if [ -z "$logrotate" ]; then
-      echo_failure "logrotate is not installed"
+      echo "logrotate is not installed"
     else
       echo  "logrotate installed in $logrotate"
     fi

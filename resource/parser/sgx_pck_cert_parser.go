@@ -278,10 +278,6 @@ func (e *PckCert) parsePckCrl() error {
 		}
 
 		req.Header.Set("Accept", "application/json")
-		err = utils.AddJWTToken(req)
-		if err != nil {
-			return errors.Wrap(err, "parsePckCrl: failed to add JWT token")
-		}
 		resp, err := client.Do(req)
 		if resp != nil {
 			defer func() {

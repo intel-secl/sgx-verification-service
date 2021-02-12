@@ -79,11 +79,6 @@ func NewQeIdentity() (*QeIdentityData, error) {
 	q := req.URL.Query()
 	req.URL.RawQuery = q.Encode()
 
-	err = utils.AddJWTToken(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "NewQeIdentity: failed to add JWT token")
-	}
-
 	resp, err := client.Do(req)
 	if resp != nil {
 		defer func() {
