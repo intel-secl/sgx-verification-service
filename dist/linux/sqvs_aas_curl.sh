@@ -5,7 +5,7 @@ echo "Setting up SGX Verification Related roles and user in AAS Database"
 source ~/sqvs.env 2> /dev/null
 
 #Get the value of AAS IP address and port. Default vlue is also provided.
-aas_hostname=${AAS_API_URL:-"https://<aas.server.com>:8444/aas"}
+aas_hostname=${AAS_API_URL:-"https://<aas.server.com>:8444/aas/v1"}
 CURL_OPTS="-s -k"
 CONTENT_TYPE="Content-Type: application/json"
 ACCEPT="Accept: application/jwt"

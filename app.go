@@ -553,7 +553,7 @@ func fnGetJwtCerts() error {
 	if !strings.HasSuffix(conf.AuthServiceUrl, "/") {
 		conf.AuthServiceUrl = conf.AuthServiceUrl + "/"
 	}
-	url := conf.AuthServiceUrl + "noauth/jwt-certificates"
+	url := conf.AuthServiceUrl + "jwt-certificates"
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return errors.Wrap(err, "Could not create http request")
