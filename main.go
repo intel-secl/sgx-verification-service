@@ -40,6 +40,11 @@ func openLogFiles() (logFile *os.File, httpLogFile *os.File, secLogFile *os.File
 		return nil, nil, nil, err
 	}
 
+	// Containers are always run as non root users, does not require changing ownership of config directories
+	if _, err := os.Stat("/.container-env"); err == nil {
+		return logFile, httpLogFile, secLogFile, nil
+	}
+
 	sqvsUser, err := user.Lookup(constants.SQVSUserName)
 	if err != nil {
 		log.Errorf("Could not find user '%s'", constants.SQVSUserName)
