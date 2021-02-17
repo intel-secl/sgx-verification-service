@@ -24,10 +24,6 @@ type TestData struct {
 	PostData    []byte
 }
 
-func mockRetrieveJWTSigningCerts() error {
-	return nil
-}
-
 func setupRouter(t *testing.T) *mux.Router {
 	r := mux.NewRouter()
 	sr := r.PathPrefix("/svs/v1/").Subrouter()

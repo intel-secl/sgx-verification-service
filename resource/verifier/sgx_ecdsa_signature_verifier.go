@@ -40,8 +40,8 @@ func verifyECDSA256Signature(data []byte, pubkey *ecdsa.PublicKey, signatureByte
 	return valid
 }
 
-func VerifySGXECDSASign1(sigBlob []byte, blob []byte, pubKey *ecdsa.PublicKey) (bool, error) {
-	if len(sigBlob) < 1 || len(blob) < 1 || pubKey == nil {
+func VerifySGXECDSASign1(sigBlob, blob []byte, pubKey *ecdsa.PublicKey) (bool, error) {
+	if len(sigBlob) <= 1 || len(blob) <= 1 || pubKey == nil {
 		return false, errors.New("VerifySGXECDSASign1: Invalid input data")
 	}
 	ret := verifyECDSA256Signature(blob, pubKey, sigBlob)
@@ -51,7 +51,7 @@ func VerifySGXECDSASign1(sigBlob []byte, blob []byte, pubKey *ecdsa.PublicKey) (
 	return true, nil
 }
 
-func VerifySGXECDSASign2(sigBlob []byte, blob []byte, pubKeyBlob []byte) (bool, error) {
+func VerifySGXECDSASign2(sigBlob, blob, pubKeyBlob []byte) (bool, error) {
 	if len(sigBlob) < 1 || len(blob) < 1 || len(pubKeyBlob) < 1 {
 		return false, errors.New("VerifySGXECDSASign2: Invalid input data")
 	}

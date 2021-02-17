@@ -22,7 +22,6 @@ import (
 	"intel/isecl/lib/common/v3/middleware"
 	cos "intel/isecl/lib/common/v3/os"
 	"intel/isecl/lib/common/v3/setup"
-	"intel/isecl/lib/common/v3/validation"
 	"intel/isecl/sqvs/v3/config"
 	"intel/isecl/sqvs/v3/constants"
 	"intel/isecl/sqvs/v3/resource"
@@ -117,6 +116,13 @@ func (a *App) logWriter() io.Writer {
 	return os.Stderr
 }
 
+func (a *App) secLogWriter() io.Writer {
+	if a.SecLogWriter != nil {
+		return a.SecLogWriter
+	}
+	return os.Stdout
+}
+
 func (a *App) httpLogWriter() io.Writer {
 	if a.HTTPLogWriter != nil {
 		return a.HTTPLogWriter
@@ -135,13 +141,13 @@ func (a *App) executablePath() string {
 	if a.ExecutablePath != "" {
 		return a.ExecutablePath
 	}
-	exec, err := os.Executable()
+	execPath, err := os.Executable()
 	if err != nil {
 		log.WithError(err).Error("app:executablePath() Unable to find SQVS executable")
 		// if we can't find self-executable path, we're probably in a state that is panic() worthy
 		panic(err)
 	}
-	return exec
+	return execPath
 }
 
 func (a *App) homeDir() string {
@@ -187,13 +193,13 @@ func (a *App) configureLogs(stdOut, logFile bool) {
 	ioWriterDefault = a.LogWriter
 	if stdOut {
 		if logFile {
-			ioWriterDefault = io.MultiWriter(os.Stdout, a.LogWriter)
+			ioWriterDefault = io.MultiWriter(os.Stdout, a.logWriter())
 		} else {
 			ioWriterDefault = os.Stdout
 		}
 	}
 
-	ioWriterSecurity := io.MultiWriter(ioWriterDefault, a.SecLogWriter)
+	ioWriterSecurity := io.MultiWriter(ioWriterDefault, a.secLogWriter())
 
 	f := commLog.LogFormatter{MaxLength: a.configuration().LogMaxLength}
 	commLogInt.SetLogger(commLog.DefaultLoggerName, a.configuration().LogLevel, &f, ioWriterDefault, false)
@@ -251,7 +257,7 @@ func (a *App) Run(args []string) error {
 		return nil
 	case "setup":
 		a.configureLogs(a.configuration().LogEnableStdout, true)
-		var context setup.Context
+		var setupContext setup.Context
 		if len(args) <= 2 {
 			a.printUsage()
 			os.Exit(1)
@@ -270,7 +276,7 @@ func (a *App) Run(args []string) error {
 		}
 
 		a.Config = config.Global()
-		err = a.Config.SaveConfiguration(context)
+		err = a.Config.SaveConfiguration(setupContext)
 		if err != nil {
 			fmt.Println("Error saving configuration: " + err.Error())
 			os.Exit(1)
@@ -346,7 +352,7 @@ func (a *App) Run(args []string) error {
 			return errors.Wrapf(err, "Could not parse sqvs user gid '%s'", sqvsUser.Gid)
 		}
 
-		//Change the fileownership to sqvs user
+		// Change the file ownership to sqvs user
 		err = cos.ChownR(constants.ConfigDir, uid, gid)
 		if err != nil {
 			return errors.Wrap(err, "Error while changing file ownership")
@@ -512,23 +518,6 @@ func removeService() {
 	}
 }
 
-func validateCmdAndEnv(env_names_cmd_opts map[string]string, flags *flag.FlagSet) error {
-	env_names := make([]string, 0)
-	for k := range env_names_cmd_opts {
-		env_names = append(env_names, k)
-	}
-
-	missing, err := validation.ValidateEnvList(env_names)
-	if err != nil && missing != nil {
-		for _, m := range missing {
-			if cmd_f := flags.Lookup(env_names_cmd_opts[m]); cmd_f == nil {
-				return errors.New("Insufficient arguments")
-			}
-		}
-	}
-	return nil
-}
-
 func validateSetupArgs(cmd string, args []string) error {
 	switch cmd {
 	default:
@@ -557,7 +546,7 @@ func fnGetJwtCerts() error {
 		return errors.New("failed to read config")
 	}
 	if !strings.HasSuffix(conf.AuthServiceUrl, "/") {
-		conf.AuthServiceUrl = conf.AuthServiceUrl + "/"
+		conf.AuthServiceUrl += "/"
 	}
 	url := conf.AuthServiceUrl + "noauth/jwt-certificates"
 	req, err := http.NewRequest("GET", url, nil)

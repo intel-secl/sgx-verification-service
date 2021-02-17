@@ -36,14 +36,14 @@ func CheckMandatoryExt(cert *x509.Certificate, requiredExtDict map[string]asn1.O
 	}
 
 	var ext pkix.Extension
-	var present int
+	var extCount int
 	for i := 0; i < len(cert.Extensions); i++ {
 		ext = cert.Extensions[i]
 		if _, ok := requiredExtDict[ext.Id.String()]; ok {
-			present += 1
+			extCount++
 		}
 	}
-	if present != len(requiredExtDict) {
+	if extCount != len(requiredExtDict) {
 		return false, errors.New("CheckMandatoryExt: Required Extension not found")
 	}
 	return true, nil
@@ -59,8 +59,8 @@ func getMandatoryCertExtMap() map[string]asn1.ObjectIdentifier {
 	return RequiredExtension
 }
 
-func verifyCaSubject(input string, cmpStr string) bool {
-	if len(input) == 0 || len(cmpStr) == 0 {
+func verifyCaSubject(input, cmpStr string) bool {
+	if input == "" || cmpStr == "" {
 		return false
 	}
 	cmpStrArr := strings.Split(cmpStr, "|")
@@ -76,7 +76,7 @@ func verifyCaSubject(input string, cmpStr string) bool {
 }
 
 func verifyInterCaCert(interCA *x509.Certificate, rootCA []*x509.Certificate, subjectStr string) (bool, error) {
-	if rootCA == nil || len(subjectStr) == 0 {
+	if rootCA == nil || subjectStr == "" {
 		return false, errors.New("verifyInterCaCert: Certificate Object is nul or intermediate CA cert not provided")
 	}
 
@@ -102,7 +102,7 @@ func verifyInterCaCert(interCA *x509.Certificate, rootCA []*x509.Certificate, su
 }
 
 func verifyRootCaCert(rootCA *x509.Certificate, subjectStr string) (bool, error) {
-	if rootCA == nil || len(subjectStr) == 0 {
+	if rootCA == nil || subjectStr == "" {
 		return false, errors.New("verifyRootCaCert: Certificate Object is nul or root CA cert not provided")
 	}
 
@@ -141,7 +141,7 @@ func CheckMandatorySGXExt(cert *x509.Certificate, requiredExtDict map[string]asn
 		return false, errors.New("CheckMandatorySGXExt: Certificate Object is nul or requiredExtDict is Empty")
 	}
 
-	var present int
+	var extCount int
 	var ext, sgxExt pkix.Extension
 	var sgxExtensions []asn1.RawValue
 
@@ -162,18 +162,18 @@ func CheckMandatorySGXExt(cert *x509.Certificate, requiredExtDict map[string]asn
 				log.Debug("SGXExtension[", j, "]:", sgxExt.Id.String())
 				if _, ok := requiredExtDict[sgxExt.Id.String()]; ok {
 					log.Debug("SGXExtension[", j, "]:", sgxExt.Id.String(), " found in list")
-					present += 1
+					extCount++
 				}
 			}
 		}
 	}
-	if present != len(requiredExtDict) {
+	if extCount != len(requiredExtDict) {
 		return false, errors.New("CheckMandatorySGXExt: Required SGX Extension not found")
 	}
 	return true, nil
 }
 
-func VerifiySHA256Hash(hash []byte, blob []byte) (bool, error) {
+func VerifiySHA256Hash(hash, blob []byte) (bool, error) {
 	if len(hash) == 0 || len(blob) == 0 || len(hash) != sha256.Size {
 		return false, errors.New("VerifiySHA256Hash: Invalid hash verify input data")
 	}

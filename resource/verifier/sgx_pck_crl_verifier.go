@@ -26,7 +26,7 @@ func verifyPckCrlIssuer(crl *pkix.CertificateList) bool {
 	return verifyCaSubject(issuer, constants.SGXCRLIssuerStr)
 }
 
-func VerifyPckCrl(crlUrl []string, crlList []*pkix.CertificateList, interCA []*x509.Certificate,
+func VerifyPckCrl(crlUrl []string, crlList []*pkix.CertificateList, interCA,
 	rootCA []*x509.Certificate, trustedRootCA *x509.Certificate) (bool, error) {
 	if len(crlList) == 0 || len(interCA) == 0 || len(rootCA) == 0 {
 		return false, errors.New("VerifyPckCrl: CRL List/InterCA/RootCA is empty")
@@ -63,7 +63,7 @@ func VerifyPckCrl(crlUrl []string, crlList []*pkix.CertificateList, interCA []*x
 		for j := 0; j < len(interCA); j++ {
 			err := interCA[i].CheckCRLSignature(crlList[i])
 			if err == nil {
-				signPassCount += 1
+				signPassCount++
 			}
 		}
 

@@ -7,7 +7,7 @@ require (
 	github.com/sirupsen/logrus v1.5.0
 	github.com/stretchr/testify v1.5.1
 	gopkg.in/restruct.v1 v1.0.0-20190323193435-3c2afb705f3c
-	gopkg.in/yaml.v2 v2.2.8
+	gopkg.in/yaml.v2 v2.4.0
 	intel/isecl/lib/clients/v3 v3.4.0
 	intel/isecl/lib/common/v3 v3.4.0
 )

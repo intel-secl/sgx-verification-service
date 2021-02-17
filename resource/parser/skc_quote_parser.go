@@ -30,8 +30,6 @@ func ParseSkcQuoteBlob(rawBlob string) *SkcBlobParsed {
 }
 
 func ParseQuoteBlob(rawBlob string) *SkcBlobParsed {
-	log.Trace("parser/skc_quote_parser:ParseQuoteBlob() Entering")
-	defer log.Trace("parser/skc_quote_parser:ParseQuoteBlob() Leaving")
 	if len(rawBlob) < int(unsafe.Sizeof(SkcBlobParsed{})) {
 		log.Error("ParseQuoteBlob: SKC Blob is Empty")
 		return nil
@@ -53,7 +51,6 @@ func (e *SkcBlobParsed) GetQuoteBlob() []byte {
 }
 
 func (e *SkcBlobParsed) parseSkcBlobData(blob string) (bool, error) {
-	log.Debug(blob)
 	decodedBlob, err := base64.StdEncoding.DecodeString(blob)
 	if err != nil {
 		log.Error("Failed to Base64 Decode Quote")

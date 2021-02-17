@@ -69,7 +69,7 @@ func IntToBool(i int) bool {
 	}
 }
 
-func CheckDate(issueDate string, nextUpdate string) bool {
+func CheckDate(issueDate, nextUpdate string) bool {
 	iDate, err := time.Parse(time.RFC3339, issueDate)
 	if err != nil {
 		log.Error("CheckData: IssueDate parse:" + err.Error())

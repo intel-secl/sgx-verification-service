@@ -202,9 +202,9 @@ func (c *Configuration) Save() error {
 	return yaml.NewEncoder(file).Encode(c)
 }
 
-func Load(path string) *Configuration {
+func Load(filePath string) *Configuration {
 	var c Configuration
-	file, _ := os.Open(path)
+	file, _ := os.Open(filePath)
 	if file != nil {
 		defer func() {
 			derr := file.Close()
@@ -220,6 +220,6 @@ func Load(path string) *Configuration {
 		c.LogLevel = log.InfoLevel
 	}
 
-	c.configFile = path
+	c.configFile = filePath
 	return &c
 }

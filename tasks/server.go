@@ -84,7 +84,7 @@ func (s Server) Run(c setup.Context) error {
 
 	s.Config.LogEnableStdout = false
 	logEnableStdout, err := c.GetenvString("SQVS_ENABLE_CONSOLE_LOG", "SGX Verification Service Enable standard output")
-	if err != nil || len(logEnableStdout) == 0 {
+	if err != nil || logEnableStdout == "" {
 		s.Config.LogEnableStdout = false
 	} else {
 		s.Config.LogEnableStdout = true

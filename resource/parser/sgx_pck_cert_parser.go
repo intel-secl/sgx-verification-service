@@ -35,7 +35,7 @@ type PckCRL struct {
 type PckCert struct {
 	PckCertObj           *x509.Certificate
 	FmspcStr             string
-	tcbCompLevels        []byte
+	TcbCompLevels        []byte
 	PckCRL               PckCRL
 	RequiredExtension    map[string]asn1.ObjectIdentifier
 	RequiredSGXExtension map[string]asn1.ObjectIdentifier
@@ -126,7 +126,7 @@ func (e *PckCert) GetFmspcValue() string {
 }
 
 func (e *PckCert) GetPckCertTcbLevels() []byte {
-	return e.tcbCompLevels
+	return e.TcbCompLevels
 }
 
 func (e *PckCert) parseFMSPCValue() error {
@@ -168,7 +168,7 @@ type TcbExtn struct {
 
 func (e *PckCert) parseTcbExtensions() error {
 	var ext pkix.Extension
-	e.tcbCompLevels = make([]byte, constants.MaxTCBCompLevels)
+	e.TcbCompLevels = make([]byte, constants.MaxTCBCompLevels)
 
 	for i := 0; i < len(e.PckCertObj.Extensions); i++ {
 		ext = e.PckCertObj.Extensions[i]
@@ -197,10 +197,10 @@ func (e *PckCert) parseTcbExtensions() error {
 						rest, _ = asn1.Unmarshal(tcbExt.FullBytes, &ext2)
 						if verifier.ExtSgxTcbPceSvnOid.Equal(ext2.Id) {
 							var h, l uint8 = uint8(ext2.Value >> 8), uint8(ext2.Value & 0xff)
-							e.tcbCompLevels[k] = l
-							e.tcbCompLevels[k+1] = h
+							e.TcbCompLevels[k] = l
+							e.TcbCompLevels[k+1] = h
 						} else {
-							e.tcbCompLevels[k] = byte(ext2.Value)
+							e.TcbCompLevels[k] = byte(ext2.Value)
 						}
 					}
 				}
@@ -227,21 +227,21 @@ func (e *PckCert) GetPckCrlInterCaList() []*x509.Certificate {
 	var i int
 	for _, v := range e.PckCRL.IntermediateCA {
 		interMediateCAArr[i] = v
-		i += 1
+		i++
 	}
 	log.Debug("GetPckCrlInterCaList:", len(interMediateCAArr))
 	return interMediateCAArr
 }
 
 func (e *PckCert) GetPckCrlRootCaList() []*x509.Certificate {
-	RootCAArr := make([]*x509.Certificate, len(e.PckCRL.RootCA))
+	rootCAArr := make([]*x509.Certificate, len(e.PckCRL.RootCA))
 	var i int
 	for _, v := range e.PckCRL.RootCA {
-		RootCAArr[i] = v
-		i += 1
+		rootCAArr[i] = v
+		i++
 	}
-	log.Debug("GetPckCrlRootCaList:", len(RootCAArr))
-	return RootCAArr
+	log.Debug("GetPckCrlRootCaList:", len(rootCAArr))
+	return rootCAArr
 }
 
 func (e *PckCert) parsePckCrl() error {
@@ -259,7 +259,7 @@ func (e *PckCert) parsePckCrl() error {
 	}
 
 	for i := 0; i < len(e.PckCRL.PckCRLUrls); i++ {
-		url := fmt.Sprintf("%s", e.PckCRL.PckCRLUrls[i])
+		url := e.PckCRL.PckCRLUrls[i]
 
 		scsUrl := conf.SCSBaseUrl
 		if !strings.Contains(url, scsUrl) {
@@ -320,23 +320,23 @@ func (e *PckCert) parsePckCrl() error {
 		e.PckCRL.RootCA = make(map[string]*x509.Certificate)
 		e.PckCRL.IntermediateCA = make(map[string]*x509.Certificate)
 
-		var IntermediateCACount int
-		var RootCACount int
+		var intermediateCACount int
+		var rootCACount int
 		for i := 0; i < len(certChainList); i++ {
 			cert := certChainList[i]
 			if strings.Contains(cert.Subject.String(), "CN=Intel SGX Root CA") {
-				RootCACount += 1
+				rootCACount++
 				e.PckCRL.RootCA[cert.Subject.String()] = cert
 			}
 			if strings.Contains(cert.Subject.String(), "CN=Intel SGX PCK Processor CA") ||
 				strings.Contains(cert.Subject.String(), "CN=Intel SGX PCK Platform CA") {
-				IntermediateCACount += 1
+				intermediateCACount++
 				e.PckCRL.IntermediateCA[cert.Subject.String()] = cert
 			}
 			log.Debug("Cert[", i, "]Issuer:", cert.Issuer.String(), ", Subject:", cert.Subject.String())
 		}
 
-		if IntermediateCACount == 0 || RootCACount == 0 {
+		if intermediateCACount == 0 || rootCACount == 0 {
 			return errors.Wrap(err, "parsePckCrl: PCK CRL- Root CA/Intermediate CA Invalid count")
 		}
 	}

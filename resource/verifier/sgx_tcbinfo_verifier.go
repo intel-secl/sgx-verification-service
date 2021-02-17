@@ -11,8 +11,7 @@ import (
 	"strings"
 )
 
-func VerifyTcbInfoCertChain(interCA []*x509.Certificate, rootCA []*x509.Certificate,
-	trustedRootCA *x509.Certificate) (bool, error) {
+func VerifyTcbInfoCertChain(interCA, rootCA []*x509.Certificate, trustedRootCA *x509.Certificate) (bool, error) {
 	if len(interCA) == 0 || len(rootCA) == 0 {
 		return false, errors.New("VerifyTcbInfo: InterCA/RootCA is empty")
 	}
@@ -34,6 +33,6 @@ func VerifyTcbInfoCertChain(interCA []*x509.Certificate, rootCA []*x509.Certific
 		}
 	}
 
-	log.Debug("VerifyTcbInfoCertChain is succesfull")
+	log.Debug("TcbInfo Certificate Chain Verification is Succesfull")
 	return true, nil
 }
