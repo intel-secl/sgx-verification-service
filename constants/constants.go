@@ -44,7 +44,7 @@ const (
 	DefaultReadTimeout             = 30 * time.Second
 	DefaultReadHeaderTimeout       = 10 * time.Second
 	DefaultWriteTimeout            = 10 * time.Second
-	DefaultIdleTimeout             = 10 * time.Second
+	DefaultIdleTimeout             = 1 * time.Second
 	DefaultMaxHeaderBytes          = 1 << 20
 	DefaultLogEntryMaxLength       = 300
 	Fmspc_Key                      = "fmspc"

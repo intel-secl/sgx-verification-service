@@ -6,9 +6,7 @@ package parser
 
 import (
 	"crypto/x509"
-	"encoding/asn1"
 	"encoding/binary"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
@@ -30,45 +28,45 @@ const (
 )
 
 type TcbType struct {
-	SgxTcbComp01Svn uint8  `json: "sgxtcbcomp01svn"`
-	SgxTcbComp02Svn uint8  `json: "sgxtcbcomp02svn"`
-	SgxTcbComp03Svn uint8  `json: "sgxtcbcomp03svn"`
-	SgxTcbComp04Svn uint8  `json: "sgxtcbcomp04svn"`
-	SgxTcbComp05Svn uint8  `json: "sgxtcbcomp05svn"`
-	SgxTcbComp06Svn uint8  `json: "sgxtcbcomp06svn"`
-	SgxTcbComp07Svn uint8  `json: "sgxtcbcomp07svn"`
-	SgxTcbComp08Svn uint8  `json: "sgxtcbcomp08svn"`
-	SgxTcbComp09Svn uint8  `json: "sgxtcbcomp09svn"`
-	SgxTcbComp10Svn uint8  `json: "sgxtcbcomp10svn"`
-	SgxTcbComp11Svn uint8  `json: "sgxtcbcomp11svn"`
-	SgxTcbComp12Svn uint8  `json: "sgxtcbcomp12svn"`
-	SgxTcbComp13Svn uint8  `json: "sgxtcbcomp13svn"`
-	SgxTcbComp14Svn uint8  `json: "sgxtcbcomp14svn"`
-	SgxTcbComp15Svn uint8  `json: "sgxtcbcomp15svn"`
-	SgxTcbComp16Svn uint8  `json: "sgxtcbcomp16svn"`
-	PceSvn          uint16 `json: "pcesvn"`
+	SgxTcbComp01Svn uint8  `json:"sgxtcbcomp01svn"`
+	SgxTcbComp02Svn uint8  `json:"sgxtcbcomp02svn"`
+	SgxTcbComp03Svn uint8  `json:"sgxtcbcomp03svn"`
+	SgxTcbComp04Svn uint8  `json:"sgxtcbcomp04svn"`
+	SgxTcbComp05Svn uint8  `json:"sgxtcbcomp05svn"`
+	SgxTcbComp06Svn uint8  `json:"sgxtcbcomp06svn"`
+	SgxTcbComp07Svn uint8  `json:"sgxtcbcomp07svn"`
+	SgxTcbComp08Svn uint8  `json:"sgxtcbcomp08svn"`
+	SgxTcbComp09Svn uint8  `json:"sgxtcbcomp09svn"`
+	SgxTcbComp10Svn uint8  `json:"sgxtcbcomp10svn"`
+	SgxTcbComp11Svn uint8  `json:"sgxtcbcomp11svn"`
+	SgxTcbComp12Svn uint8  `json:"sgxtcbcomp12svn"`
+	SgxTcbComp13Svn uint8  `json:"sgxtcbcomp13svn"`
+	SgxTcbComp14Svn uint8  `json:"sgxtcbcomp14svn"`
+	SgxTcbComp15Svn uint8  `json:"sgxtcbcomp15svn"`
+	SgxTcbComp16Svn uint8  `json:"sgxtcbcomp16svn"`
+	PceSvn          uint16 `json:"pcesvn"`
 }
 
 type TcbLevelsType struct {
-	Tcb       TcbType `json: "tcb"`
-	TcbDate   string  `json: "tcbDate"`
-	TcbStatus string  `json: "tcbStatus"`
+	Tcb       TcbType `json:"tcb"`
+	TcbDate   string  `json:"tcbDate"`
+	TcbStatus string  `json:"tcbStatus"`
 }
 
 type TcbInfoType struct {
-	Version                 int             `json: "version"`
-	IssueDate               string          `json: "issueDate"`
-	NextUpdate              string          `json: "nextUpdate"`
-	Fmspc                   string          `json: "fmspc"`
-	PceId                   string          `json: "pceId"`
-	TcbType                 uint            `json: "tcbType"`
-	TcbEvaluationDataNumber uint            `json: "tcbEvaluationDataNumber"`
-	TcbLevels               []TcbLevelsType `json: "tcbLevels"`
+	Version                 int             `json:"version"`
+	IssueDate               string          `json:"issueDate"`
+	NextUpdate              string          `json:"nextUpdate"`
+	Fmspc                   string          `json:"fmspc"`
+	PceId                   string          `json:"pceId"`
+	TcbType                 uint            `json:"tcbType"`
+	TcbEvaluationDataNumber uint            `json:"tcbEvaluationDataNumber"`
+	TcbLevels               []TcbLevelsType `json:"tcbLevels"`
 }
 
 type TcbInfoJson struct {
-	TcbInfo   TcbInfoType `json: "tcbInfo"`
-	Signature string      `json: "signature"`
+	TcbInfo   TcbInfoType `json:"tcbInfo"`
+	Signature string      `json:"signature"`
 }
 
 type TcbInfoStruct struct {
@@ -100,20 +98,19 @@ func (e *TcbInfoStruct) GetTcbInfoInterCaList() []*x509.Certificate {
 	var i int
 	for _, v := range e.IntermediateCA {
 		interMediateCAArr[i] = v
-		i += 1
+		i++
 	}
 	return interMediateCAArr
 }
 
 func (e *TcbInfoStruct) GetTcbInfoRootCaList() []*x509.Certificate {
-	RootCAArr := make([]*x509.Certificate, len(e.RootCA))
+	rootCAArr := make([]*x509.Certificate, len(e.RootCA))
 	var i int
 	for _, v := range e.RootCA {
-		RootCAArr[i] = v
-		i += 1
+		rootCAArr[i] = v
+		i++
 	}
-	log.Debug("GetTcbInfoRootCaList:", len(RootCAArr))
-	return RootCAArr
+	return rootCAArr
 }
 
 func (e *TcbInfoStruct) GetTcbInfoIssueDate() string {
@@ -146,11 +143,6 @@ func (e *TcbInfoStruct) getTcbInfoStruct(fmspc string) error {
 	q := req.URL.Query()
 	q.Add("fmspc", fmspc)
 	req.URL.RawQuery = q.Encode()
-
-	err = utils.AddJWTToken(req)
-	if err != nil {
-		return errors.Wrap(err, "getTcbInfoStruct: failed to add JWT token")
-	}
 
 	resp, err := client.Do(req)
 	if resp != nil {
@@ -198,21 +190,21 @@ func (e *TcbInfoStruct) getTcbInfoStruct(fmspc string) error {
 	e.RootCA = make(map[string]*x509.Certificate)
 	e.IntermediateCA = make(map[string]*x509.Certificate)
 
-	var IntermediateCACount int
-	var RootCACount int
+	var intermediateCACount int
+	var rootCACount int
 	for i := 0; i < len(certChainList); i++ {
 		cert := certChainList[i]
 		if strings.Contains(cert.Subject.String(), "CN=Intel SGX Root CA") {
-			RootCACount += 1
+			rootCACount++
 			e.RootCA[cert.Subject.String()] = cert
 		}
 		if strings.Contains(cert.Subject.String(), "CN=Intel SGX TCB Signing") {
-			IntermediateCACount += 1
+			intermediateCACount++
 			e.IntermediateCA[cert.Subject.String()] = cert
 		}
 		log.Debug("Cert[", i, "]Issuer:", cert.Issuer.String(), ", Subject:", cert.Subject.String())
 	}
-	if IntermediateCACount == 0 || RootCACount == 0 {
+	if intermediateCACount == 0 || rootCACount == 0 {
 		return errors.Wrap(err, "getTcbInfoStruct: intermediate CA or Root CA is empty")
 	}
 	return nil
@@ -222,100 +214,78 @@ func (e *TcbInfoStruct) GetTcbInfoFmspc() string {
 	return e.TcbInfoData.TcbInfo.Fmspc
 }
 
-func (e *TcbInfoStruct) getTcbInfoBlob() []byte {
-	bytes, err := json.Marshal(e.TcbInfoData.TcbInfo)
-	if err != nil {
-		log.Error("getTcbInfoBlob: Error in Json Marshalling")
-	}
-	return bytes
-}
-
-func (e *TcbInfoStruct) getTcbInfoSignature() ([]byte, error) {
-	signatureBytes, err := hex.DecodeString(e.TcbInfoData.Signature)
-	if err != nil {
-		return nil, errors.Wrap(err, "getTcbInfoSignature: failed to hex decode TCBInfo signature")
-	}
-
-	rBytes, sBytes := signatureBytes[:32], signatureBytes[32:]
-	bytes, err := asn1.Marshal(ECDSASignature{R: new(big.Int).SetBytes(rBytes), S: new(big.Int).SetBytes(sBytes)})
-	if err != nil {
-		return nil, errors.Wrap(err, "getTcbInfoSignature: asnl marshal fail")
-	}
-	return bytes, nil
-}
-
 func compareTcbComponents(pckComponents []byte, pckpcesvn uint16, tcbComponents []byte, tcbpcesvn uint16) int {
-	left_lower := false
-	right_lower := false
+	leftLower := false
+	rightLower := false
 
 	if len(pckComponents) != constants.MaxTcbLevels || len(tcbComponents) != constants.MaxTcbLevels {
 		return Error
 	}
 	if pckpcesvn < tcbpcesvn {
-		left_lower = true
+		leftLower = true
 	}
 	if pckpcesvn > tcbpcesvn {
-		right_lower = true
+		rightLower = true
 	}
 
 	for i := 0; i < constants.MaxTcbLevels; i++ {
 		if pckComponents[i] < tcbComponents[i] {
-			left_lower = true
+			leftLower = true
 		}
 		if pckComponents[i] > tcbComponents[i] {
-			right_lower = true
+			rightLower = true
 		}
 	}
 	// this should not happen as either one can be greater
-	if left_lower && right_lower {
+	if leftLower && rightLower {
 		return Undefined
 	}
-	if left_lower {
+	if leftLower {
 		return Lower
 	}
 	return EqualOrGreater
 }
 
-func getTcbCompList(TcbLevelList *TcbType) []byte {
-	TcbCompLevel := make([]byte, constants.MaxTcbLevels)
+func getTcbCompList(tcbLevelList *TcbType) []byte {
+	tcbCompLevel := make([]byte, constants.MaxTcbLevels)
 
-	TcbCompLevel[0] = TcbLevelList.SgxTcbComp01Svn
-	TcbCompLevel[1] = TcbLevelList.SgxTcbComp02Svn
-	TcbCompLevel[2] = TcbLevelList.SgxTcbComp03Svn
-	TcbCompLevel[3] = TcbLevelList.SgxTcbComp04Svn
-	TcbCompLevel[4] = TcbLevelList.SgxTcbComp05Svn
-	TcbCompLevel[5] = TcbLevelList.SgxTcbComp06Svn
-	TcbCompLevel[6] = TcbLevelList.SgxTcbComp07Svn
-	TcbCompLevel[7] = TcbLevelList.SgxTcbComp08Svn
-	TcbCompLevel[8] = TcbLevelList.SgxTcbComp09Svn
-	TcbCompLevel[9] = TcbLevelList.SgxTcbComp10Svn
-	TcbCompLevel[10] = TcbLevelList.SgxTcbComp11Svn
-	TcbCompLevel[11] = TcbLevelList.SgxTcbComp12Svn
-	TcbCompLevel[12] = TcbLevelList.SgxTcbComp13Svn
-	TcbCompLevel[13] = TcbLevelList.SgxTcbComp14Svn
-	TcbCompLevel[14] = TcbLevelList.SgxTcbComp15Svn
-	TcbCompLevel[15] = TcbLevelList.SgxTcbComp16Svn
+	tcbCompLevel[0] = tcbLevelList.SgxTcbComp01Svn
+	tcbCompLevel[1] = tcbLevelList.SgxTcbComp02Svn
+	tcbCompLevel[2] = tcbLevelList.SgxTcbComp03Svn
+	tcbCompLevel[3] = tcbLevelList.SgxTcbComp04Svn
+	tcbCompLevel[4] = tcbLevelList.SgxTcbComp05Svn
+	tcbCompLevel[5] = tcbLevelList.SgxTcbComp06Svn
+	tcbCompLevel[6] = tcbLevelList.SgxTcbComp07Svn
+	tcbCompLevel[7] = tcbLevelList.SgxTcbComp08Svn
+	tcbCompLevel[8] = tcbLevelList.SgxTcbComp09Svn
+	tcbCompLevel[9] = tcbLevelList.SgxTcbComp10Svn
+	tcbCompLevel[10] = tcbLevelList.SgxTcbComp11Svn
+	tcbCompLevel[11] = tcbLevelList.SgxTcbComp12Svn
+	tcbCompLevel[12] = tcbLevelList.SgxTcbComp13Svn
+	tcbCompLevel[13] = tcbLevelList.SgxTcbComp14Svn
+	tcbCompLevel[14] = tcbLevelList.SgxTcbComp15Svn
+	tcbCompLevel[15] = tcbLevelList.SgxTcbComp16Svn
 
-	return TcbCompLevel
+	return tcbCompLevel
 }
 
 func (e *TcbInfoStruct) GetTcbUptoDateStatus(tcbLevels []byte) string {
-	PckComponents := tcbLevels[:16]
-	PckPceSvn := binary.LittleEndian.Uint16(tcbLevels[16:])
+	pckComponents := tcbLevels[:16]
+	pckPceSvn := binary.LittleEndian.Uint16(tcbLevels[16:])
 
-	var Status string
-	var TcbComponents []byte
+	var status string
+	var tcbComponents []byte
 	// iterate through all TCB Levels present in TCBInfo
 	for i := 0; i < len(e.TcbInfoData.TcbInfo.TcbLevels); i++ {
-		TcbPceSvn := e.TcbInfoData.TcbInfo.TcbLevels[i].Tcb.PceSvn
-		TcbComponents = getTcbCompList(&e.TcbInfoData.TcbInfo.TcbLevels[i].Tcb)
-		TcbError := compareTcbComponents(PckComponents, PckPceSvn, TcbComponents, TcbPceSvn)
-		if TcbError == EqualOrGreater {
-			Status = e.TcbInfoData.TcbInfo.TcbLevels[i].TcbStatus
+		tcbPceSvn := e.TcbInfoData.TcbInfo.TcbLevels[i].Tcb.PceSvn
+		tcbComponents = getTcbCompList(&e.TcbInfoData.TcbInfo.TcbLevels[i].Tcb)
+		tcbError := compareTcbComponents(pckComponents, pckPceSvn, tcbComponents, tcbPceSvn)
+		if tcbError == EqualOrGreater {
+			status = e.TcbInfoData.TcbInfo.TcbLevels[i].TcbStatus
 			break
 		}
 	}
-	return Status
+	return status
 }
 
 func (e *TcbInfoStruct) DumpTcbInfo() {

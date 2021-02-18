@@ -9,76 +9,13 @@ import (
 	"encoding/pem"
 	"fmt"
 	"github.com/pkg/errors"
-	"intel/isecl/lib/clients/v3"
-	"intel/isecl/lib/clients/v3/aas"
 	commLog "intel/isecl/lib/common/v3/log"
-	"intel/isecl/sqvs/v3/config"
-	"intel/isecl/sqvs/v3/constants"
-	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 )
 
 var log = commLog.GetDefaultLogger()
-var statusUpdateLock *sync.Mutex
-
-var (
-	c         = config.Global()
-	aasClient = aas.NewJWTClient(c.AuthServiceUrl)
-	aasRWLock = sync.RWMutex{}
-)
-
-func init() {
-	aasRWLock.Lock()
-	defer aasRWLock.Unlock()
-	if aasClient.HTTPClient == nil {
-		c, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
-		if err != nil {
-			return
-		}
-		aasClient.HTTPClient = c
-	}
-}
-
-func AddJWTToken(req *http.Request) error {
-	if aasClient.BaseURL == "" {
-		aasClient = aas.NewJWTClient(c.AuthServiceUrl)
-		if aasClient.HTTPClient == nil {
-			c, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
-			if err != nil {
-				return errors.Wrap(err, "addJWTToken: Error initializing http client")
-			}
-			aasClient.HTTPClient = c
-		}
-	}
-	aasRWLock.RLock()
-	jwtToken, err := aasClient.GetUserToken(c.SQVS.User)
-	aasRWLock.RUnlock()
-	// something wrong
-	if err != nil {
-		// lock aas with w lock
-		aasRWLock.Lock()
-		defer aasRWLock.Unlock()
-		// check if other thread fix it already
-		jwtToken, err = aasClient.GetUserToken(c.SQVS.User)
-		// it is not fixed
-		if err != nil {
-			aasClient.AddUser(c.SQVS.User, c.SQVS.Password)
-			err = aasClient.FetchAllTokens()
-			if err != nil {
-				return errors.Wrap(err, "addJWTToken: Could not fetch all tokens from aas")
-			}
-			jwtToken, err = aasClient.GetUserToken(c.SQVS.User)
-			if err != nil {
-				return errors.Wrap(err, "addJWTToken: Could not fetch token")
-			}
-		}
-	}
-	req.Header.Set("Authorization", "Bearer "+string(jwtToken))
-	return nil
-}
 
 func GetCertPemData(cert *x509.Certificate) ([]byte, error) {
 	var err error
@@ -132,7 +69,7 @@ func IntToBool(i int) bool {
 	}
 }
 
-func CheckDate(issueDate string, nextUpdate string) bool {
+func CheckDate(issueDate, nextUpdate string) bool {
 	iDate, err := time.Parse(time.RFC3339, issueDate)
 	if err != nil {
 		log.Error("CheckData: IssueDate parse:" + err.Error())

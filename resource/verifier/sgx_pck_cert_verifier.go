@@ -12,9 +12,9 @@ import (
 	"strings"
 )
 
-func VerifyPCKCertificate(pckCert *x509.Certificate, interCA []*x509.Certificate, RootCA []*x509.Certificate,
+func VerifyPCKCertificate(pckCert *x509.Certificate, interCA, rootCA []*x509.Certificate,
 	crl []*pkix.CertificateList, trustedRootCA *x509.Certificate) (bool, error) {
-	if pckCert == nil || len(interCA) == 0 || len(RootCA) == 0 || len(crl) == 0 {
+	if pckCert == nil || len(interCA) == 0 || len(rootCA) == 0 || len(crl) == 0 {
 		return false, errors.New("VerifyPCKCertificate: Invalid Inter/Root ca certs, CRL data")
 	}
 
@@ -26,31 +26,31 @@ func VerifyPCKCertificate(pckCert *x509.Certificate, interCA []*x509.Certificate
 		return false, errors.New("VerifyPCKCertificate: Invalid Issuer info in PCK Certicate")
 	}
 
-	if strings.Compare(string(trustedRootCA.Signature), string(RootCA[0].Signature)) != 0 {
+	if strings.Compare(string(trustedRootCA.Signature), string(rootCA[0].Signature)) != 0 {
 		return false, errors.New("VerifyPCKCertificate: Trusted CA Verification Failed")
 	}
 
 	var opts x509.VerifyOptions
 	opts.Intermediates = x509.NewCertPool()
 	for i := 0; i < len(interCA); i++ {
-		_, err := verifyInterCaCert(interCA[i], RootCA, constants.SGXInterCACertSubjectStr)
+		_, err := verifyInterCaCert(interCA[i], rootCA, constants.SGXInterCACertSubjectStr)
 		if err != nil {
 			return false, errors.Wrap(err, "Invalid Inter CA Certificate")
 		}
 		opts.Intermediates.AddCert(interCA[i])
 	}
 	opts.Roots = x509.NewCertPool()
-	for i := 0; i < len(RootCA); i++ {
-		_, err := verifyRootCaCert(RootCA[i], constants.SGXRootCACertSubjectStr)
+	for i := 0; i < len(rootCA); i++ {
+		_, err := verifyRootCaCert(rootCA[i], constants.SGXRootCACertSubjectStr)
 		if err != nil {
 			return false, errors.Wrap(err, "Invalid Root CA Certificate")
 		}
-		opts.Roots.AddCert(RootCA[i])
+		opts.Roots.AddCert(rootCA[i])
 	}
 
 	_, err := pckCert.Verify(opts)
 	if err != nil {
-		log.Error("Error in PCKCert Verification:", err.Error())
+		log.Error("Error during  PCK Certificate Verification:", err.Error())
 		return false, errors.Wrap(err, "VerifyPCKCertificate: verify certificate")
 	}
 

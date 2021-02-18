@@ -79,11 +79,6 @@ func NewQeIdentity() (*QeIdentityData, error) {
 	q := req.URL.Query()
 	req.URL.RawQuery = q.Encode()
 
-	err = utils.AddJWTToken(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "NewQeIdentity: failed to add JWT token")
-	}
-
 	resp, err := client.Do(req)
 	if resp != nil {
 		defer func() {
@@ -126,22 +121,22 @@ func NewQeIdentity() (*QeIdentityData, error) {
 	obj.RootCA = make(map[string]*x509.Certificate)
 	obj.IntermediateCA = make(map[string]*x509.Certificate)
 
-	var IntermediateCACount int
-	var RootCACount int
+	var intermediateCACount int
+	var rootCACount int
 	for i := 0; i < len(certChainList); i++ {
 		cert := certChainList[i]
 		if strings.Contains(cert.Subject.String(), "CN=Intel SGX Root CA") {
-			RootCACount += 1
+			rootCACount++
 			obj.RootCA[cert.Subject.String()] = cert
 		}
 		if strings.Contains(cert.Subject.String(), "CN=Intel SGX TCB Signing") {
-			IntermediateCACount += 1
+			intermediateCACount++
 			obj.IntermediateCA[cert.Subject.String()] = cert
 		}
 		log.Debug("Cert[", i, "]Issuer:", cert.Issuer.String(), ", Subject:", cert.Subject.String())
 	}
 
-	if IntermediateCACount == 0 || RootCACount == 0 {
+	if intermediateCACount == 0 || rootCACount == 0 {
 		return nil, errors.Wrap(err, "NewQeIdentityi: Root CA/Intermediate CA Invalid count")
 	}
 
@@ -153,21 +148,21 @@ func (e *QeIdentityData) GetQeInfoInterCaList() []*x509.Certificate {
 	var i int
 	for _, v := range e.IntermediateCA {
 		interMediateCAArr[i] = v
-		i += 1
+		i++
 	}
 	log.Debug("GetQeInfoInterCaList:", len(interMediateCAArr))
 	return interMediateCAArr
 }
 
 func (e *QeIdentityData) GetQeInfoRootCaList() []*x509.Certificate {
-	RootCAArr := make([]*x509.Certificate, len(e.RootCA))
+	rootCAArr := make([]*x509.Certificate, len(e.RootCA))
 	var i int
 	for _, v := range e.RootCA {
-		RootCAArr[i] = v
-		i += 1
+		rootCAArr[i] = v
+		i++
 	}
-	log.Debug("GetQeInfoRootCaList:", len(RootCAArr))
-	return RootCAArr
+	log.Debug("GetQeInfoRootCaList:", len(rootCAArr))
+	return rootCAArr
 }
 
 func (e *QeIdentityData) GetQeIdentityStatus() bool {

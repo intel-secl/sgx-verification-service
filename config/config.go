@@ -17,7 +17,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"strings"
 	"time"
 )
 
@@ -147,23 +146,6 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 			slog.Infof("config/config:SaveConfiguration() Log level set %s\n", logLevel)
 		}
 	}
-
-	sqvsAASUser, err := c.GetenvString(constants.SQVS_USER, "SQVS Service Username")
-	if err == nil && sqvsAASUser != "" {
-		conf.SQVS.User = sqvsAASUser
-	} else if conf.SQVS.User == "" {
-		commLog.GetDefaultLogger().Error("SQVS_USERNAME is not defined in environment or configuration file")
-		return errorLog.Wrap(err, "SQVS_USERNAME is not defined in environment or configuration file")
-	}
-
-	sqvsAASPassword, err := c.GetenvSecret(constants.SQVS_PASSWORD, "SQVS Service Password")
-	if err == nil && sqvsAASPassword != "" {
-		conf.SQVS.Password = sqvsAASPassword
-	} else if strings.TrimSpace(conf.SQVS.Password) == "" {
-		commLog.GetDefaultLogger().Error("SQVS_PASSWORD is not defined in environment or configuration file")
-		return errorLog.Wrap(err, "SQVS_PASSWORD is not defined in environment or configuration file")
-	}
-
 	trustedRootPath, err := c.GetenvString("SGX_TRUSTED_ROOT_CA_PATH", "SQVS Trusted Root CA")
 	if err == nil && trustedRootPath != "" {
 		trustedRoot, err := ioutil.ReadFile(trustedRootPath)
@@ -220,9 +202,9 @@ func (c *Configuration) Save() error {
 	return yaml.NewEncoder(file).Encode(c)
 }
 
-func Load(path string) *Configuration {
+func Load(filePath string) *Configuration {
 	var c Configuration
-	file, _ := os.Open(path)
+	file, _ := os.Open(filePath)
 	if file != nil {
 		defer func() {
 			derr := file.Close()
@@ -238,6 +220,6 @@ func Load(path string) *Configuration {
 		c.LogLevel = log.InfoLevel
 	}
 
-	c.configFile = path
+	c.configFile = filePath
 	return &c
 }
