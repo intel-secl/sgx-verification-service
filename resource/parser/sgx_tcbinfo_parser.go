@@ -58,19 +58,19 @@ type TcbInfoType struct {
 	IssueDate               string          `json:"issueDate"`
 	NextUpdate              string          `json:"nextUpdate"`
 	Fmspc                   string          `json:"fmspc"`
-	PceId                   string          `json:"pceId"`
+	PceID                   string          `json:"pceId"`
 	TcbType                 uint            `json:"tcbType"`
 	TcbEvaluationDataNumber uint            `json:"tcbEvaluationDataNumber"`
 	TcbLevels               []TcbLevelsType `json:"tcbLevels"`
 }
 
-type TcbInfoJson struct {
+type TcbInfoJSON struct {
 	TcbInfo   TcbInfoType `json:"tcbInfo"`
 	Signature string      `json:"signature"`
 }
 
 type TcbInfoStruct struct {
-	TcbInfoData    TcbInfoJson
+	TcbInfoData    TcbInfoJSON
 	RootCA         map[string]*x509.Certificate
 	IntermediateCA map[string]*x509.Certificate
 	RawBlob        []byte
@@ -132,7 +132,7 @@ func (e *TcbInfoStruct) getTcbInfoStruct(fmspc string) error {
 		return errors.Wrap(err, "getTcbInfoStruct: Error in getting client object")
 	}
 
-	url := fmt.Sprintf("%s/tcb", conf.SCSBaseUrl)
+	url := fmt.Sprintf("%s/tcb", conf.SCSBaseURL)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Error("getTcbInfoStruct: req object error")
@@ -176,7 +176,7 @@ func (e *TcbInfoStruct) getTcbInfoStruct(fmspc string) error {
 
 	copy(e.RawBlob, content)
 
-	log.Debug("GetTcbInfoJson: blob[", resp.ContentLength, "]:", len(e.RawBlob))
+	log.Debug("GetTcbInfoJSON: blob[", resp.ContentLength, "]:", len(e.RawBlob))
 
 	certChainList, err := utils.GetCertObjList(string(resp.Header.Get("SGX-TCB-Info-Issuer-Chain")))
 	if err != nil {
@@ -293,7 +293,7 @@ func (e *TcbInfoStruct) DumpTcbInfo() {
 	log.Printf("IssueDate:       %v", e.TcbInfoData.TcbInfo.IssueDate)
 	log.Printf("NextUpdate:      %v", e.TcbInfoData.TcbInfo.NextUpdate)
 	log.Printf("Fmspc:           %v", e.TcbInfoData.TcbInfo.Fmspc)
-	log.Printf("pceId:           %v", e.TcbInfoData.TcbInfo.PceId)
+	log.Printf("pceID:           %v", e.TcbInfoData.TcbInfo.PceID)
 	log.Printf("Sgxtcbcomp01svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.SgxTcbComp01Svn)
 	log.Printf("Sgxtcbcomp02svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.SgxTcbComp02Svn)
 	log.Printf("Sgxtcbcomp03svn: %v", e.TcbInfoData.TcbInfo.TcbLevels[0].Tcb.SgxTcbComp03Svn)

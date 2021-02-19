@@ -19,7 +19,7 @@ type TestData struct {
 	Router      *mux.Router
 	Test        *testing.T
 	Token       string
-	Url         string
+	URL         string
 	StatusCode  int
 	PostData    []byte
 }

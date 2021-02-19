@@ -293,9 +293,9 @@ func (a *App) Run(args []string) error {
 			Tasks: []setup.Task{
 				setup.Download_Ca_Cert{
 					Flags:                args,
-					CmsBaseURL:           a.Config.CMSBaseUrl,
+					CmsBaseURL:           a.Config.CMSBaseURL,
 					CaCertDirPath:        constants.TrustedCAsStoreDir,
-					TrustedTlsCertDigest: a.Config.CmsTlsCertDigest,
+					TrustedTlsCertDigest: a.Config.CmsTLSCertDigest,
 					ConsoleWriter:        os.Stdout,
 				},
 				setup.Download_Cert{
@@ -304,7 +304,7 @@ func (a *App) Run(args []string) error {
 					CertFile:           a.Config.TLSCertFile,
 					KeyAlgorithm:       constants.DefaultKeyAlgorithm,
 					KeyAlgorithmLength: constants.DefaultKeyAlgorithmLength,
-					CmsBaseURL:         a.Config.CMSBaseUrl,
+					CmsBaseURL:         a.Config.CMSBaseURL,
 					Subject: pkix.Name{
 						CommonName: a.Config.Subject.TLSCertCommonName,
 					},
@@ -545,10 +545,10 @@ func fnGetJwtCerts() error {
 	if conf == nil {
 		return errors.New("failed to read config")
 	}
-	if !strings.HasSuffix(conf.AuthServiceUrl, "/") {
-		conf.AuthServiceUrl += "/"
+	if !strings.HasSuffix(conf.AuthServiceURL, "/") {
+		conf.AuthServiceURL += "/"
 	}
-	url := conf.AuthServiceUrl + "noauth/jwt-certificates"
+	url := conf.AuthServiceURL + "noauth/jwt-certificates"
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return errors.Wrap(err, "Could not create http request")

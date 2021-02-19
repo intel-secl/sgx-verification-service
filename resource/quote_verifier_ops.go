@@ -32,7 +32,7 @@ type SGXResponse struct {
 	EnclaveIssuerExtProdID string
 	ConfigSvn              string
 	IsvSvn                 string
-	ConfigId               string
+	ConfigID               string
 	TcbLevel               string
 }
 
@@ -114,7 +114,7 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 			StatusCode: http.StatusBadRequest}
 	}
 
-	_, err = verifier.VerifyPckCrl(certObj.GetPckCrlUrl(), certObj.GetPckCrlObj(), certObj.GetPckCrlInterCaList(),
+	_, err = verifier.VerifyPckCrl(certObj.GetPckCrlURL(), certObj.GetPckCrlObj(), certObj.GetPckCrlInterCaList(),
 		certObj.GetPckCrlRootCaList(), conf.TrustedRootCA)
 	if err != nil {
 		return &resourceError{Message: "cannot verify pck crl: " + err.Error(),
@@ -136,13 +136,13 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 	tcbUptoDateStatus := tcbObj.GetTcbUptoDateStatus(certObj.GetPckCertTcbLevels())
 	log.Info("Current Tcb-Upto-Date Status is : ", tcbUptoDateStatus)
 
-	qeIdObj, err := parser.NewQeIdentity()
+	qeIDObj, err := parser.NewQeIdentity()
 	if err != nil {
 		return &resourceError{Message: "QEIdentity Parsing failed: " + err.Error(),
 			StatusCode: http.StatusInternalServerError}
 	}
 
-	_, err = verifyQeIdentity(qeIdObj, quoteObj, conf.TrustedRootCA)
+	_, err = verifyQeIdentity(qeIDObj, quoteObj, conf.TrustedRootCA)
 	if err != nil {
 		return &resourceError{Message: "verifyQeIdentity failed: " + err.Error(),
 			StatusCode: http.StatusInternalServerError}
@@ -196,12 +196,12 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 	resp.UserDataHashMatch = strconv.FormatBool(hashMatched)
 	resp.ReportData = fmt.Sprintf("%02x", quoteObj.GetSHA256Hash())
 	resp.EnclaveIssuer = fmt.Sprintf("%02x", quoteObj.Header.ReportBody.MrSigner)
-	resp.EnclaveIssuerProdID = fmt.Sprintf("%02x", quoteObj.Header.ReportBody.SgxIsvProdId)
-	resp.EnclaveIssuerExtProdID = fmt.Sprintf("%02x", quoteObj.Header.ReportBody.SgxIsvextProdId)
+	resp.EnclaveIssuerProdID = fmt.Sprintf("%02x", quoteObj.Header.ReportBody.SgxIsvProdID)
+	resp.EnclaveIssuerExtProdID = fmt.Sprintf("%02x", quoteObj.Header.ReportBody.SgxIsvextProdID)
 	resp.EnclaveMeasurement = fmt.Sprintf("%02x", quoteObj.Header.ReportBody.MrEnclave)
 	resp.ConfigSvn = fmt.Sprintf("%02x", quoteObj.Header.ReportBody.SgxConfigSvn)
 	resp.IsvSvn = fmt.Sprintf("%02x", quoteObj.Header.ReportBody.SgxIsvSvn)
-	resp.ConfigId = fmt.Sprintf("%02x", quoteObj.Header.ReportBody.ConfigId)
+	resp.ConfigID = fmt.Sprintf("%02x", quoteObj.Header.ReportBody.ConfigID)
 	resp.TcbLevel = tcbUptoDateStatus
 
 	js, err := json.Marshal(resp)
@@ -217,56 +217,56 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 	return nil
 }
 
-func verifyQeIdentityReport(qeIdObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteParsed) (bool, error) {
-	_, err := verifier.VerifyMiscSelect(quoteObj.GetQeReportMiscSelect(), qeIdObj.GetQeIdMiscSelect(),
-		qeIdObj.GetQeIdMiscSelectMask())
+func verifyQeIdentityReport(qeIDObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteParsed) (bool, error) {
+	_, err := verifier.VerifyMiscSelect(quoteObj.GetQeReportMiscSelect(), qeIDObj.GetQeIDMiscSelect(),
+		qeIDObj.GetQeIDMiscSelectMask())
 	if err != nil {
 		return false, errors.Wrap(err, "verifyQeIdentityReport: ")
 	}
 
-	_, err = verifier.VerifyAttributes(quoteObj.GetQeReportAttributes(), qeIdObj.GetQeIdAttributes(),
-		qeIdObj.GetQeIdAttributesMask())
+	_, err = verifier.VerifyAttributes(quoteObj.GetQeReportAttributes(), qeIDObj.GetQeIDAttributes(),
+		qeIDObj.GetQeIDAttributesMask())
 	if err != nil {
 		return false, errors.Wrap(err, "verifyQeIdentityReport:")
 	}
 
-	_, err = verifier.VerifyReportAttrSize(quoteObj.GetQeReportMrSigner(), "MrSigner", qeIdObj.GetQeIdMrSigner())
+	_, err = verifier.VerifyReportAttrSize(quoteObj.GetQeReportMrSigner(), "MrSigner", qeIDObj.GetQeIDMrSigner())
 	if err != nil {
 		return false, errors.Wrap(err, "verifyQeIdentityReport")
 	}
 
-	if quoteObj.GetQeReportProdId() < qeIdObj.GetQeIdIsvProdId() {
-		log.Info("Qe Prod Id in ecdsa quote is below the minimum prod id expected for QE")
+	if quoteObj.GetQeReportProdID() < qeIDObj.GetQeIDIsvProdID() {
+		log.Info("Qe Prod ID in ecdsa quote is below the minimum prod id expected for QE")
 	}
 
-	if quoteObj.GetQeReportIsvSvn() < qeIdObj.GetQeIdIsvSvn() {
+	if quoteObj.GetQeReportIsvSvn() < qeIDObj.GetQeIDIsvSvn() {
 		log.Info("IsvSvn in ecdsa quote is below the minimum IsvSvn expected for QE")
 	}
 	return true, nil
 }
 
-func verifyQeIdentity(qeIdObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteParsed,
+func verifyQeIdentity(qeIDObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteParsed,
 	trustedRootCA *x509.Certificate) (bool, error) {
 
-	if qeIdObj == nil || quoteObj == nil {
+	if qeIDObj == nil || quoteObj == nil {
 		return false, errors.New("verifyQeIdentity: QEIdentity/Quote Object is empty")
 	}
-	_, err := verifier.VerifyQeIdCertChain(qeIdObj.GetQeInfoInterCaList(), qeIdObj.GetQeInfoRootCaList(),
+	_, err := verifier.VerifyQeIDCertChain(qeIDObj.GetQeInfoInterCaList(), qeIDObj.GetQeInfoRootCaList(),
 		trustedRootCA)
 	if err != nil {
-		return false, errors.Wrap(err, "verifyQeIdentity: VerifyQeIdCertChain")
+		return false, errors.Wrap(err, "verifyQeIdentity: VerifyQeIDCertChain")
 	}
 
-	status := qeIdObj.GetQeIdentityStatus()
+	status := qeIDObj.GetQeIdentityStatus()
 	if !status {
 		return false, errors.New("verifyQeIdentity: GetQeIdentityStatus is invalid")
 	}
 
-	if !utils.CheckDate(qeIdObj.GetQeIdIssueDate(), qeIdObj.GetQeIdNextUpdate()) {
+	if !utils.CheckDate(qeIDObj.GetQeIDIssueDate(), qeIDObj.GetQeIDNextUpdate()) {
 		return false, errors.New("verifyQeIdentity: Date Check validation failed")
 	}
 
-	return verifyQeIdentityReport(qeIdObj, quoteObj)
+	return verifyQeIdentityReport(qeIDObj, quoteObj)
 }
 
 func verifyTcbInfo(certObj *parser.PckCert, tcbObj *parser.TcbInfoStruct, trustedRootCA *x509.Certificate) error {

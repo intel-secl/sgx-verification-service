@@ -17,14 +17,14 @@ type TestData struct {
 	Assert      *assert.Assertions
 	Test        *testing.T
 	Token       string
-	Url         string
+	URL         string
 	StatusCode  int
 	PostData    []byte
 }
 
 func ExecuteQPLTest(input TestData) {
 	input.Test.Log("Test:", input.Description)
-	req := httptest.NewRequest("GET", input.Url, nil)
+	req := httptest.NewRequest("GET", input.URL, nil)
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Content-Type", "application/json")
 }
@@ -34,14 +34,14 @@ func TestGetFmspc(t *testing.T) {
 		Recorder:    httptest.NewRecorder(),
 		Assert:      assert.New(t),
 		Test:        t,
-		Url:         "/svs/v1/test/tcb",
+		URL:         "/svs/v1/test/tcb",
 		StatusCode:  http.StatusBadRequest,
 		PostData:    nil,
 		Token:       "",
 		Description: "Without Query Params",
 	}
 	ExecuteQPLTest(input)
-	input.Url = "/svs/v1/tcb?fmspc=invalid"
+	input.URL = "/svs/v1/tcb?fmspc=invalid"
 	input.Description = "Invalid Query Params"
 	input.Test.Log("Test:", input.Description, " ended")
 }

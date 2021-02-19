@@ -26,7 +26,7 @@ func verifyPckCrlIssuer(crl *pkix.CertificateList) bool {
 	return verifyCaSubject(issuer, constants.SGXCRLIssuerStr)
 }
 
-func VerifyPckCrl(crlUrl []string, crlList []*pkix.CertificateList, interCA,
+func VerifyPckCrl(crlURL []string, crlList []*pkix.CertificateList, interCA,
 	rootCA []*x509.Certificate, trustedRootCA *x509.Certificate) (bool, error) {
 	if len(crlList) == 0 || len(interCA) == 0 || len(rootCA) == 0 {
 		return false, errors.New("VerifyPckCrl: CRL List/InterCA/RootCA is empty")
@@ -53,11 +53,11 @@ func VerifyPckCrl(crlUrl []string, crlList []*pkix.CertificateList, interCA,
 	for i := 0; i < len(crlList); i++ {
 		ret := checkExpiry(crlList[i])
 		if !ret {
-			return false, errors.New("VerifyPckCrl: Revocation List has Expired" + crlUrl[i])
+			return false, errors.New("VerifyPckCrl: Revocation List has Expired" + crlURL[i])
 		}
 		ret = verifyPckCrlIssuer(crlList[i])
 		if !ret {
-			return false, errors.New("VerifyPckCrl: CRL Issuer info is Invalid: " + crlUrl[i])
+			return false, errors.New("VerifyPckCrl: CRL Issuer info is Invalid: " + crlURL[i])
 		}
 
 		for j := 0; j < len(interCA); j++ {

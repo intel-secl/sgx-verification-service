@@ -19,13 +19,13 @@ import (
 	"strings"
 )
 
-type QeIdentityJson struct {
+type QeIdentityJSON struct {
 	EnclaveIdentity EnclaveIdentityType `json:"enclaveIdentity"`
 	Signature       string              `json:"signature"`
 }
 
 type QeIdentityData struct {
-	QEJson         QeIdentityJson
+	QEJson         QeIdentityJSON
 	RootCA         map[string]*x509.Certificate
 	IntermediateCA map[string]*x509.Certificate
 	RawBlob        []byte
@@ -42,7 +42,7 @@ type TcbLevelsInfo struct {
 }
 
 type EnclaveIdentityType struct {
-	Id                      string          `json:"id"`
+	ID                      string          `json:"id"`
 	Version                 uint16          `json:"version"`
 	IssueDate               string          `json:"issueDate"`
 	NextUpdate              string          `json:"nextUpdate"`
@@ -52,7 +52,7 @@ type EnclaveIdentityType struct {
 	Attributes              string          `json:"attributes"`
 	AttributesMask          string          `json:"attributesMask"`
 	MrSigner                string          `json:"mrsigner"`
-	IsvProdId               uint16          `json:"isvprodid"`
+	IsvProdID               uint16          `json:"isvprodid"`
 	TcbLevels               []TcbLevelsInfo `json:"tcbLevels"`
 }
 
@@ -69,7 +69,7 @@ func NewQeIdentity() (*QeIdentityData, error) {
 		return nil, errors.Wrap(err, "NewQeIdentity: Error in getting client object")
 	}
 
-	url := fmt.Sprintf("%s/qe/identity", conf.SCSBaseUrl)
+	url := fmt.Sprintf("%s/qe/identity", conf.SCSBaseURL)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "NewQeIdentity: failed to get new request")
@@ -166,57 +166,57 @@ func (e *QeIdentityData) GetQeInfoRootCaList() []*x509.Certificate {
 }
 
 func (e *QeIdentityData) GetQeIdentityStatus() bool {
-	sign, err := e.getQeIdSignature()
+	sign, err := e.getQeIDSignature()
 	if err != nil {
 		return false
 	}
-	if !utils.IntToBool(int(e.getQeIdVer())) || !utils.IntToBool(len(e.GetQeIdIssueDate())) ||
-		!utils.IntToBool(len(e.GetQeIdMiscSelect())) || !utils.IntToBool(len(e.GetQeIdMiscSelectMask())) ||
-		!utils.IntToBool(len(e.GetQeIdAttributes())) || !utils.IntToBool(len(e.GetQeIdAttributesMask())) ||
-		!utils.IntToBool(len(e.GetQeIdMrSigner())) || !utils.IntToBool(int(e.GetQeIdIsvProdId())) ||
-		!utils.IntToBool(int(e.GetQeIdIsvSvn())) || !utils.IntToBool(len(sign)) {
+	if !utils.IntToBool(int(e.getQeIDVer())) || !utils.IntToBool(len(e.GetQeIDIssueDate())) ||
+		!utils.IntToBool(len(e.GetQeIDMiscSelect())) || !utils.IntToBool(len(e.GetQeIDMiscSelectMask())) ||
+		!utils.IntToBool(len(e.GetQeIDAttributes())) || !utils.IntToBool(len(e.GetQeIDAttributesMask())) ||
+		!utils.IntToBool(len(e.GetQeIDMrSigner())) || !utils.IntToBool(int(e.GetQeIDIsvProdID())) ||
+		!utils.IntToBool(int(e.GetQeIDIsvSvn())) || !utils.IntToBool(len(sign)) {
 		return false
 	}
 	return true
 }
 
-func (e *QeIdentityData) getQeIdVer() uint16 {
+func (e *QeIdentityData) getQeIDVer() uint16 {
 	return e.QEJson.EnclaveIdentity.Version
 }
 
-func (e *QeIdentityData) GetQeIdIssueDate() string {
+func (e *QeIdentityData) GetQeIDIssueDate() string {
 	return e.QEJson.EnclaveIdentity.IssueDate
 }
 
-func (e *QeIdentityData) GetQeIdNextUpdate() string {
+func (e *QeIdentityData) GetQeIDNextUpdate() string {
 	return e.QEJson.EnclaveIdentity.NextUpdate
 }
 
-func (e *QeIdentityData) GetQeIdMiscSelect() string {
+func (e *QeIdentityData) GetQeIDMiscSelect() string {
 	return e.QEJson.EnclaveIdentity.MiscSelect
 }
 
-func (e *QeIdentityData) GetQeIdMiscSelectMask() string {
+func (e *QeIdentityData) GetQeIDMiscSelectMask() string {
 	return e.QEJson.EnclaveIdentity.MiscSelectMask
 }
 
-func (e *QeIdentityData) GetQeIdAttributes() string {
+func (e *QeIdentityData) GetQeIDAttributes() string {
 	return e.QEJson.EnclaveIdentity.Attributes
 }
 
-func (e *QeIdentityData) GetQeIdAttributesMask() string {
+func (e *QeIdentityData) GetQeIDAttributesMask() string {
 	return e.QEJson.EnclaveIdentity.AttributesMask
 }
 
-func (e *QeIdentityData) GetQeIdMrSigner() string {
+func (e *QeIdentityData) GetQeIDMrSigner() string {
 	return e.QEJson.EnclaveIdentity.MrSigner
 }
 
-func (e *QeIdentityData) GetQeIdIsvProdId() uint16 {
-	return e.QEJson.EnclaveIdentity.IsvProdId
+func (e *QeIdentityData) GetQeIDIsvProdID() uint16 {
+	return e.QEJson.EnclaveIdentity.IsvProdID
 }
 
-func (e *QeIdentityData) GetQeIdIsvSvn() uint16 {
+func (e *QeIdentityData) GetQeIDIsvSvn() uint16 {
 	for i := 0; i < len(e.QEJson.EnclaveIdentity.TcbLevels); i++ {
 		if e.QEJson.EnclaveIdentity.TcbLevels[i].TcbStatus == "UpToDate" {
 			return e.QEJson.EnclaveIdentity.TcbLevels[i].Tcb.IsvSvn
@@ -225,17 +225,17 @@ func (e *QeIdentityData) GetQeIdIsvSvn() uint16 {
 	return 0
 }
 
-func (e *QeIdentityData) getQeIdSignature() ([]byte, error) {
+func (e *QeIdentityData) getQeIDSignature() ([]byte, error) {
 	data, err := hex.DecodeString(e.QEJson.Signature)
 	if err != nil {
-		return nil, errors.Wrap(err, "getQeIdSignature: error in decode string")
+		return nil, errors.Wrap(err, "getQeIDSignature: error in decode string")
 	}
 	return data, nil
 }
 
-func (e *QeIdentityData) DumpQeIdentity() {
+func (e *QeIdentityData) DumpQeIDentity() {
 	log.Debug("===========QEIdentity==============")
-	log.Printf("Id: %v", e.QEJson.EnclaveIdentity.Id)
+	log.Printf("ID: %v", e.QEJson.EnclaveIdentity.ID)
 	log.Printf("Version: %v", e.QEJson.EnclaveIdentity.Version)
 	log.Printf("IssueDate: %v", e.QEJson.EnclaveIdentity.IssueDate)
 	log.Printf("NextUpdate: %v", e.QEJson.EnclaveIdentity.NextUpdate)
@@ -244,6 +244,6 @@ func (e *QeIdentityData) DumpQeIdentity() {
 	log.Printf("attributes: %v", e.QEJson.EnclaveIdentity.Attributes)
 	log.Printf("attributesMask: %v", e.QEJson.EnclaveIdentity.AttributesMask)
 	log.Printf("mrsigner: %v", e.QEJson.EnclaveIdentity.MrSigner)
-	log.Printf("isvprodid: %v", e.QEJson.EnclaveIdentity.IsvProdId)
+	log.Printf("isvprodid: %v", e.QEJson.EnclaveIdentity.IsvProdID)
 	log.Printf("Signature: %v", e.QEJson.Signature)
 }

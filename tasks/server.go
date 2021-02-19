@@ -25,7 +25,7 @@ func (s Server) Run(c setup.Context) error {
 	fmt.Fprintln(s.ConsoleWriter, "Running server setup...")
 	defaultPort, err := c.GetenvInt("SQVS_PORT", "sgx serification service http port")
 	if err != nil {
-		defaultPort = constants.DefaultHttpPort
+		defaultPort = constants.DefaultHTTPSPort
 	}
 
 	fs := flag.NewFlagSet("server", flag.ContinueOnError)
