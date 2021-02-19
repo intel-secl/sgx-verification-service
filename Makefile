@@ -46,7 +46,7 @@ else
 	docker build -f dist/image/Dockerfile -t isecl/sqvs:$(VERSION) .
 endif
 
-sqvs-oci-archive: docker
+oci-archive: docker
 	skopeo copy docker-daemon:isecl/sqvs:$(VERSION) oci-archive:out/sqvs-$(VERSION)-$(GITCOMMIT).tar
 
 clean:
