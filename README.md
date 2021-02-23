@@ -79,17 +79,17 @@ make
 
 ### Direct dependencies
 
-| Name        | Repo URL                    | Minimum Version Required           |
-| ----------- | --------------------------- | :--------------------------------: |
-| handlers    | github.com/gorilla/handlers | v1.4.2                             |
-| mux         | github.com/gorilla/mux      | v1.7.4                             |
-| errors      | github.com/pkg/errors       | v0.9.1                             |
-| logrus      | github.com/sirupsen/logrus  | v1.5.0                             |
-| testify     | github.com/stretchr/testify | v1.5.1                             |
-| yaml.v2     | gopkg.in/yaml.v2            | v2.4.0                             |
-| restruct    | gopkg.in/restruct           | v1.0.0                             |
-| common      | github.com/intel-secl/common| v3.5.0                             |
-| clients     | github.com/intel-secl/clients| v3.5git .0                            |
+| Name        | Repo URL                     | Minimum Version Required           |
+| ----------- | ---------------------------  | :--------------------------------: |
+| handlers    | github.com/gorilla/handlers  | v1.4.2                             |
+| mux         | github.com/gorilla/mux       | v1.7.4                             |
+| errors      | github.com/pkg/errors        | v0.9.1                             |
+| logrus      | github.com/sirupsen/logrus   | v1.5.0                             |
+| testify     | github.com/stretchr/testify  | v1.5.1                             |
+| yaml.v2     | gopkg.in/yaml.v2             | v2.4.0                             |
+| restruct    | gopkg.in/restruct            | v1.0.0                             |
+| common      | github.com/intel-secl/common | v3.5.0                             |
+| clients     | github.com/intel-secl/clients| v3.5.0                             |
 
 ### Indirect Dependencies
 

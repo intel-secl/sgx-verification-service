@@ -6,7 +6,6 @@ package config
 
 import (
 	"crypto/x509"
-	"encoding/pem"
 	"errors"
 	errorLog "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -14,7 +13,6 @@ import (
 	commLog "intel/isecl/lib/common/v3/log"
 	"intel/isecl/lib/common/v3/setup"
 	"intel/isecl/sqvs/v3/constants"
-	"io/ioutil"
 	"os"
 	"path"
 	"time"
@@ -88,29 +86,6 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 		return errorLog.Wrap(errors.New("CMS_BASE_URL is not defined in environment"), "SaveConfiguration() ENV variable not found")
 	}
 
-	aasApiUrl, err := c.GetenvString("AAS_API_URL", "AAS API URL")
-	if err == nil && aasApiUrl != "" {
-		conf.AuthServiceUrl = aasApiUrl
-	} else if conf.AuthServiceUrl == "" {
-		commLog.GetDefaultLogger().Error("AAS_API_URL is not defined in environment")
-		return errorLog.Wrap(errors.New("AAS_API_URL is not defined in environment"), "SaveConfiguration() ENV variable not found")
-	}
-
-	includeToken, err := c.GetenvString("SQVS_INCLUDE_TOKEN", "Boolean value to decide whether to use token based auth or no auth for quote verifier API")
-	if err == nil && includeToken != "" {
-		conf.IncludeToken = includeToken
-	} else if conf.IncludeToken == "" {
-		conf.IncludeToken = constants.DefaultIncludeTokenValue
-	}
-
-	scsBaseUrl, err := c.GetenvString("SCS_BASE_URL", "SGX Caching Service URL")
-	if err == nil && scsBaseUrl != "" {
-		conf.SCSBaseUrl = scsBaseUrl
-	} else if conf.SCSBaseUrl == "" {
-		commLog.GetDefaultLogger().Error("SCS_BASE_URL is not defined in environment")
-		return errorLog.Wrap(errors.New("SCS_BASE_URL is not defined in environment"), "SaveConfiguration() ENV variable not found")
-	}
-
 	tlsCertCN, err := c.GetenvString("SQVS_TLS_CERT_CN", "SQVS TLS Certificate Common Name")
 	if err == nil && tlsCertCN != "" {
 		conf.Subject.TLSCertCommonName = tlsCertCN
@@ -145,23 +120,6 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 			conf.LogLevel = llp
 			slog.Infof("config/config:SaveConfiguration() Log level set %s\n", logLevel)
 		}
-	}
-	trustedRootPath, err := c.GetenvString("SGX_TRUSTED_ROOT_CA_PATH", "SQVS Trusted Root CA")
-	if err == nil && trustedRootPath != "" {
-		trustedRoot, err := ioutil.ReadFile(trustedRootPath)
-		if err != nil {
-			return errors.New("SaveConfiguration: Filed read error: " + trustedRootPath + " : " + err.Error())
-		}
-		block, _ := pem.Decode([]byte(trustedRoot))
-		if block == nil {
-			return errors.New("SaveConfiguration: Pem Decode error")
-		}
-		conf.TrustedRootCA, err = x509.ParseCertificate(block.Bytes)
-		if err != nil {
-			return errors.New("SaveConfiguration: ParseCertificate error: " + err.Error())
-		}
-	} else {
-		return errors.New("SaveConfiguration: Invalid pem certificate")
 	}
 
 	sanList, err := c.GetenvString("SAN_LIST", "SAN list for TLS")

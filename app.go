@@ -78,27 +78,41 @@ func (a *App) printUsage() {
 	fmt.Fprintln(w, "                              Optional env variables:")
 	fmt.Fprintln(w, "                                  - get optional env variables from all the setup tasks")
 	fmt.Fprintln(w, "")
-	fmt.Fprintln(w, "    sqvs setup server [--port=<port>]")
-	fmt.Fprintln(w, "        - Setup http server on <port>")
-	fmt.Fprintln(w, "        - Environment variable SQVS_PORT=<port> can be set alternatively")
+	fmt.Fprintln(w, "    update_service_config    Updates Service Configuration")
+	fmt.Fprintln(w, "                             Required env variables:")
+	fmt.Fprintln(w, "                                 - SQVS_PORT                                         : SGX Verification Service port")
+	fmt.Fprintln(w, "                                 - SQVS_SERVER_READ_TIMEOUT                          : SGX Verification Service Read Timeout")
+	fmt.Fprintln(w, "                                 - SQVS_SERVER_READ_HEADER_TIMEOUT                   : SGX Verification Service Read Header Timeout Duration")
+	fmt.Fprintln(w, "                                 - SQVS_SERVER_WRITE_TIMEOUT                         : SGX Verification Service Request Write Timeout Duration")
+	fmt.Fprintln(w, "                                 - SQVS_SERVER_IDLE_TIMEOUT                          : SGX Verification Service Request Idle Timeout")
+	fmt.Fprintln(w, "                                 - SQVS_SERVER_MAX_HEADER_BYTES                      : SGX Verification Service Max Length Of Request Header Bytes")
+	fmt.Fprintln(w, "                                 - SQVS_LOG_LEVEL                                    : SGX Verification Service Log Level")
+	fmt.Fprintln(w, "                                 - SQVS_LOG_MAX_LENGTH                               : SGX Verification Service Log maximum length")
+	fmt.Fprintln(w, "                                 - SQVS_ENABLE_CONSOLE_LOG                           : SGX Verification Service Enable standard output")
+	fmt.Fprintln(w, "                                 - SQVS_USERNAME                                     : SQVS Service Username")
+	fmt.Fprintln(w, "                                 - SQVS_PASSWORD                                     : SQVS Service Password")
+	fmt.Fprintln(w, "                                 - SQVS_INCLUDE_TOKEN                                : Boolean value to decide whether to use token based auth or no auth for quote verifier API")
+	fmt.Fprintln(w, "                                 - SGX_TRUSTED_ROOT_CA_PATH                          : SQVS Trusted Root CA")
+	fmt.Fprintln(w, "                                 - SCS_BASE_URL                                      : SGX Caching Service URL")
+	fmt.Fprintln(w, "                                 - AAS_API_URL                                       : AAS API URL")
 	fmt.Fprintln(w, "")
-	fmt.Fprintln(w, "    download_ca_cert      Download CMS root CA certificate")
-	fmt.Fprintln(w, "                          - Option [--force] overwrites any existing files, and always downloads new root CA cert")
-	fmt.Fprintln(w, "                          Required env variables specific to setup task are:")
-	fmt.Fprintln(w, "                              - CMS_BASE_URL=<url>                                : for CMS API url")
-	fmt.Fprintln(w, "                              - CMS_TLS_CERT_SHA384=<CMS TLS cert sha384 hash>    : to ensure that AAS is talking to the right CMS instance")
+	fmt.Fprintln(w, "    download_ca_cert         Download CMS root CA certificate")
+	fmt.Fprintln(w, "                             - Option [--force] overwrites any existing files, and always downloads new root CA cert")
+	fmt.Fprintln(w, "                             Required env variables specific to setup task are:")
+	fmt.Fprintln(w, "                                 - CMS_BASE_URL=<url>                                : for CMS API url")
+	fmt.Fprintln(w, "                                 - CMS_TLS_CERT_SHA384=<CMS TLS cert sha384 hash>    : to ensure that AAS is talking to the right CMS instance")
 	fmt.Fprintln(w, "")
-	fmt.Fprintln(w, "    download_cert TLS     Generates Key pair and CSR, gets it signed from CMS")
-	fmt.Fprintln(w, "                          - Option [--force] overwrites any existing files, and always downloads newly signed TLS cert")
-	fmt.Fprintln(w, "                          Required env variable if SCS_NOSETUP=true or variable not set in config.yml:")
-	fmt.Fprintln(w, "                              - CMS_TLS_CERT_SHA384=<CMS TLS cert sha384 hash>      : to ensure that AAS is talking to the right CMS instance")
-	fmt.Fprintln(w, "                          Required env variables specific to setup task are:")
-	fmt.Fprintln(w, "                              - CMS_BASE_URL=<url>               : for CMS API url")
-	fmt.Fprintln(w, "                              - BEARER_TOKEN=<token>             : for authenticating with CMS")
-	fmt.Fprintln(w, "                              - SAN_LIST=<san>                   : list of hosts which needs access to service")
-	fmt.Fprintln(w, "                          Optional env variables specific to setup task are:")
-	fmt.Fprintln(w, "                              - KEY_PATH=<key_path>              : Path of file where TLS key needs to be stored")
-	fmt.Fprintln(w, "                              - CERT_PATH=<cert_path>            : Path of file/directory where TLS certificate needs to be stored")
+	fmt.Fprintln(w, "    download_cert TLS        Generates Key pair and CSR, gets it signed from CMS")
+	fmt.Fprintln(w, "                             - Option [--force] overwrites any existing files, and always downloads newly signed TLS cert")
+	fmt.Fprintln(w, "                             Required env variable if SCS_NOSETUP=true or variable not set in config.yml:")
+	fmt.Fprintln(w, "                                 - CMS_TLS_CERT_SHA384=<CMS TLS cert sha384 hash>      : to ensure that AAS is talking to the right CMS instance")
+	fmt.Fprintln(w, "                             Required env variables specific to setup task are:")
+	fmt.Fprintln(w, "                                 - CMS_BASE_URL=<url>               : for CMS API url")
+	fmt.Fprintln(w, "                                 - BEARER_TOKEN=<token>             : for authenticating with CMS")
+	fmt.Fprintln(w, "                                 - SAN_LIST=<san>                   : list of hosts which needs access to service")
+	fmt.Fprintln(w, "                             Optional env variables specific to setup task are:")
+	fmt.Fprintln(w, "                                - KEY_PATH=<key_path>              : Path of file where TLS key needs to be stored")
+	fmt.Fprintln(w, "                                - CERT_PATH=<cert_path>            : Path of file/directory where TLS certificate needs to be stored")
 	fmt.Fprintln(w, "")
 }
 
@@ -264,7 +278,7 @@ func (a *App) Run(args []string) error {
 		}
 		if args[2] != "download_ca_cert" &&
 			args[2] != "download_cert" &&
-			args[2] != "server" &&
+			args[2] != "update_service_config" &&
 			args[2] != "all" {
 			a.printUsage()
 			return errors.New("No such setup task")
@@ -314,7 +328,7 @@ func (a *App) Run(args []string) error {
 					BearerToken:   "",
 					ConsoleWriter: os.Stdout,
 				},
-				tasks.Server{
+				tasks.Update_Service_Config{
 					Flags:         flags,
 					Config:        a.configuration(),
 					ConsoleWriter: os.Stdout,
@@ -529,7 +543,7 @@ func validateSetupArgs(cmd string, args []string) error {
 	case "download_cert":
 		return nil
 
-	case "server":
+	case "update_service_config":
 		return nil
 
 	case "all":
