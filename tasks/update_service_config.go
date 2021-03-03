@@ -48,32 +48,48 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 	}
 	fmt.Fprintf(u.ConsoleWriter, "Using HTTPS port: %d\n", u.Config.Port)
 
-	readTimeout, err := c.GetenvInt("SQVS_SERVER_READ_TIMEOUT", "SGX Verification Service Read Timeout")
+	readTimeout, err := c.GetenvString("SQVS_SERVER_READ_TIMEOUT", "SGX Verification Service Read Timeout")
 	if err != nil {
 		u.Config.ReadTimeout = constants.DefaultReadTimeout
 	} else {
-		u.Config.ReadTimeout = time.Duration(readTimeout) * time.Second
+		u.Config.ReadTimeout, err = time.ParseDuration(readTimeout)
+		if err != nil {
+			fmt.Fprintf(u.ConsoleWriter, "Invalid duration provided for SQVS_SERVER_READ_TIMEOUT setting it to the default value\n")
+			u.Config.ReadTimeout = constants.DefaultReadTimeout
+		}
 	}
 
-	readHeaderTimeout, err := c.GetenvInt("SQVS_SERVER_READ_HEADER_TIMEOUT", "SGX Verification Service Read Header Timeout")
+	readHeaderTimeout, err := c.GetenvString("SQVS_SERVER_READ_HEADER_TIMEOUT", "SGX Verification Service Read Header Timeout")
 	if err != nil {
 		u.Config.ReadHeaderTimeout = constants.DefaultReadHeaderTimeout
 	} else {
-		u.Config.ReadHeaderTimeout = time.Duration(readHeaderTimeout) * time.Second
+		u.Config.ReadHeaderTimeout, err = time.ParseDuration(readHeaderTimeout)
+		if err != nil {
+			fmt.Fprintf(u.ConsoleWriter, "Invalid duration provided for SQVS_SERVER_READ_HEADER_TIMEOUT setting it to the default value\n")
+			u.Config.ReadHeaderTimeout = constants.DefaultReadHeaderTimeout
+		}
 	}
 
-	writeTimeout, err := c.GetenvInt("SQVS_SERVER_WRITE_TIMEOUT", "SGX Verification Service Write Timeout")
+	writeTimeout, err := c.GetenvString("SQVS_SERVER_WRITE_TIMEOUT", "SGX Verification Service Write Timeout")
 	if err != nil {
 		u.Config.WriteTimeout = constants.DefaultWriteTimeout
 	} else {
-		u.Config.WriteTimeout = time.Duration(writeTimeout) * time.Second
+		u.Config.WriteTimeout, err = time.ParseDuration(writeTimeout)
+		if err != nil {
+			fmt.Fprintf(u.ConsoleWriter, "Invalid duration provided for SQVS_SERVER_WRITE_TIMEOUT setting it to the default value\n")
+			u.Config.WriteTimeout = constants.DefaultWriteTimeout
+		}
 	}
 
-	idleTimeout, err := c.GetenvInt("SQVS_SERVER_IDLE_TIMEOUT", "SGX Verification Service Service Idle Timeout")
+	idleTimeout, err := c.GetenvString("SQVS_SERVER_IDLE_TIMEOUT", "SGX Verification Service Service Idle Timeout")
 	if err != nil {
 		u.Config.IdleTimeout = constants.DefaultIdleTimeout
 	} else {
-		u.Config.IdleTimeout = time.Duration(idleTimeout) * time.Second
+		u.Config.IdleTimeout, err = time.ParseDuration(idleTimeout)
+		if err != nil {
+			fmt.Fprintf(u.ConsoleWriter, "Invalid duration provided for SQVS_SERVER_IDLE_TIMEOUT setting it to the default value\n")
+			u.Config.IdleTimeout = constants.DefaultIdleTimeout
+		}
 	}
 
 	maxHeaderBytes, err := c.GetenvInt("SQVS_SERVER_MAX_HEADER_BYTES", "SGX Verification Service Max Header Bytes Timeout")
