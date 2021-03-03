@@ -24,12 +24,12 @@ type TestData struct {
 	PostData    []byte
 }
 
-func setupRouter(t *testing.T) *mux.Router {
+func setupRouter(t *testing.T, c *config.Configuration) *mux.Router {
 	r := mux.NewRouter()
 	sr := r.PathPrefix("/svs/v1/").Subrouter()
 	func(setters ...func(*mux.Router, *config.Configuration)) {
 		for _, s := range setters {
-			s(sr, nil)
+			s(sr, c)
 		}
 	}(QuoteVerifyCB)
 	return r
