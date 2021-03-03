@@ -18,7 +18,7 @@ type TestData struct {
 	Assert      *assert.Assertions
 	Test        *testing.T
 	Token       string
-	Url         string
+	URL         string
 	StatusCode  int
 	PostData    []byte
 }
@@ -26,9 +26,9 @@ type TestData struct {
 func ExecuteSGXQuoteTest(input TestData) {
 	input.Test.Log("Test:", input.Description)
 	if len(input.PostData) > 0 {
-		httptest.NewRequest("POST", input.Url, bytes.NewReader(input.PostData))
+		httptest.NewRequest("POST", input.URL, bytes.NewReader(input.PostData))
 	} else {
-		httptest.NewRequest("POST", input.Url, nil)
+		httptest.NewRequest("POST", input.URL, nil)
 	}
 }
 
@@ -37,7 +37,7 @@ func TestGetSgxQuote(t *testing.T) {
 		Recorder:    httptest.NewRecorder(),
 		Assert:      assert.New(t),
 		Test:        t,
-		Url:         "/svs/v1",
+		URL:         "/svs/v1",
 		StatusCode:  http.StatusBadRequest,
 		PostData:    nil,
 		Token:       "invalidtoken",

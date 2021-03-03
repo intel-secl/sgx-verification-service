@@ -21,7 +21,7 @@
 - makeself
 - Go 1.14.1
 
-## Step By Step Build Instructions
+## Step-By-Step Build Instructions
 
 ### Install required shell commands
 

@@ -18,7 +18,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -32,9 +31,9 @@ var slog = commLog.GetSecurityLogger()
 
 func (u Update_Service_Config) Run(c setup.Context) error {
 	fmt.Fprintln(u.ConsoleWriter, "Running server setup...")
-	defaultPort, err := c.GetenvInt("SQVS_PORT", "sgx serification service http port")
+	defaultPort, err := c.GetenvInt("SQVS_PORT", "sgx verification service http port")
 	if err != nil {
-		defaultPort = constants.DefaultHttpPort
+		defaultPort = constants.DefaultHTTPSPort
 	}
 
 	fs := flag.NewFlagSet("server", flag.ContinueOnError)
@@ -84,7 +83,7 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 		u.Config.MaxHeaderBytes = maxHeaderBytes
 	}
 
-	logLevel, err := c.GetenvString("SQVS_LOGLEVEL", "SQVS Log Level")
+	logLevel, err := c.GetenvString(constants.SQVSLogLevel, "SQVS Log Level")
 	if err != nil {
 		slog.Infof("config/config:SaveConfiguration() %s not defined, using default log level: Info", constants.SQVSLogLevel)
 		u.Config.LogLevel = log.InfoLevel
@@ -112,22 +111,6 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 		u.Config.LogEnableStdout = false
 	} else {
 		u.Config.LogEnableStdout = true
-	}
-
-	sqvsAASUser, err := c.GetenvString(constants.SQVS_USER, "SQVS Service Username")
-	if err == nil && sqvsAASUser != "" {
-		u.Config.SQVS.User = sqvsAASUser
-	} else if u.Config.SQVS.User == "" {
-		commLog.GetDefaultLogger().Error("SQVS_USERNAME is not defined in environment or configuration file")
-		return errors.Wrap(err, "SQVS_USERNAME is not defined in environment or configuration file")
-	}
-
-	sqvsAASPassword, err := c.GetenvSecret(constants.SQVS_PASSWORD, "SQVS Service Password")
-	if err == nil && sqvsAASPassword != "" {
-		u.Config.SQVS.Password = sqvsAASPassword
-	} else if strings.TrimSpace(u.Config.SQVS.Password) == "" {
-		commLog.GetDefaultLogger().Error("SQVS_PASSWORD is not defined in environment or configuration file")
-		return errors.Wrap(err, "SQVS_PASSWORD is not defined in environment or configuration file")
 	}
 
 	includeToken, err := c.GetenvString("SQVS_INCLUDE_TOKEN", "Boolean value to decide whether to use token based auth or no auth for quote verifier API")
@@ -159,7 +142,7 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 		if err != nil {
 			return errors.New("SaveConfiguration: Filed read error: " + trustedRootPath + " : " + err.Error())
 		}
-		block, _ := pem.Decode([]byte(trustedRoot))
+		block, _ := pem.Decode(trustedRoot)
 		if block == nil {
 			return errors.New("SaveConfiguration: Pem Decode error")
 		}

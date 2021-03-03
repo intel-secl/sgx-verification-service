@@ -19,11 +19,11 @@ func VerifyPCKCertificate(pckCert *x509.Certificate, interCA, rootCA []*x509.Cer
 	}
 
 	if !verifyCaSubject(pckCert.Subject.String(), constants.SGXPCKCertificateSubjectStr) {
-		return false, errors.New("VerifyPCKCertificate: Invalid Subject info in PCK Certicate")
+		return false, errors.New("VerifyPCKCertificate: Invalid Subject info in PCK Certificate")
 	}
 
 	if !verifyCaSubject(pckCert.Issuer.String(), constants.SGXInterCACertSubjectStr) {
-		return false, errors.New("VerifyPCKCertificate: Invalid Issuer info in PCK Certicate")
+		return false, errors.New("VerifyPCKCertificate: Invalid Issuer info in PCK Certificate")
 	}
 
 	if strings.Compare(string(trustedRootCA.Signature), string(rootCA[0].Signature)) != 0 {
@@ -55,7 +55,7 @@ func VerifyPCKCertificate(pckCert *x509.Certificate, interCA, rootCA []*x509.Cer
 	}
 
 	for i := 0; i < len(crl); i++ {
-		log.Debug("CRL Revoked Certifate Count:", len(crl[i].TBSCertList.RevokedCertificates))
+		log.Debug("CRL Revoked Certificate Count:", len(crl[i].TBSCertList.RevokedCertificates))
 		for _, crlObj := range crl[i].TBSCertList.RevokedCertificates {
 			if pckCert.SerialNumber.Cmp(crlObj.SerialNumber) == 0 {
 				log.Error("PCK Certificate is Revoked")

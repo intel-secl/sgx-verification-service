@@ -178,7 +178,7 @@ func (e *TcbInfoStruct) getTcbInfoStruct(fmspc string) error {
 
 	log.Debug("GetTcbInfoJson: blob[", resp.ContentLength, "]:", len(e.RawBlob))
 
-	certChainList, err := utils.GetCertObjList(string(resp.Header.Get("SGX-TCB-Info-Issuer-Chain")))
+	certChainList, err := utils.GetCertObjList(resp.Header.Get("SGX-TCB-Info-Issuer-Chain"))
 	if err != nil {
 		return errors.Wrap(err, "getTcbInfoStruct: failed to get cert object")
 	}

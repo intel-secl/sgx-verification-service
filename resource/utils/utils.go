@@ -47,7 +47,7 @@ func GetCertObjList(certChainStr string) ([]*x509.Certificate, error) {
 	certChainObjList := make([]*x509.Certificate, certCount)
 
 	for i := 0; i < len(certs); i++ {
-		log.Debug("Certificate[", i, "]:", string(certs[i]))
+		log.Debug("Certificate[", i, "]:", certs[i])
 		block, _ := pem.Decode([]byte(certs[i]))
 		if block == nil {
 			return nil, errors.Wrap(err, "GetCertObjList: Pem Decode error")

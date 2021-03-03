@@ -33,6 +33,6 @@ func VerifyTcbInfoCertChain(interCA, rootCA []*x509.Certificate, trustedRootCA *
 		}
 	}
 
-	log.Debug("TcbInfo Certificate Chain Verification is Succesfull")
+	log.Debug("TcbInfo Certificate Chain Verification is Successful")
 	return true, nil
 }

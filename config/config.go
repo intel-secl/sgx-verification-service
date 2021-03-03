@@ -6,6 +6,7 @@ package config
 
 import (
 	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	errorLog "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -13,6 +14,7 @@ import (
 	commLog "intel/isecl/lib/common/v3/log"
 	"intel/isecl/lib/common/v3/setup"
 	"intel/isecl/sqvs/v3/constants"
+	"io/ioutil"
 	"os"
 	"path"
 	"time"
@@ -20,7 +22,7 @@ import (
 
 var slog = commLog.GetSecurityLogger()
 
-// Configuration is the global configuration struct that is marshalled/unmarshaled to a persisted yaml file
+// Configuration is the global configuration struct that is marshalled/unmarshalled to a persisted yaml file
 type Configuration struct {
 	configFile       string
 	Port             int
@@ -70,7 +72,7 @@ var ErrNoConfigFile = errors.New("no config file")
 func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 	var err error
 
-	tlsCertDigest, err := c.GetenvString(constants.CmsTlsCertDigestEnv, "TLS certificate digest")
+	tlsCertDigest, err := c.GetenvString(constants.CMSTLSCertDigestEnv, "TLS certificate digest")
 	if err == nil && tlsCertDigest != "" {
 		conf.CmsTlsCertDigest = tlsCertDigest
 	} else if conf.CmsTlsCertDigest == "" {
@@ -90,7 +92,7 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 	if err == nil && tlsCertCN != "" {
 		conf.Subject.TLSCertCommonName = tlsCertCN
 	} else if conf.Subject.TLSCertCommonName == "" {
-		conf.Subject.TLSCertCommonName = constants.DefaultSQVSTlsCn
+		conf.Subject.TLSCertCommonName = constants.DefaultSQVSTLSCn
 	}
 
 	tlsKeyPath, err := c.GetenvString("KEY_PATH", "Path of file where TLS key needs to be stored")
@@ -121,32 +123,49 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 			slog.Infof("config/config:SaveConfiguration() Log level set %s\n", logLevel)
 		}
 	}
+	trustedRootPath, err := c.GetenvString("SGX_TRUSTED_ROOT_CA_PATH", "SQVS Trusted Root CA")
+	if err == nil && trustedRootPath != "" {
+		trustedRoot, err := ioutil.ReadFile(trustedRootPath)
+		if err != nil {
+			return errors.New("SaveConfiguration: Filed read error: " + trustedRootPath + " : " + err.Error())
+		}
+		block, _ := pem.Decode(trustedRoot)
+		if block == nil {
+			return errors.New("SaveConfiguration: Pem Decode error")
+		}
+		conf.TrustedRootCA, err = x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return errors.New("SaveConfiguration: ParseCertificate error: " + err.Error())
+		}
+	} else {
+		return errors.New("SaveConfiguration: Invalid pem certificate")
+	}
 
 	sanList, err := c.GetenvString("SAN_LIST", "SAN list for TLS")
 	if err == nil && sanList != "" {
 		conf.CertSANList = sanList
 	} else if conf.CertSANList == "" {
-		conf.CertSANList = constants.DefaultSQVSTlsSan
+		conf.CertSANList = constants.DefaultSQVSTLSSan
 	}
 
 	return conf.Save()
 }
 
-func (c *Configuration) Save() error {
-	if c.configFile == "" {
+func (conf *Configuration) Save() error {
+	if conf.configFile == "" {
 		return ErrNoConfigFile
 	}
-	file, err := os.OpenFile(c.configFile, os.O_RDWR, 0)
+	file, err := os.OpenFile(conf.configFile, os.O_RDWR, 0)
 	if err != nil {
 		// we have an error
 		if os.IsNotExist(err) {
 			// error is that the config doesnt yet exist, create it
-			file, err = os.OpenFile(c.configFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+			file, err = os.OpenFile(conf.configFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 			if err != nil {
 				return err
 			}
 		} else {
-			// someother I/O related error
+			// some other I/O related error
 			return err
 		}
 	}
@@ -157,7 +176,7 @@ func (c *Configuration) Save() error {
 		}
 	}()
 
-	return yaml.NewEncoder(file).Encode(c)
+	return yaml.NewEncoder(file).Encode(conf)
 }
 
 func Load(filePath string) *Configuration {

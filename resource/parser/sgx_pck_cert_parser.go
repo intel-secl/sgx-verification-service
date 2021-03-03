@@ -113,7 +113,7 @@ func (e *PckCert) getPckCertRequiredSgxExtMap() map[string]asn1.ObjectIdentifier
 
 func (e *PckCert) genCertObj(certBlob []byte) error {
 	var err error
-	block, _ := pem.Decode([]byte(certBlob))
+	block, _ := pem.Decode(certBlob)
 	e.PckCertObj, err = x509.ParseCertificate(block.Bytes)
 	if err != nil {
 		return errors.Wrap(err, "genCertObj: Failed to parse Certificate")
@@ -196,7 +196,7 @@ func (e *PckCert) parseTcbExtensions() error {
 						var ext2 TcbExtn
 						rest, _ = asn1.Unmarshal(tcbExt.FullBytes, &ext2)
 						if verifier.ExtSgxTcbPceSvnOid.Equal(ext2.Id) {
-							var h, l uint8 = uint8(ext2.Value >> 8), uint8(ext2.Value & 0xff)
+							var h, l = uint8(ext2.Value >> 8), uint8(ext2.Value & 0xff)
 							e.TcbCompLevels[k] = l
 							e.TcbCompLevels[k+1] = h
 						} else {
@@ -312,7 +312,7 @@ func (e *PckCert) parsePckCrl() error {
 		}
 
 		e.PckCRL.PckCRLObjs[i] = crlObj
-		certChainList, err := utils.GetCertObjList(string(resp.Header.Get("SGX-PCK-CRL-Issuer-Chain")))
+		certChainList, err := utils.GetCertObjList(resp.Header.Get("SGX-PCK-CRL-Issuer-Chain"))
 		if err != nil {
 			return errors.Wrap(err, "parsePckCrl: failed to get cert list")
 		}

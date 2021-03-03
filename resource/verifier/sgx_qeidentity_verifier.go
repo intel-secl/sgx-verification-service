@@ -35,7 +35,7 @@ func VerifyQeIdCertChain(interCA, rootCA []*x509.Certificate, trustedRootCA *x50
 		}
 	}
 
-	log.Debug("Verify QEIdentity CertChain is succesfull")
+	log.Debug("Verify QEIdentity CertChain is successful")
 	return true, nil
 }
 
@@ -50,7 +50,7 @@ func VerifyReportAttrSize(qeReportAttribute [32]uint8, attributeName, attribute 
 	}
 
 	for i := 0; i < len(attrArr); i++ {
-		if byte(qeReportAttribute[i]) != attrArr[i] {
+		if qeReportAttribute[i] != attrArr[i] {
 			return false, errors.New("VerifyReportAttrSize: " + attributeName + " validation failed")
 		}
 	}

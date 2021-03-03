@@ -15,18 +15,18 @@ import (
 	"strings"
 )
 
-var ExtCRLDistributionPointOid asn1.ObjectIdentifier = asn1.ObjectIdentifier{2, 5, 29, 31}
-var ExtSubjectKeyIdentifierOid asn1.ObjectIdentifier = asn1.ObjectIdentifier{2, 5, 29, 14}
-var ExtKeyUsageOid asn1.ObjectIdentifier = asn1.ObjectIdentifier{2, 5, 29, 15}
-var ExtBasicConstrainsOid asn1.ObjectIdentifier = asn1.ObjectIdentifier{2, 5, 29, 19}
-var ExtAuthorityKeyIdentifierOid asn1.ObjectIdentifier = asn1.ObjectIdentifier{2, 5, 29, 35}
-var ExtSgxOid asn1.ObjectIdentifier = asn1.ObjectIdentifier{1, 2, 840, 113741, 1, 13, 1}
-var ExtSgxPPIDOid asn1.ObjectIdentifier = asn1.ObjectIdentifier{1, 2, 840, 113741, 1, 13, 1, 1}
-var ExtSgxTCBOid asn1.ObjectIdentifier = asn1.ObjectIdentifier{1, 2, 840, 113741, 1, 13, 1, 2}
-var ExtSgxPCEIDOid asn1.ObjectIdentifier = asn1.ObjectIdentifier{1, 2, 840, 113741, 1, 13, 1, 3}
-var ExtSgxFMSPCOid asn1.ObjectIdentifier = asn1.ObjectIdentifier{1, 2, 840, 113741, 1, 13, 1, 4}
-var ExtSgxSGXTypeOid asn1.ObjectIdentifier = asn1.ObjectIdentifier{1, 2, 840, 113741, 1, 13, 1, 5}
-var ExtSgxTcbPceSvnOid asn1.ObjectIdentifier = asn1.ObjectIdentifier{1, 2, 840, 113741, 1, 13, 1, 2, 17}
+var ExtCRLDistributionPointOid = asn1.ObjectIdentifier{2, 5, 29, 31}
+var ExtSubjectKeyIdentifierOid = asn1.ObjectIdentifier{2, 5, 29, 14}
+var ExtKeyUsageOid = asn1.ObjectIdentifier{2, 5, 29, 15}
+var ExtBasicConstrainsOid = asn1.ObjectIdentifier{2, 5, 29, 19}
+var ExtAuthorityKeyIdentifierOid = asn1.ObjectIdentifier{2, 5, 29, 35}
+var ExtSgxOid = asn1.ObjectIdentifier{1, 2, 840, 113741, 1, 13, 1}
+var ExtSgxPPIDOid = asn1.ObjectIdentifier{1, 2, 840, 113741, 1, 13, 1, 1}
+var ExtSgxTCBOid = asn1.ObjectIdentifier{1, 2, 840, 113741, 1, 13, 1, 2}
+var ExtSgxPCEIDOid = asn1.ObjectIdentifier{1, 2, 840, 113741, 1, 13, 1, 3}
+var ExtSgxFMSPCOid = asn1.ObjectIdentifier{1, 2, 840, 113741, 1, 13, 1, 4}
+var ExtSgxSGXTypeOid = asn1.ObjectIdentifier{1, 2, 840, 113741, 1, 13, 1, 5}
+var ExtSgxTcbPceSvnOid = asn1.ObjectIdentifier{1, 2, 840, 113741, 1, 13, 1, 2, 17}
 
 var log = clog.GetDefaultLogger()
 
@@ -173,9 +173,9 @@ func CheckMandatorySGXExt(cert *x509.Certificate, requiredExtDict map[string]asn
 	return true, nil
 }
 
-func VerifiySHA256Hash(hash, blob []byte) (bool, error) {
+func VerifySHA256Hash(hash, blob []byte) (bool, error) {
 	if len(hash) == 0 || len(blob) == 0 || len(hash) != sha256.Size {
-		return false, errors.New("VerifiySHA256Hash: Invalid hash verify input data")
+		return false, errors.New("VerifySHA256Hash: Invalid hash verify input data")
 	}
 
 	h := sha256.New()
@@ -183,12 +183,12 @@ func VerifiySHA256Hash(hash, blob []byte) (bool, error) {
 	hashValue := h.Sum(nil)
 
 	if len(hashValue) != sha256.Size {
-		return false, errors.New("VerifiySHA256Hash: Error in Hash generation")
+		return false, errors.New("VerifySHA256Hash: Error in Hash generation")
 	}
 
 	ret := bytes.Compare(hashValue, hash)
 	if ret != 0 {
-		return false, errors.New("VerifiySHA256Hash: hash verification failed")
+		return false, errors.New("VerifySHA256Hash: hash verification failed")
 	}
 
 	log.Debug("Verify SHA256 Hash Passed...")

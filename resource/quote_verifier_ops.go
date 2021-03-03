@@ -154,7 +154,7 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 		if err != nil {
 			log.Error("Failed to Base64 Decode User Data")
 		}
-		_, err = verifier.VerifiySHA256Hash(quoteObj.GetSHA256Hash(), []byte(data))
+		_, err = verifier.VerifySHA256Hash(quoteObj.GetSHA256Hash(), data)
 		if err != nil {
 			log.Error(err.Error())
 		} else {
@@ -218,28 +218,28 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 }
 
 func verifyQeIdentityReport(qeIdObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteParsed) (bool, error) {
-	_, err := verifier.VerifyMiscSelect(quoteObj.GetQeReportMiscSelect(), qeIdObj.GetQeIdMiscSelect(),
-		qeIdObj.GetQeIdMiscSelectMask())
+	_, err := verifier.VerifyMiscSelect(quoteObj.GetQeReportMiscSelect(), qeIdObj.GetQeIDMiscSelect(),
+		qeIdObj.GetQeIDMiscSelectMask())
 	if err != nil {
 		return false, errors.Wrap(err, "verifyQeIdentityReport: ")
 	}
 
-	_, err = verifier.VerifyAttributes(quoteObj.GetQeReportAttributes(), qeIdObj.GetQeIdAttributes(),
-		qeIdObj.GetQeIdAttributesMask())
+	_, err = verifier.VerifyAttributes(quoteObj.GetQeReportAttributes(), qeIdObj.GetQeIDAttributes(),
+		qeIdObj.GetQeIDAttributesMask())
 	if err != nil {
 		return false, errors.Wrap(err, "verifyQeIdentityReport:")
 	}
 
-	_, err = verifier.VerifyReportAttrSize(quoteObj.GetQeReportMrSigner(), "MrSigner", qeIdObj.GetQeIdMrSigner())
+	_, err = verifier.VerifyReportAttrSize(quoteObj.GetQeReportMrSigner(), "MrSigner", qeIdObj.GetQeIDMrSigner())
 	if err != nil {
 		return false, errors.Wrap(err, "verifyQeIdentityReport")
 	}
 
-	if quoteObj.GetQeReportProdId() < qeIdObj.GetQeIdIsvProdId() {
+	if quoteObj.GetQeReportProdId() < qeIdObj.GetQeIDIsvProdID() {
 		log.Info("Qe Prod Id in ecdsa quote is below the minimum prod id expected for QE")
 	}
 
-	if quoteObj.GetQeReportIsvSvn() < qeIdObj.GetQeIdIsvSvn() {
+	if quoteObj.GetQeReportIsvSvn() < qeIdObj.GetQeIDIsvSvn() {
 		log.Info("IsvSvn in ecdsa quote is below the minimum IsvSvn expected for QE")
 	}
 	return true, nil
@@ -262,7 +262,7 @@ func verifyQeIdentity(qeIdObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteP
 		return false, errors.New("verifyQeIdentity: GetQeIdentityStatus is invalid")
 	}
 
-	if !utils.CheckDate(qeIdObj.GetQeIdIssueDate(), qeIdObj.GetQeIdNextUpdate()) {
+	if !utils.CheckDate(qeIdObj.GetQeIDIssueDate(), qeIdObj.GetQeIDNextUpdate()) {
 		return false, errors.New("verifyQeIdentity: Date Check validation failed")
 	}
 
