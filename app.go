@@ -265,7 +265,7 @@ func (a *App) Run(args []string) error {
 		log.Info("app:Run() Uninstalled SGX Verification Service")
 		os.Exit(0)
 	case "version", "--version", "-v":
-		fmt.Fprintf(a.consoleWriter(), "SGX Verification Service %s-%s\nBuilt %s\n", version.Version, version.GitHash, version.BuildDate)
+		fmt.Println(version.GetVersion())
 		return nil
 	case "setup":
 		a.configureLogs(a.configuration().LogEnableStdout, true)
@@ -391,7 +391,14 @@ func (a *App) startServer() error {
 	r := mux.NewRouter()
 	r.SkipClean(true)
 
-	sr := r.PathPrefix("/svs/v1/").Subrouter()
+	sr := r.PathPrefix("/svs/v1/noauth").Subrouter()
+	func(setters ...func(*mux.Router)) {
+		for _, setter := range setters {
+			setter(sr)
+		}
+	}(resource.SetVersionRoutes)
+
+	sr = r.PathPrefix("/svs/v1/").Subrouter()
 	if c.IncludeToken == "true" {
 		sr.Use(middleware.NewTokenAuth(constants.TrustedJWTSigningCertsDir, constants.TrustedCAsStoreDir, fnGetJwtCerts, time.Minute*constants.DefaultJwtValidateCacheKeyMins))
 	}

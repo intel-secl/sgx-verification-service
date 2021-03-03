@@ -5,14 +5,12 @@
 package constants
 
 import (
-	"crypto"
 	"time"
 )
 
 const (
 	HomeDir                        = "/opt/sqvs/"
 	ConfigDir                      = "/etc/sqvs/"
-	ExecutableDir                  = "/opt/sqvs/bin/"
 	ExecLinkPath                   = "/usr/bin/sqvs"
 	RunDirPath                     = "/run/sqvs"
 	LogDir                         = "/var/log/sqvs/"
@@ -25,8 +23,8 @@ const (
 	TrustedJWTSigningCertsDir      = ConfigDir + "certs/trustedjwt/"
 	TrustedCAsStoreDir             = ConfigDir + "certs/trustedca/"
 	ServiceRemoveCmd               = "systemctl disable sqvs"
-	HashingAlgorithm               = crypto.SHA384
 	ServiceName                    = "SQVS"
+	ExplicitServiceName            = "SGX Quote Verification Service"
 	QuoteVerifierGroupName         = "QuoteVerifier"
 	SQVSUserName                   = "sqvs"
 	DefaultHTTPSPort               = 12000
@@ -34,7 +32,6 @@ const (
 	DefaultKeyAlgorithmLength      = 3072
 	DefaultSQVSTLSSan              = "127.0.0.1,localhost"
 	DefaultSQVSTLSCn               = "SQVS TLS Certificate"
-	DefaultIntelProvServerURL      = "https://sbx.api.trustedservices.intel.com/sgx/certification/v3/"
 	DefaultJwtValidateCacheKeyMins = 60
 	CMSTLSCertDigestEnv            = "CMS_TLS_CERT_SHA384"
 	SQVSLogLevel                   = "SQVS_LOGLEVEL"
@@ -45,12 +42,6 @@ const (
 	DefaultIdleTimeout             = 1 * time.Second
 	DefaultMaxHeaderBytes          = 1 << 20
 	DefaultLogEntryMaxLength       = 300
-	FmspcKey                       = "fmspc"
-	MiscSelect                     = "miscselect"
-	MiscSelectMask                 = "miscselectMask"
-	Attributes                     = "attributes"
-	AttributesMask                 = "attributesMask"
-	Mrsignerkey                    = "mrsigner"
 	SGXRootCACertSubjectStr        = "CN=Intel SGX Root CA,O=Intel Corporation,L=Santa Clara,ST=CA,C=US"
 	SGXInterCACertSubjectStr       = "CN=Intel SGX PCK Processor CA,O=Intel Corporation,L=Santa Clara,ST=CA,C=US|CN=Intel SGX PCK Platform CA,O=Intel Corporation,L=Santa Clara,ST=CA,C=US"
 	SGXCRLIssuerStr                = "C=US,ST=CA,L=Santa Clara,O=Intel Corporation,CN=Intel SGX PCK Processor CA|C=US,ST=CA,L=Santa Clara,O=Intel Corporation,CN=Intel SGX PCK Platform CA"
