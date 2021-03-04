@@ -235,7 +235,7 @@ func verifyQeIdentityReport(qeIdObj *parser.QeIdentityData, quoteObj *parser.Sgx
 		return false, errors.Wrap(err, "verifyQeIdentityReport")
 	}
 
-	if quoteObj.GetQeReportProdId() < qeIdObj.GetQeIDIsvProdID() {
+	if quoteObj.GetQeReportProdID() < qeIdObj.GetQeIDIsvProdID() {
 		log.Info("Qe Prod Id in ecdsa quote is below the minimum prod id expected for QE")
 	}
 

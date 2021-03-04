@@ -138,16 +138,16 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 
 	scsBaseUrl, err := c.GetenvString("SCS_BASE_URL", "SGX Caching Service URL")
 	if err == nil && scsBaseUrl != "" {
-		u.Config.SCSBaseUrl = scsBaseUrl
-	} else if u.Config.SCSBaseUrl == "" {
+		u.Config.SCSBaseURL = scsBaseUrl
+	} else if u.Config.SCSBaseURL == "" {
 		commLog.GetDefaultLogger().Error("SCS_BASE_URL is not defined in environment")
 		return errors.Wrap(errors.New("SCS_BASE_URL is not defined in environment"), "SaveConfiguration() ENV variable not found")
 	}
 
 	aasApiUrl, err := c.GetenvString("AAS_API_URL", "AAS API URL")
 	if err == nil && aasApiUrl != "" {
-		u.Config.AuthServiceUrl = aasApiUrl
-	} else if u.Config.AuthServiceUrl == "" {
+		u.Config.AuthServiceURL = aasApiUrl
+	} else if u.Config.AuthServiceURL == "" {
 		commLog.GetDefaultLogger().Error("AAS_API_URL is not defined in environment")
 		return errors.Wrap(errors.New("AAS_API_URL is not defined in environment"), "SaveConfiguration() ENV variable not found")
 	}

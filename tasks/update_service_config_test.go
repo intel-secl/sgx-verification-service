@@ -63,8 +63,8 @@ func testGetRootCACert() error {
 
 func TestServerSetup(t *testing.T) {
 	c := config.Configuration{
-		AuthServiceUrl: "https://localhost",
-		SCSBaseUrl:     "https://localhost",
+		AuthServiceURL: "https://localhost",
+		SCSBaseURL:     "https://localhost",
 	}
 	s := Update_Service_Config{
 		Flags:         []string{"-port=12000"},

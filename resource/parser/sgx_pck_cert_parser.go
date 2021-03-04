@@ -195,7 +195,7 @@ func (e *PckCert) parseTcbExtensions() error {
 					for k, tcbExt := range tcbExts {
 						var ext2 TcbExtn
 						rest, _ = asn1.Unmarshal(tcbExt.FullBytes, &ext2)
-						if verifier.ExtSgxTcbPceSvnOid.Equal(ext2.Id) {
+						if verifier.ExtSgxTcbPceSvnOid.Equal(ext2.ID) {
 							var h, l = uint8(ext2.Value >> 8), uint8(ext2.Value & 0xff)
 							e.TcbCompLevels[k] = l
 							e.TcbCompLevels[k+1] = h
@@ -258,8 +258,8 @@ func (e *PckCert) parsePckCrl() error {
 		return errors.Wrap(err, "parsePckCrl: Error in getting client object")
 	}
 
-	for i := 0; i < len(e.PckCRL.PckCRLUrls); i++ {
-		url := e.PckCRL.PckCRLUrls[i]
+	for i := 0; i < len(e.PckCRL.PckCRLURLs); i++ {
+		url := e.PckCRL.PckCRLURLs[i]
 
 		scsURL := conf.SCSBaseURL
 		if !strings.Contains(url, scsURL) {
