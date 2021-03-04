@@ -13,25 +13,25 @@ import (
 	"strings"
 )
 
-func VerifyQeIdCertChain(interCA, rootCA []*x509.Certificate, trustedRootCA *x509.Certificate) (bool, error) {
+func VerifyQeIDCertChain(interCA, rootCA []*x509.Certificate, trustedRootCA *x509.Certificate) (bool, error) {
 	if len(interCA) == 0 || len(rootCA) == 0 {
-		return false, errors.New("VerifyQeIdCertChain: InterCA/RootCA is empty")
+		return false, errors.New("VerifyQeIDCertChain: InterCA/RootCA is empty")
 	}
 
 	if strings.Compare(string(trustedRootCA.Signature), string(rootCA[0].Signature)) != 0 {
-		return false, errors.New("VerifyQeIdCertChain: Trusted CA Verification Failed")
+		return false, errors.New("VerifyQeIDCertChain: Trusted CA Verification Failed")
 	}
 
 	for i := 0; i < len(interCA); i++ {
 		_, err := verifyInterCaCert(interCA[i], rootCA, constants.SGXQEInfoSubjectStr)
 		if err != nil {
-			return false, errors.Wrap(err, "VerifyQeIdCertChain: verifyInterCaCert failed")
+			return false, errors.Wrap(err, "VerifyQeIDCertChain: verifyInterCaCert failed")
 		}
 	}
 	for i := 0; i < len(rootCA); i++ {
 		_, err := verifyRootCaCert(rootCA[i], constants.SGXRootCACertSubjectStr)
 		if err != nil {
-			return false, errors.Wrap(err, "VerifyQeIdCertChain: verifyRootCaCert failed")
+			return false, errors.Wrap(err, "VerifyQeIDCertChain: verifyRootCaCert failed")
 		}
 	}
 

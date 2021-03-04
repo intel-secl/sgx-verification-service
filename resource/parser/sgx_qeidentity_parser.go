@@ -69,7 +69,7 @@ func NewQeIdentity() (*QeIdentityData, error) {
 		return nil, errors.Wrap(err, "NewQeIdentity: Error in getting client object")
 	}
 
-	url := fmt.Sprintf("%s/qe/identity", conf.SCSBaseUrl)
+	url := fmt.Sprintf("%s/qe/identity", conf.SCSBaseURL)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "NewQeIdentity: failed to get new request")
@@ -233,7 +233,7 @@ func (e *QeIdentityData) getQeIDSignature() ([]byte, error) {
 	return data, nil
 }
 
-func (e *QeIdentityData) DumpQeIdentity() {
+func (e *QeIdentityData) DumpQeIDentity() {
 	log.Debug("===========QEIdentity==============")
 	log.Printf("ID: %v", e.QEJson.EnclaveIdentity.ID)
 	log.Printf("Version: %v", e.QEJson.EnclaveIdentity.Version)

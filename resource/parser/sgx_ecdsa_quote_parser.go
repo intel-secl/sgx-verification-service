@@ -25,22 +25,22 @@ const (
 	SgxReportBodyReserved2Bytes      = 32
 	SgxReportBodyReserved3Bytes      = 32
 	SgxReportBodyReserved4Bytes      = 42
-	SgxIsvextProdIdSize              = 16
-	SgxIsvFamilyIdSize               = 16
+	SgxIsvextProdIDSize              = 16
+	SgxIsvFamilyIDSize               = 16
 	SgxReportDataSize                = 64
-	SgxEpidGroupIdsize               = 4
+	SgxEpidGroupIDsize               = 4
 	SgxBaseNamesize                  = 32
-	SgxConfigIdSize                  = 64
-	SgxCpusvnSize                    = 16
+	SgxConfigIDSize                  = 64
+	SgxCPUsvnSize                    = 16
 	SgxHashSize                      = 32
 	QuoteReservedBytes               = 4
-	QuoteHeaderUuidSize              = 16
+	QuoteHeaderUUIDSize              = 16
 	QuoteHeaderUserDataSize          = 20
 	QuoteReserved1Bytes              = 28
 	QuoteReserved2Bytes              = 32
 	QuoteReserved3Bytes              = 96
 	QuoteReserved4Bytes              = 60
-	QuoteEnclaveReportCpuSvnSize     = 16
+	QuoteEnclaveReportCPUSvnSize     = 16
 	QuoteEnclaveReportAttributesSize = 16
 	QuoteEnclaveReportMrEnclaveSize  = 32
 	QuoteEnclaveReportMrSignerSize   = 32
@@ -49,16 +49,15 @@ const (
 	QuoteEcdsa256BitPubkeySize       = 64
 )
 
-// Nested Structure of SgxQuote
 type BaseNameT struct {
 	Name [SgxBaseNamesize]uint8
 }
 
-// Ecdsa Structure sequence - 1
+// SGX Ecdsa Quote structure
 type SgxQuote struct {
 	Version      uint16                    /* 0   */
 	SignType     uint16                    /* 2   */
-	EpidGroupId  [SgxEpidGroupIdsize]uint8 /* 4   */
+	EpidGroupID  [SgxEpidGroupIDsize]uint8 /* 4   */
 	QeSvn        uint16                    /* 8   */
 	PceSvn       uint16                    /* 10  */
 	Xeid         uint32                    /* 12  */
@@ -68,12 +67,12 @@ type SgxQuote struct {
 	Signature    []byte
 }
 
-// Nested Structure of SgxQuote
+// SGX Report Body Structure
 type ReportBodyT struct {
-	CpuSvn          [SgxCpusvnSize]uint8               /* (0) Security Version of the CPU */
+	CPUSvn          [SgxCPUsvnSize]uint8               /* (0) Security Version of the CPU */
 	MiscSelect      uint32                             /* (16) Which fields defined in SSA.MISC */
 	Reserved1       [SgxReportBodyReserved1Bytes]uint8 /* (20) */
-	SgxIsvextProdId [SgxIsvextProdIdSize]uint8         /* (32) ISV assigned Extended Product ID */
+	SgxIsvextProdID [SgxIsvextProdIDSize]uint8         /* (32) ISV assigned Extended Product ID */
 	SgxAttributes   struct {                           /* (48) Any special Capabilities the Enclave possess */
 		Flags uint64
 		Xfrm  uint64
@@ -82,16 +81,15 @@ type ReportBodyT struct {
 	Reserved2      [SgxReportBodyReserved2Bytes]uint8 /* (96) */
 	MrSigner       [SgxHashSize]uint8                 /* (128) The value of the enclave's SIGNER measurement */
 	Reserved3      [SgxReportBodyReserved3Bytes]uint8 /* (160) */
-	ConfigId       [SgxConfigIdSize]uint8             /* (192) CONFIGID */
-	SgxIsvProdId   uint16                             /* (256) Product ID of the Enclave */
+	ConfigID       [SgxConfigIDSize]uint8             /* (192) CONFIGID */
+	SgxIsvProdID   uint16                             /* (256) Product ID of the Enclave */
 	SgxIsvSvn      uint16                             /* (258) Security Version of the Enclave */
 	SgxConfigSvn   uint16                             /* (260) CONFIGSVN */
 	Reserved4      [SgxReportBodyReserved4Bytes]uint8 /* (262) */
-	SgxIsvFamilyId [SgxIsvFamilyIdSize]uint8          /* (304) ISV assigned Family ID */
+	SgxIsvFamilyID [SgxIsvFamilyIDSize]uint8          /* (304) ISV assigned Family ID */
 	SgxReportData  [SgxReportDataSize]uint8           /* (320) Data provided by the user */
 }
 
-// Ecdsa Structure sequence - 2
 type SgxEcdsaSignatureData struct {
 	Signature           [64]uint8
 	PublicKey           [64]uint8
@@ -100,13 +98,11 @@ type SgxEcdsaSignatureData struct {
 	AuthCertificateData []uint8 // 3588
 }
 
-// Ecdsa Structure sequence - 3
 type QeAuthData struct {
 	ParsedDataSize uint16
 	Data           []byte
 }
 
-// Ecdsa Structure sequence - 4
 type QeCertData struct {
 	Type           uint16
 	ParsedDataSize uint32
@@ -178,8 +174,8 @@ func (e *SgxQuoteParsed) generateRawBlob1() error {
 	report := e.Ecdsa256SignatureData.ReportBody
 	e.EcdsaBlob1 = make([]byte, unsafe.Sizeof(ReportBodyT{}))
 
-	for i := 0; i < len(report.CpuSvn); i++ {
-		e.EcdsaBlob1[offset] = report.CpuSvn[i]
+	for i := 0; i < len(report.CPUSvn); i++ {
+		e.EcdsaBlob1[offset] = report.CPUSvn[i]
 		offset++
 	}
 
@@ -196,8 +192,8 @@ func (e *SgxQuoteParsed) generateRawBlob1() error {
 		offset++
 	}
 
-	for i := 0; i < len(report.SgxIsvextProdId); i++ {
-		e.EcdsaBlob1[offset] = report.SgxIsvextProdId[i]
+	for i := 0; i < len(report.SgxIsvextProdID); i++ {
+		e.EcdsaBlob1[offset] = report.SgxIsvextProdID[i]
 		offset++
 	}
 
@@ -237,16 +233,16 @@ func (e *SgxQuoteParsed) generateRawBlob1() error {
 		offset++
 	}
 
-	for i := 0; i < len(report.ConfigId); i++ {
-		e.EcdsaBlob1[offset] = report.ConfigId[i]
+	for i := 0; i < len(report.ConfigID); i++ {
+		e.EcdsaBlob1[offset] = report.ConfigID[i]
 		offset++
 	}
 
-	sgxIsvProdIdArr := make([]byte, 2)
-	binary.LittleEndian.PutUint16(sgxIsvProdIdArr, report.SgxIsvProdId)
+	sgxIsvProdIDArr := make([]byte, 2)
+	binary.LittleEndian.PutUint16(sgxIsvProdIDArr, report.SgxIsvProdID)
 
-	for i := 0; i < len(sgxIsvProdIdArr); i++ {
-		e.EcdsaBlob1[offset] = sgxIsvProdIdArr[i]
+	for i := 0; i < len(sgxIsvProdIDArr); i++ {
+		e.EcdsaBlob1[offset] = sgxIsvProdIDArr[i]
 		offset++
 	}
 
@@ -271,8 +267,8 @@ func (e *SgxQuoteParsed) generateRawBlob1() error {
 		offset++
 	}
 
-	for i := 0; i < len(report.SgxIsvFamilyId); i++ {
-		e.EcdsaBlob1[offset] = report.SgxIsvFamilyId[i]
+	for i := 0; i < len(report.SgxIsvFamilyID); i++ {
+		e.EcdsaBlob1[offset] = report.SgxIsvFamilyID[i]
 		offset++
 	}
 
@@ -310,8 +306,8 @@ func (e *SgxQuoteParsed) GetQeReportMrSigner() [SgxHashSize]uint8 {
 	return e.Ecdsa256SignatureData.ReportBody.MrSigner
 }
 
-func (e *SgxQuoteParsed) GetQeReportProdId() uint16 {
-	return e.Ecdsa256SignatureData.ReportBody.SgxIsvProdId
+func (e *SgxQuoteParsed) GetQeReportProdID() uint16 {
+	return e.Ecdsa256SignatureData.ReportBody.SgxIsvProdID
 }
 
 func (e *SgxQuoteParsed) GetQeReportIsvSvn() uint16 {
@@ -321,7 +317,7 @@ func (e *SgxQuoteParsed) GetQeReportIsvSvn() uint16 {
 func (e *SgxQuoteParsed) DumpSGXQuote() {
 	log.Debug("Version = ", e.Header.Version)
 	log.Debug("SignType = ", e.Header.SignType)
-	log.Debug("EpidGroupId = ", e.Header.EpidGroupId)
+	log.Debug("EpidGroupID = ", e.Header.EpidGroupID)
 	log.Debug("QeSvn = ", e.Header.QeSvn)
 	log.Debug("PceSvn = ", e.Header.PceSvn)
 	log.Debug("Xeid = ", e.Header.Xeid)
@@ -329,11 +325,11 @@ func (e *SgxQuoteParsed) DumpSGXQuote() {
 	log.WithField("BaseName", e.Header.BaseName).Info()
 	log.Printf("ReportBody.MrEnclave = %x", e.Header.ReportBody.MrEnclave)
 	log.Printf("ReportBody.MrSigner = %x", e.Header.ReportBody.MrSigner)
-	log.Printf("ReportBody.ConfigId = %x", e.Header.ReportBody.ConfigId)
-	log.Printf("ReportBody.SgxIsvProdId = %x", e.Header.ReportBody.SgxIsvProdId)
+	log.Printf("ReportBody.ConfigID = %x", e.Header.ReportBody.ConfigID)
+	log.Printf("ReportBody.SgxIsvProdID = %x", e.Header.ReportBody.SgxIsvProdID)
 	log.Debug("ReportBody.SgxIsvSvn = ", e.Header.ReportBody.SgxIsvSvn)
-	log.Debug("ReportBody.SgxIsvFamilyId = ", e.Header.ReportBody.SgxIsvFamilyId)
-	log.Printf("ReportBody.CpuSvn = %x", e.Header.ReportBody.CpuSvn)
+	log.Debug("ReportBody.SgxIsvFamilyID = ", e.Header.ReportBody.SgxIsvFamilyID)
+	log.Printf("ReportBody.CPUSvn = %x", e.Header.ReportBody.CPUSvn)
 	log.Printf("ReportBody.MiscSelect = %x", e.Header.ReportBody.MiscSelect)
 	log.Printf("ReportBody.SgxAttributes.Flags = %x", e.Header.ReportBody.SgxAttributes.Flags)
 	log.Printf("ReportBody.SgxAttributes.Xfrm = %x", e.Header.ReportBody.SgxAttributes.Xfrm)
@@ -343,11 +339,11 @@ func (e *SgxQuoteParsed) DumpSGXQuote() {
 	log.Printf("Ecdsa256SignatureData.PublicKey= %x", e.Ecdsa256SignatureData.PublicKey)
 	log.Printf("Ecdsa256SignatureData.MrEnclave = %x", e.Ecdsa256SignatureData.ReportBody.MrEnclave)
 	log.Printf("Ecdsa256SignatureData.MrSigner = %x", e.Ecdsa256SignatureData.ReportBody.MrSigner)
-	log.Printf("Ecdsa256SignatureData.ConfigId = %x", e.Ecdsa256SignatureData.ReportBody.ConfigId)
-	log.Printf("Ecdsa256SignatureData.SgxIsvProdId = %x", e.Ecdsa256SignatureData.ReportBody.SgxIsvProdId)
+	log.Printf("Ecdsa256SignatureData.ConfigID = %x", e.Ecdsa256SignatureData.ReportBody.ConfigID)
+	log.Printf("Ecdsa256SignatureData.SgxIsvProdID = %x", e.Ecdsa256SignatureData.ReportBody.SgxIsvProdID)
 	log.Debug("Ecdsa256SignatureData.SgxIsvSvn = ", e.Ecdsa256SignatureData.ReportBody.SgxIsvSvn)
-	log.Debug("Ecdsa256SignatureData.SgxIsvFamilyId = ", e.Ecdsa256SignatureData.ReportBody.SgxIsvFamilyId)
-	log.Printf("Ecdsa256SignatureData.CpuSvn = %x", e.Ecdsa256SignatureData.ReportBody.CpuSvn)
+	log.Debug("Ecdsa256SignatureData.SgxIsvFamilyID = ", e.Ecdsa256SignatureData.ReportBody.SgxIsvFamilyID)
+	log.Printf("Ecdsa256SignatureData.CPUSvn = %x", e.Ecdsa256SignatureData.ReportBody.CPUSvn)
 	log.Printf("Ecdsa256SignatureData.MiscSelect = %x", e.Ecdsa256SignatureData.ReportBody.MiscSelect)
 	log.Printf("Ecdsa256SignatureData.SgxAttributes.Flags = %x", e.Ecdsa256SignatureData.ReportBody.SgxAttributes.Flags)
 	log.Printf("Ecdsa256SignatureData.SgxAttributes.Xfrm = %x", e.Ecdsa256SignatureData.ReportBody.SgxAttributes.Xfrm)

@@ -26,7 +26,7 @@ import (
 )
 
 type PckCRL struct {
-	PckCRLUrls     []string
+	PckCRLURLs     []string
 	PckCRLObjs     []*pkix.CertificateList
 	RootCA         map[string]*x509.Certificate
 	IntermediateCA map[string]*x509.Certificate
@@ -162,7 +162,7 @@ func (e *PckCert) parseFMSPCValue() error {
 }
 
 type TcbExtn struct {
-	Id    asn1.ObjectIdentifier
+	ID    asn1.ObjectIdentifier
 	Value int
 }
 
@@ -214,8 +214,8 @@ func (e *PckCert) GetECDSAPublicKey() *ecdsa.PublicKey {
 	return e.PckCertObj.PublicKey.(*ecdsa.PublicKey)
 }
 
-func (e *PckCert) GetPckCrlUrl() []string {
-	return e.PckCRL.PckCRLUrls
+func (e *PckCert) GetPckCrlURL() []string {
+	return e.PckCRL.PckCRLURLs
 }
 
 func (e *PckCert) GetPckCrlObj() []*pkix.CertificateList {
@@ -245,8 +245,8 @@ func (e *PckCert) GetPckCrlRootCaList() []*x509.Certificate {
 }
 
 func (e *PckCert) parsePckCrl() error {
-	e.PckCRL.PckCRLUrls = e.PckCertObj.CRLDistributionPoints
-	e.PckCRL.PckCRLObjs = make([]*pkix.CertificateList, len(e.PckCRL.PckCRLUrls))
+	e.PckCRL.PckCRLURLs = e.PckCertObj.CRLDistributionPoints
+	e.PckCRL.PckCRLObjs = make([]*pkix.CertificateList, len(e.PckCRL.PckCRLURLs))
 
 	conf := config.Global()
 	if conf == nil {
@@ -261,15 +261,15 @@ func (e *PckCert) parsePckCrl() error {
 	for i := 0; i < len(e.PckCRL.PckCRLUrls); i++ {
 		url := e.PckCRL.PckCRLUrls[i]
 
-		scsUrl := conf.SCSBaseUrl
-		if !strings.Contains(url, scsUrl) {
+		scsURL := conf.SCSBaseURL
+		if !strings.Contains(url, scsURL) {
 			a := regexp.MustCompile(`v\d`)
-			splitUrl := a.Split(url, -1)
-			if len(splitUrl) != 2 {
-				return errors.Wrap(err, "parsePckCrl: Invalid PCK CRL Url")
+			splitURL := a.Split(url, -1)
+			if len(splitURL) != 2 {
+				return errors.Wrap(err, "parsePckCrl: Invalid PCK CRL URL")
 			}
-			finalUrl := strings.Trim(splitUrl[1], "&encoding")
-			url = scsUrl + finalUrl
+			finalURL := strings.Trim(splitURL[1], "&encoding")
+			url = scsURL + finalURL
 		}
 
 		req, err := http.NewRequest("GET", url, nil)

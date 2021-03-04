@@ -305,9 +305,9 @@ func (a *App) Run(args []string) error {
 			Tasks: []setup.Task{
 				setup.Download_Ca_Cert{
 					Flags:                args,
-					CmsBaseURL:           a.Config.CMSBaseUrl,
+					CmsBaseURL:           a.Config.CMSBaseURL,
 					CaCertDirPath:        constants.TrustedCAsStoreDir,
-					TrustedTlsCertDigest: a.Config.CmsTlsCertDigest,
+					TrustedTlsCertDigest: a.Config.CmsTLSCertDigest,
 					ConsoleWriter:        os.Stdout,
 				},
 				setup.Download_Cert{
@@ -316,7 +316,7 @@ func (a *App) Run(args []string) error {
 					CertFile:           a.Config.TLSCertFile,
 					KeyAlgorithm:       constants.DefaultKeyAlgorithm,
 					KeyAlgorithmLength: constants.DefaultKeyAlgorithmLength,
-					CmsBaseURL:         a.Config.CMSBaseUrl,
+					CmsBaseURL:         a.Config.CMSBaseURL,
 					Subject: pkix.Name{
 						CommonName: a.Config.Subject.TLSCertCommonName,
 					},
@@ -391,14 +391,7 @@ func (a *App) startServer() error {
 	r := mux.NewRouter()
 	r.SkipClean(true)
 
-	sr := r.PathPrefix("/svs/v1/noauth").Subrouter()
-	func(setters ...func(*mux.Router)) {
-		for _, setter := range setters {
-			setter(sr)
-		}
-	}(resource.SetVersionRoutes)
-
-	sr = r.PathPrefix("/svs/v1/").Subrouter()
+	sr := r.PathPrefix("/svs/v1/").Subrouter()
 	if c.IncludeToken == "true" {
 		sr.Use(middleware.NewTokenAuth(constants.TrustedJWTSigningCertsDir, constants.TrustedCAsStoreDir, fnGetJwtCerts, time.Minute*constants.DefaultJwtValidateCacheKeyMins))
 	}
