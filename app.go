@@ -391,7 +391,15 @@ func (a *App) startServer() error {
 	r := mux.NewRouter()
 	r.SkipClean(true)
 
+	// set version endpoint
 	sr := r.PathPrefix("/svs/v1/").Subrouter()
+	func(setters ...func(*mux.Router)) {
+		for _, setter := range setters {
+			setter(sr)
+		}
+	}(resource.SetVersionRoutes)
+
+	sr = r.PathPrefix("/svs/v1/").Subrouter()
 	if c.IncludeToken == "true" {
 		sr.Use(middleware.NewTokenAuth(constants.TrustedJWTSigningCertsDir, constants.TrustedCAsStoreDir, fnGetJwtCerts, time.Minute*constants.DefaultJwtValidateCacheKeyMins))
 	}
