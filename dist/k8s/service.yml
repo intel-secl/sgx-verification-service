@@ -1,0 +1,19 @@
+# Copyright (C) 2021 Intel Corporation
+# SPDX-License-Identifier: BSD-3-Clause
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sqvs-svc
+  namespace: isecl
+  labels:
+    app: sqvs
+spec:
+  selector:
+    app: sqvs
+  type: NodePort
+  ports:
+    - port: 12000
+      targetPort: 12000
+      nodePort: 30502

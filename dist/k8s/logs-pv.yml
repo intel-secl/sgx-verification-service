@@ -1,0 +1,21 @@
+# Copyright (C) 2021 Intel Corporation
+# SPDX-License-Identifier: BSD-3-Clause
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: sqvs-logs-pv
+spec:
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs
+  nfs:
+    path: /mnt/nfs_share/isecl/sqvs/logs
+    server:
+
+

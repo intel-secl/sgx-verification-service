@@ -10,7 +10,7 @@ endif
 
 .PHONY: sqvs installer all test clean
 
-all: clean installer
+all: clean installer k8s
 
 sqvs:
 	env GOOS=linux GOSUMDB=off GOPROXY=direct go build -ldflags "-X intel/isecl/sqvs/v3/version.BuildDate=$(BUILDDATE) -X intel/isecl/sqvs/v3/version.Version=$(VERSION) -X intel/isecl/sqvs/v3/version.GitHash=$(GITCOMMIT)" -o out/sqvs
@@ -39,7 +39,7 @@ installer: sqvs
 	cp out/sqvs out/installer/sqvs
 	makeself out/installer out/sqvs-$(VERSION).bin "sgx Verification Service $(VERSION)" ./install.sh
 
-docker: installer
+docker: sqvs
 ifeq ($(PROXY_EXISTS),1)
 	docker build ${DOCKER_PROXY_FLAGS} -f dist/image/Dockerfile -t isecl/sqvs:$(VERSION) .
 else
@@ -48,6 +48,9 @@ endif
 
 oci-archive: docker
 	skopeo copy docker-daemon:isecl/sqvs:$(VERSION) oci-archive:out/sqvs-$(VERSION)-$(GITCOMMIT).tar
+
+k8s: oci-archive
+	cp -r dist/k8s out/k8s
 
 clean:
 	rm -f cover.*

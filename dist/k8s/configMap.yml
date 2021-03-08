@@ -1,0 +1,19 @@
+# Copyright (C) 2021 Intel Corporation
+# SPDX-License-Identifier: BSD-3-Clause
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sqvs-config
+  namespace: isecl
+data:
+  AAS_API_URL: https://aas-svc.isecl.svc.cluster.local:8444/aas/v1
+  CMS_BASE_URL: https://cms-svc.isecl.svc.cluster.local:8445/cms/v1
+  CMS_TLS_CERT_SHA384:
+  SAN_LIST: sqvs-svc.isecl.svc.cluster.local
+  SCS_BASE_URL: https://scs-svc.isecl.svc.cluster.local:9000/scs/sgx/certification/v1
+  SQVS_LOGLEVEL: info
+  SQVS_INCLUDE_TOKEN: "true"
+  SGX_TRUSTED_ROOT_CA_PATH: /tmp/trusted_rootca.pem
+  BEARER_TOKEN:

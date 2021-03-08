@@ -1,0 +1,17 @@
+# Copyright (C) 2021 Intel Corporation
+# SPDX-License-Identifier: BSD-3-Clause
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sqvs-config-pvc
+  namespace: isecl
+spec:
+  storageClassName: nfs
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 128Mi
+

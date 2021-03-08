@@ -1,0 +1,60 @@
+# Copyright (C) 2021 Intel Corporation
+# SPDX-License-Identifier: BSD-3-Clause
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sqvs-deployment
+  namespace: isecl
+  labels:
+    env: demo
+    app: sqvs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sqvs
+  template:
+    metadata:
+      labels:
+        app: sqvs
+    spec:
+      securityContext:
+        fsGroup: 1001
+      containers:
+        - name: sqvs
+          image: <image-name>:<tag>
+          imagePullPolicy: Always
+          securityContext:
+            runAsUser: 1001
+            runAsGroup: 1001
+          ports:
+            - containerPort: 12000
+          envFrom:
+            - configMapRef:
+                name: sqvs-config
+          env:
+            - name: SQVS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: sqvs-service-credentials
+                  key: SQVS_USERNAME
+            - name: SQVS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sqvs-service-credentials
+                  key: SQVS_PASSWORD
+          volumeMounts:
+            - name: sqvs-config-volume
+              mountPath: /etc/sqvs/
+            - name: sqvs-logs-volume
+              mountPath: /var/log/sqvs/
+      volumes:
+        - name: sqvs-logs-volume
+          persistentVolumeClaim:
+            claimName: sqvs-logs-pvc
+        - name: sqvs-config-volume
+          persistentVolumeClaim:
+            claimName: sqvs-config-pvc
+
