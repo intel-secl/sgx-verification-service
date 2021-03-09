@@ -1,7 +1,8 @@
 /*
- * Copyright (C) 2020 Intel Corporation
- * SPDX-License-Identifier: BSD-3-Clause
+ *  Copyright (C) 2021 Intel Corporation
+ *  SPDX-License-Identifier: BSD-3-Clause
  */
+
 package tasks
 
 import (
@@ -62,14 +63,16 @@ func testGetRootCACert() error {
 }
 
 func TestServerSetup(t *testing.T) {
+
 	c := config.Configuration{
 		AuthServiceURL: "https://localhost",
 		SCSBaseURL:     "https://localhost",
 	}
 	s := Update_Service_Config{
-		Flags:         []string{"-port=12000"},
-		Config:        &c,
-		ConsoleWriter: os.Stdout,
+		Flags:                    []string{"-port=12000"},
+		Config:                   &c,
+		ConsoleWriter:            os.Stdout,
+		TrustedSGXRootCAFilePath: rootCACertFile,
 	}
 	err := testGetRootCACert()
 	if err != nil {
@@ -81,12 +84,15 @@ func TestServerSetup(t *testing.T) {
 	_ = os.Setenv("SGX_TRUSTED_ROOT_CA_PATH", rootCACertFile)
 
 	ctx := setup.Context{}
-	_ = s.Run(ctx)
-	//assert.Equal(t, config.ErrNoConfigFile, err)
+	err = s.Run(ctx)
+	if err != nil {
+		assert.Contains(t, err.Error(), config.ErrNoConfigFile.Error())
+	}
 	assert.Equal(t, 12000, c.Port)
 }
 
 func TestServerSetupEnv(t *testing.T) {
+
 	os.Setenv("AAS_API_URL", "https://localhost")
 	os.Setenv("SCS_BASE_URL", "https://localhost")
 
@@ -94,9 +100,10 @@ func TestServerSetupEnv(t *testing.T) {
 	c := config.Configuration{}
 
 	s := Update_Service_Config{
-		Flags:         nil,
-		Config:        &c,
-		ConsoleWriter: os.Stdout,
+		Flags:                    nil,
+		Config:                   &c,
+		ConsoleWriter:            os.Stdout,
+		TrustedSGXRootCAFilePath: rootCACertFile,
 	}
 
 	err := testGetRootCACert()
@@ -110,6 +117,8 @@ func TestServerSetupEnv(t *testing.T) {
 
 	ctx := setup.Context{}
 	err = s.Run(ctx)
-	assert.Contains(t, err.Error(), config.ErrNoConfigFile.Error())
+	if err != nil {
+		assert.Contains(t, err.Error(), config.ErrNoConfigFile.Error())
+	}
 	assert.Equal(t, 12000, c.Port)
 }

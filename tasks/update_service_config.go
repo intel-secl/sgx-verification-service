@@ -22,9 +22,10 @@ import (
 )
 
 type Update_Service_Config struct {
-	Flags         []string
-	Config        *config.Configuration
-	ConsoleWriter io.Writer
+	Flags                    []string
+	Config                   *config.Configuration
+	ConsoleWriter            io.Writer
+	TrustedSGXRootCAFilePath string
 }
 
 var slog = commLog.GetSecurityLogger()
@@ -164,12 +165,9 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 		if block == nil {
 			return errors.New("SaveConfiguration: Pem Decode error")
 		}
-		err = ioutil.WriteFile(constants.TrustedSGXRootCAFile, trustedRoot, 0640)
+		err = ioutil.WriteFile(u.TrustedSGXRootCAFilePath, trustedRoot, 0640)
 		if err != nil {
 			return errors.New("SaveConfiguration: Error writing SGX root cert to file: " + err.Error())
-		}
-		if err != nil {
-			return errors.New("SaveConfiguration: ParseCertificate error: " + err.Error())
 		}
 	} else {
 		if _, err := os.Stat(trustedRootPath); err != nil {

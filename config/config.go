@@ -116,7 +116,7 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 	if err == nil && trustedRootPath != "" {
 		trustedRoot, err := ioutil.ReadFile(trustedRootPath)
 		if err != nil {
-			return errors.New("SaveConfiguration: Filed read error: " + trustedRootPath + " : " + err.Error())
+			return errors.New("SaveConfiguration: File read error: " + trustedRootPath + " : " + err.Error())
 		}
 		block, _ := pem.Decode(trustedRoot)
 		if block == nil {

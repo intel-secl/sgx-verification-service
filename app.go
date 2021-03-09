@@ -327,9 +327,10 @@ func (a *App) Run(args []string) error {
 					ConsoleWriter: os.Stdout,
 				},
 				tasks.Update_Service_Config{
-					Flags:         flags,
-					Config:        a.configuration(),
-					ConsoleWriter: os.Stdout,
+					Flags:                    flags,
+					Config:                   a.configuration(),
+					ConsoleWriter:            os.Stdout,
+					TrustedSGXRootCAFilePath: constants.TrustedSGXRootCAFile,
 				},
 			},
 			AskInput: false,
