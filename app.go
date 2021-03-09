@@ -400,12 +400,12 @@ func (a *App) startServer() error {
 	}(resource.SetVersionRoutes)
 
 	sr = r.PathPrefix("/svs/v1/").Subrouter()
-	if c.IncludeToken == "true" {
+	if c.IncludeToken == true {
 		sr.Use(middleware.NewTokenAuth(constants.TrustedJWTSigningCertsDir, constants.TrustedCAsStoreDir, fnGetJwtCerts, time.Minute*constants.DefaultJwtValidateCacheKeyMins))
 	}
-	func(setters ...func(*mux.Router, *config.Configuration)) {
+	func(setters ...func(*mux.Router)) {
 		for _, setter := range setters {
-			setter(sr, c)
+			setter(sr)
 		}
 	}(resource.QuoteVerifyCB)
 

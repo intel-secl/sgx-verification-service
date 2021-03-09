@@ -26,7 +26,7 @@ func ExecuteSGXQuoteTest(input TestData) {
 }
 
 func TestGetSgxQuote(t *testing.T) {
-	c := config.Configuration{IncludeToken: "false"}
+	c := config.Configuration{IncludeToken: false}
 	input := TestData{
 		Recorder:    httptest.NewRecorder(),
 		Assert:      assert.New(t),
@@ -42,7 +42,7 @@ func TestGetSgxQuote(t *testing.T) {
 }
 
 func TestSgxQuotePushInvalidData(t *testing.T) {
-	c := &config.Configuration{IncludeToken: "true"}
+	c := &config.Configuration{IncludeToken: true}
 	input := TestData{
 		Recorder:    httptest.NewRecorder(),
 		Assert:      assert.New(t),
@@ -61,7 +61,7 @@ func TestSgxQuotePushInvalidData(t *testing.T) {
 }
 
 func TestSgxQuotePushInvalidJson(t *testing.T) {
-	c := &config.Configuration{IncludeToken: "false"}
+	c := &config.Configuration{IncludeToken: false}
 	input := TestData{
 		Recorder:    httptest.NewRecorder(),
 		Assert:      assert.New(t),

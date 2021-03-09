@@ -7,7 +7,6 @@ package resource
 import (
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
-	"intel/isecl/sqvs/v3/config"
 	"net/http/httptest"
 	"testing"
 )
@@ -24,12 +23,12 @@ type TestData struct {
 	PostData    []byte
 }
 
-func setupRouter(t *testing.T, c *config.Configuration) *mux.Router {
+func setupRouter() *mux.Router {
 	r := mux.NewRouter()
 	sr := r.PathPrefix("/svs/v1/").Subrouter()
-	func(setters ...func(*mux.Router, *config.Configuration)) {
+	func(setters ...func(*mux.Router)) {
 		for _, s := range setters {
-			s(sr, c)
+			s(sr)
 		}
 	}(QuoteVerifyCB)
 	return r

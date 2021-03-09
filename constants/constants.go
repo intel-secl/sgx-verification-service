@@ -22,6 +22,7 @@ const (
 	DefaultTLSKeyFile              = ConfigDir + "tls.key"
 	TrustedJWTSigningCertsDir      = ConfigDir + "certs/trustedjwt/"
 	TrustedCAsStoreDir             = ConfigDir + "certs/trustedca/"
+	TrustedSGXRootCAFile           = ConfigDir + "certs/trustedSGXRootCA.pem"
 	ServiceRemoveCmd               = "systemctl disable sqvs"
 	ServiceName                    = "SQVS"
 	ExplicitServiceName            = "SGX Quote Verification Service"
@@ -35,7 +36,7 @@ const (
 	DefaultJwtValidateCacheKeyMins = 60
 	CMSTLSCertDigestEnv            = "CMS_TLS_CERT_SHA384"
 	SQVSLogLevel                   = "SQVS_LOGLEVEL"
-	DefaultIncludeTokenValue       = "true"
+	DefaultIncludeTokenValue       = true
 	DefaultReadTimeout             = 30 * time.Second
 	DefaultReadHeaderTimeout       = 10 * time.Second
 	DefaultWriteTimeout            = 10 * time.Second

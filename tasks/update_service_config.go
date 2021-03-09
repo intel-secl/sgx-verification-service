@@ -5,7 +5,6 @@
 package tasks
 
 import (
-	"crypto/x509"
 	"encoding/pem"
 	"flag"
 	"fmt"
@@ -18,6 +17,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -129,11 +129,13 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 		u.Config.LogEnableStdout = true
 	}
 
-	includeToken, err := c.GetenvString("SQVS_INCLUDE_TOKEN", "Boolean value to decide whether to use token based auth or no auth for quote verifier API")
+	includeToken, err := c.GetenvString("SQVS_INCLUDE_TOKEN", "Boolean value to decide whether to use "+
+		"token based auth or no auth for quote verifier API")
 	if err == nil && includeToken != "" {
-		u.Config.IncludeToken = includeToken
-	} else if u.Config.IncludeToken == "" {
-		u.Config.IncludeToken = constants.DefaultIncludeTokenValue
+		u.Config.IncludeToken, err = strconv.ParseBool(includeToken)
+		if err != nil {
+			u.Config.IncludeToken = constants.DefaultIncludeTokenValue
+		}
 	}
 
 	scsBaseUrl, err := c.GetenvString("SCS_BASE_URL", "SGX Caching Service URL")
@@ -162,7 +164,10 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 		if block == nil {
 			return errors.New("SaveConfiguration: Pem Decode error")
 		}
-		u.Config.TrustedRootCA, err = x509.ParseCertificate(block.Bytes)
+		err = ioutil.WriteFile(constants.TrustedSGXRootCAFile, trustedRoot, 0640)
+		if err != nil {
+			return errors.New("SaveConfiguration: Error writing SGX root cert to file: " + err.Error())
+		}
 		if err != nil {
 			return errors.New("SaveConfiguration: ParseCertificate error: " + err.Error())
 		}

@@ -5,7 +5,6 @@
 package config
 
 import (
-	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	errorLog "github.com/pkg/errors"
@@ -31,23 +30,13 @@ type Configuration struct {
 	LogMaxLength    int
 	LogEnableStdout bool
 	LogLevel        log.Level
-
-	SQVS struct {
-		User     string
-		Password string
-	}
-	Token struct {
-		IncludeKid        bool
-		TokenDurationMins int
-	}
-	IncludeToken   string
-	CMSBaseURL     string
-	AuthServiceURL string
-	SCSBaseURL     string
-	Subject        struct {
+	IncludeToken    bool
+	CMSBaseURL      string
+	AuthServiceURL  string
+	SCSBaseURL      string
+	Subject         struct {
 		TLSCertCommonName string
 	}
-	TrustedRootCA     *x509.Certificate
 	TLSKeyFile        string
 	TLSCertFile       string
 	CertSANList       string
@@ -133,9 +122,9 @@ func (conf *Configuration) SaveConfiguration(c setup.Context) error {
 		if block == nil {
 			return errors.New("SaveConfiguration: Pem Decode error")
 		}
-		conf.TrustedRootCA, err = x509.ParseCertificate(block.Bytes)
+		err = ioutil.WriteFile(constants.TrustedSGXRootCAFile, trustedRoot, 0640)
 		if err != nil {
-			return errors.New("SaveConfiguration: ParseCertificate error: " + err.Error())
+			return errors.New("SaveConfiguration: Error writing SGX root cert to file: " + err.Error())
 		}
 	} else {
 		return errors.New("SaveConfiguration: Invalid pem certificate")

@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -18,6 +19,7 @@ import (
 	"intel/isecl/sqvs/v3/resource/parser"
 	"intel/isecl/sqvs/v3/resource/utils"
 	"intel/isecl/sqvs/v3/resource/verifier"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 )
@@ -41,11 +43,11 @@ type QuoteData struct {
 	UserData  string `json:"userData"`
 }
 
-func QuoteVerifyCB(router *mux.Router, conf *config.Configuration) {
-	router.Handle("/sgx_qv_verify_quote", handlers.ContentTypeHandler(sgxVerifyQuote(conf), "application/json")).Methods("POST")
+func QuoteVerifyCB(router *mux.Router) {
+	router.Handle("/sgx_qv_verify_quote", handlers.ContentTypeHandler(sgxVerifyQuote(), "application/json")).Methods("POST")
 }
 
-func sgxVerifyQuote(conf *config.Configuration) errorHandlerFunc {
+func sgxVerifyQuote() errorHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		log.Trace("resource/quote_verifier_ops:sgxVerifyQuote() Entering")
 		defer log.Trace("resource/quote_verifier_ops:sgxVerifyQuote() Leaving")
@@ -55,7 +57,7 @@ func sgxVerifyQuote(conf *config.Configuration) errorHandlerFunc {
 			return &resourceError{Message: "could not read config",
 				StatusCode: http.StatusInternalServerError}
 		}
-		if c.IncludeToken == "true" {
+		if c.IncludeToken == true {
 			err := AuthorizeEndpoint(r, constants.QuoteVerifierGroupName, true)
 			if err != nil {
 				return err
@@ -81,12 +83,12 @@ func sgxVerifyQuote(conf *config.Configuration) errorHandlerFunc {
 			return &resourceError{Message: "could not parse sgx ecdsa quote",
 				StatusCode: http.StatusBadRequest}
 		}
-		return sgxEcdsaQuoteVerify(w, r, obj, conf, data.UserData)
+		return sgxEcdsaQuoteVerify(w, r, obj, data.UserData)
 	}
 }
 
 func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *parser.SkcBlobParsed,
-	conf *config.Configuration, userData string) error {
+	userData string) error {
 	if len(skcBlobParser.GetQuoteBlob()) == 0 {
 		return &resourceError{Message: "invalid sgx ecdsa quote length", StatusCode: http.StatusBadRequest}
 	}
@@ -107,15 +109,21 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 		return &resourceError{Message: "Invalid PCK Certificate Buffer", StatusCode: http.StatusBadRequest}
 	}
 
+	sgxCaCert, err := readSGXRootCaCert()
+	if err != nil {
+		return &resourceError{Message: "cannot read SGX CA Cert: " + err.Error(),
+			StatusCode: http.StatusBadRequest}
+	}
+
 	_, err = verifier.VerifyPCKCertificate(quoteObj.GetQuotePckCertObj(), quoteObj.GetQuotePckCertInterCAList(),
-		quoteObj.GetQuotePckCertRootCAList(), certObj.GetPckCrlObj(), conf.TrustedRootCA)
+		quoteObj.GetQuotePckCertRootCAList(), certObj.GetPckCrlObj(), sgxCaCert)
 	if err != nil {
 		return &resourceError{Message: "cannot verify pck cert: " + err.Error(),
 			StatusCode: http.StatusBadRequest}
 	}
 
 	_, err = verifier.VerifyPckCrl(certObj.GetPckCrlURL(), certObj.GetPckCrlObj(), certObj.GetPckCrlInterCaList(),
-		certObj.GetPckCrlRootCaList(), conf.TrustedRootCA)
+		certObj.GetPckCrlRootCaList(), sgxCaCert)
 	if err != nil {
 		return &resourceError{Message: "cannot verify pck crl: " + err.Error(),
 			StatusCode: http.StatusBadRequest}
@@ -127,7 +135,7 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 			StatusCode: http.StatusInternalServerError}
 	}
 
-	err = verifyTcbInfo(certObj, tcbObj, conf.TrustedRootCA)
+	err = verifyTcbInfo(certObj, tcbObj, sgxCaCert)
 	if err != nil {
 		return &resourceError{Message: "TCBInfo Verification failed: " + err.Error(),
 			StatusCode: http.StatusInternalServerError}
@@ -142,7 +150,7 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 			StatusCode: http.StatusInternalServerError}
 	}
 
-	_, err = verifyQeIdentity(qeIDObj, quoteObj, conf.TrustedRootCA)
+	_, err = verifyQeIdentity(qeIDObj, quoteObj, sgxCaCert)
 	if err != nil {
 		return &resourceError{Message: "verifyQeIdentity failed: " + err.Error(),
 			StatusCode: http.StatusInternalServerError}
@@ -285,4 +293,24 @@ func verifyTcbInfo(certObj *parser.PckCert, tcbObj *parser.TcbInfoStruct, truste
 	}
 
 	return nil
+}
+
+func readSGXRootCaCert() (*x509.Certificate, error) {
+	log.Trace("resource/quote_verifier_ops:readSGXRootCaCert() Entering")
+	log.Trace("resource/quote_verifier_ops:readSGXRootCaCert() Leaving")
+
+	certBytes, err := ioutil.ReadFile(constants.TrustedSGXRootCAFile)
+	if err != nil {
+		return nil, errors.Wrap(err, "readSGXRootCaCert: error reading SGX CA certificate")
+	}
+	pemBlock, _ := pem.Decode(certBytes)
+	if pemBlock == nil {
+		return nil, errors.New("readSGXRootCaCert: Pem Decode error")
+	}
+	x509Cert, err := x509.ParseCertificate(pemBlock.Bytes)
+	if err != nil {
+		return nil, errors.Wrap(err, "readSGXRootCaCert: error parsing SGX CA certificate")
+	}
+
+	return x509Cert, nil
 }

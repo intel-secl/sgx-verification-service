@@ -153,7 +153,7 @@ func CheckMandatorySGXExt(cert *x509.Certificate, requiredExtDict map[string]asn
 				return false, errors.Wrap(err, "CheckMandatorySGXExt: unmarshal failed")
 			}
 
-			log.Debug("Required Extension Dictionary", requiredExtDict)
+			log.Debug("Required Extension Dictionary: ", requiredExtDict)
 			for j := 0; j < len(sgxExtensions); j++ {
 				_, err = asn1.Unmarshal(sgxExtensions[j].FullBytes, &sgxExt)
 				if err != nil {
