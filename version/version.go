@@ -19,4 +19,3 @@ func GetVersion() string {
 	verStr = verStr + fmt.Sprintf("Build Date: %s\n", BuildDate)
 	return verStr
 }
-
