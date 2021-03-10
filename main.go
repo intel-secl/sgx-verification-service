@@ -5,6 +5,7 @@
 package main
 
 import (
+	"fmt"
 	"intel/isecl/sqvs/v3/constants"
 	_ "intel/isecl/sqvs/v3/swagger/docs"
 	"os"
@@ -72,6 +73,7 @@ func openLogFiles() (logFile, httpLogFile, secLogFile *os.File, err error) {
 	err = os.Chown(constants.SecLogFile, uid, gid)
 	if err != nil {
 		log.Errorf("Could not change file ownership for file: '%s'", constants.SecLogFile)
+		return nil, nil, nil, err
 	}
 
 	err = os.Chown(constants.LogFile, uid, gid)
@@ -92,21 +94,7 @@ func main() {
 		}
 	} else {
 		defer func() {
-			err = l.Close()
-			if err != nil {
-				log.Error("failed to complete write on sqvs.log ", err)
-				os.Exit(1)
-			}
-			err = h.Close()
-			if err != nil {
-				log.Error("failed to complete write on sqvs-http.log ", err)
-				os.Exit(1)
-			}
-			err = s.Close()
-			if err != nil {
-				log.Error("failed to complete write on sqvs-security.log ", err)
-				os.Exit(1)
-			}
+			closeLogFiles(l, h, s)
 		}()
 		app = &App{
 			LogWriter:     l,
@@ -116,7 +104,24 @@ func main() {
 	}
 	err = app.Run(os.Args)
 	if err != nil {
-		log.Error("Application returned with error: ", err)
+		fmt.Println("Application returned with error: ", err.Error())
+		closeLogFiles(l, h, s)
 		os.Exit(1)
+	}
+}
+
+func closeLogFiles(logFile, httpLogFile, secLogFile *os.File) {
+	var err error
+	err = logFile.Close()
+	if err != nil {
+		fmt.Println("Failed to close default log file:", err.Error())
+	}
+	err = httpLogFile.Close()
+	if err != nil {
+		fmt.Println("Failed to close http log file:", err.Error())
+	}
+	err = secLogFile.Close()
+	if err != nil {
+		fmt.Println("Failed to close security log file:", err.Error())
 	}
 }

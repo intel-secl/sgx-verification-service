@@ -465,7 +465,11 @@ func (a *App) start() error {
 	if err != nil {
 		return errors.Wrap(err, "app:start() Could not locate systemctl to start application service")
 	}
-	return syscall.Exec(systemctl, []string{"systemctl", "start", "sqvs"}, os.Environ())
+	cmd := exec.Command(systemctl, "start", "sqvs")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+	return cmd.Run()
 }
 
 func (a *App) stop() error {
@@ -474,7 +478,11 @@ func (a *App) stop() error {
 	if err != nil {
 		return errors.Wrap(err, "app:stop() Could not locate systemctl to stop application service")
 	}
-	return syscall.Exec(systemctl, []string{"systemctl", "stop", "sqvs"}, os.Environ())
+	cmd := exec.Command(systemctl, "stop", "sqvs")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+	return cmd.Run()
 }
 
 func (a *App) status() error {
@@ -483,7 +491,11 @@ func (a *App) status() error {
 	if err != nil {
 		return errors.Wrap(err, "app:status() Could not locate systemctl to check status of application service")
 	}
-	return syscall.Exec(systemctl, []string{"systemctl", "status", "sqvs"}, os.Environ())
+	cmd := exec.Command(systemctl, "status", "sqvs")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+	return cmd.Run()
 }
 
 func (a *App) uninstall(purge bool) {
