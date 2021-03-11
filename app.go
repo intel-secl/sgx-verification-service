@@ -78,7 +78,7 @@ func (a *App) printUsage() {
 	fmt.Fprintln(w, "                              Optional env variables:")
 	fmt.Fprintln(w, "                                  - get optional env variables from all the setup tasks")
 	fmt.Fprintln(w, "")
-	fmt.Fprintln(w, "    update_service_config    Updates Service Configuration")
+	fmt.Fprintln(w, "    update-service-config    Updates Service Configuration")
 	fmt.Fprintln(w, "                             Required env variables:")
 	fmt.Fprintln(w, "                                 - SQVS_PORT                                         : SGX Verification Service port")
 	fmt.Fprintln(w, "                                 - SQVS_SERVER_READ_TIMEOUT                          : SGX Verification Service Read Timeout")
@@ -276,7 +276,7 @@ func (a *App) Run(args []string) error {
 		}
 		if args[2] != "download_ca_cert" &&
 			args[2] != "download_cert" &&
-			args[2] != "update_service_config" &&
+			args[2] != "update-service-config" &&
 			args[2] != "all" {
 			a.printUsage()
 			return errors.New("No such setup task")
@@ -562,7 +562,7 @@ func validateSetupArgs(cmd string, args []string) error {
 	case "download_cert":
 		return nil
 
-	case "update_service_config":
+	case "update-service-config":
 		return nil
 
 	case "all":
