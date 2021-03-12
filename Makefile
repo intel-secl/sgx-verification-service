@@ -10,8 +10,6 @@ endif
 
 .PHONY: sqvs installer all test clean
 
-all: clean installer k8s
-
 sqvs:
 	env GOOS=linux GOSUMDB=off GOPROXY=direct go build -ldflags "-X intel/isecl/sqvs/v3/version.BuildDate=$(BUILDDATE) -X intel/isecl/sqvs/v3/version.Version=$(VERSION) -X intel/isecl/sqvs/v3/version.GitHash=$(GITCOMMIT)" -o out/sqvs
 
@@ -52,6 +50,8 @@ oci-archive: docker
 
 k8s: oci-archive
 	cp -r dist/k8s out/k8s
+
+all: clean installer k8s
 
 clean:
 	rm -f cover.*
