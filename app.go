@@ -86,7 +86,7 @@ func (a *App) printUsage() {
 	fmt.Fprintln(w, "                                 - SQVS_SERVER_WRITE_TIMEOUT                         : SGX Verification Service Request Write Timeout Duration")
 	fmt.Fprintln(w, "                                 - SQVS_SERVER_IDLE_TIMEOUT                          : SGX Verification Service Request Idle Timeout")
 	fmt.Fprintln(w, "                                 - SQVS_SERVER_MAX_HEADER_BYTES                      : SGX Verification Service Max Length Of Request Header Bytes")
-	fmt.Fprintln(w, "                                 - SQVS_LOG_LEVEL                                    : SGX Verification Service Log Level")
+	fmt.Fprintln(w, "                                 - SQVS_LOGLEVEL                                    : SGX Verification Service Log Level")
 	fmt.Fprintln(w, "                                 - SQVS_LOG_MAX_LENGTH                               : SGX Verification Service Log maximum length")
 	fmt.Fprintln(w, "                                 - SQVS_ENABLE_CONSOLE_LOG                           : SGX Verification Service Enable standard output")
 	fmt.Fprintln(w, "                                 - SQVS_INCLUDE_TOKEN                                : Boolean value to decide whether to use token based auth or no auth for quote verifier API")
@@ -287,8 +287,10 @@ func (a *App) Run(args []string) error {
 			return errors.Wrap(err, "app:Run() Invalid setup task arguments")
 		}
 
+		taskName := args[2]
+
 		a.Config = config.Global()
-		err = a.Config.SaveConfiguration(setupContext)
+		err = a.Config.SaveConfiguration(taskName, setupContext)
 		if err != nil {
 			fmt.Println("Error saving configuration: " + err.Error())
 			os.Exit(1)

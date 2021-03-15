@@ -16,6 +16,7 @@ import (
 	"intel/isecl/sqvs/v3/constants"
 	"io"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"strconv"
 	"time"
@@ -141,6 +142,9 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 
 	scsBaseUrl, err := c.GetenvString("SCS_BASE_URL", "SGX Caching Service URL")
 	if err == nil && scsBaseUrl != "" {
+		if _, err = url.ParseRequestURI(scsBaseUrl); err != nil {
+			return errors.Wrap(err, "SaveConfiguration() SCS_BASE_URL provided is invalid")
+		}
 		u.Config.SCSBaseURL = scsBaseUrl
 	} else if u.Config.SCSBaseURL == "" {
 		commLog.GetDefaultLogger().Error("SCS_BASE_URL is not defined in environment")
@@ -149,6 +153,9 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 
 	aasApiUrl, err := c.GetenvString("AAS_API_URL", "AAS API URL")
 	if err == nil && aasApiUrl != "" {
+		if _, err = url.ParseRequestURI(aasApiUrl); err != nil {
+			return errors.Wrap(err, "SaveConfiguration() AAS_API_URL provided is invalid")
+		}
 		u.Config.AuthServiceURL = aasApiUrl
 	} else if u.Config.AuthServiceURL == "" {
 		commLog.GetDefaultLogger().Error("AAS_API_URL is not defined in environment")
