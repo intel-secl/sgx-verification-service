@@ -34,17 +34,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: sqvs-config
-          env:
-            - name: SQVS_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: sqvs-service-credentials
-                  key: SQVS_USERNAME
-            - name: SQVS_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: sqvs-service-credentials
-                  key: SQVS_PASSWORD
           volumeMounts:
             - name: sqvs-config-volume
               mountPath: /etc/sqvs/
