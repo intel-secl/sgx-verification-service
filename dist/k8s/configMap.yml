@@ -17,3 +17,4 @@ data:
   SQVS_INCLUDE_TOKEN: "true"
   SGX_TRUSTED_ROOT_CA_PATH: /tmp/trusted_rootca.pem
   BEARER_TOKEN:
+  SQVS_ENABLE_CONSOLE_LOG: "y"
