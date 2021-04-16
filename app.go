@@ -274,13 +274,6 @@ func (a *App) Run(args []string) error {
 			a.printUsage()
 			os.Exit(1)
 		}
-		if args[2] != "download_ca_cert" &&
-			args[2] != "download_cert" &&
-			args[2] != "update_service_config" &&
-			args[2] != "all" {
-			a.printUsage()
-			return errors.New("No such setup task")
-		}
 
 		err := validateSetupArgs(args[2], args[3:])
 		if err != nil {
@@ -334,6 +327,11 @@ func (a *App) Run(args []string) error {
 					ConsoleWriter:            os.Stdout,
 					TrustedSGXRootCAFilePath: constants.TrustedSGXRootCAFile,
 				},
+				tasks.Create_Signing_Key_Pair{
+					Flags:         flags,
+					Config:        a.configuration(),
+					ConsoleWriter: os.Stdout,
+				},
 			},
 			AskInput: false,
 		}
@@ -343,8 +341,8 @@ func (a *App) Run(args []string) error {
 			err = setupRunner.RunTasks(task)
 		}
 		if err != nil {
-			fmt.Println("Error running setup: ", err)
-			return errors.Wrap(err, "app:Run() Error running setup")
+			log.WithError(err).Errorf("Setup task %s failed", task)
+			return err
 		}
 
 		// Containers are always run as non root users, does not require changing ownership of config directories
@@ -379,6 +377,17 @@ func (a *App) Run(args []string) error {
 			}
 
 			err = os.Chown(a.Config.TLSCertFile, uid, gid)
+			if err != nil {
+				return errors.Wrap(err, "Error while changing ownership of TLS Cert file")
+			}
+		}
+		if task == "create_signing_key_pair" {
+			err = os.Chown(constants.PrivateKeyLocation, uid, gid)
+			if err != nil {
+				return errors.Wrap(err, "Error while changing ownership of TLS Key file")
+			}
+
+			err = os.Chown(constants.PublicKeyLocation, uid, gid)
 			if err != nil {
 				return errors.Wrap(err, "Error while changing ownership of TLS Cert file")
 			}
@@ -565,6 +574,9 @@ func validateSetupArgs(cmd string, args []string) error {
 		return nil
 
 	case "update_service_config":
+		return nil
+
+	case "create_signing_key_pair":
 		return nil
 
 	case "all":

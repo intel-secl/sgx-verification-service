@@ -33,8 +33,8 @@ const (
 	DefaultKeyAlgorithmLength      = 3072
 	DefaultSQVSTLSSan              = "127.0.0.1,localhost"
 	DefaultSQVSTLSCn               = "SQVS TLS Certificate"
+	DefaultSQVSSigningCertCn       = "SQVS QVL Response Signing Certificate"
 	DefaultJwtValidateCacheKeyMins = 60
-	CMSTLSCertDigestEnv            = "CMS_TLS_CERT_SHA384"
 	SQVSLogLevel                   = "SQVS_LOGLEVEL"
 	DefaultIncludeTokenValue       = true
 	DefaultReadTimeout             = 30 * time.Second
@@ -53,4 +53,6 @@ const (
 	MaxTCBCompLevels               = 18
 	FmspcLen                       = 12
 	PCKCertType                    = 5
+	PublicKeyLocation              = ConfigDir + "sqvs_signing_pub_key.pem"
+	PrivateKeyLocation             = ConfigDir + "sqvs_signing_priv_key.pem"
 )

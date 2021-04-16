@@ -19,6 +19,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -181,6 +182,19 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 			return errors.Errorf("SaveConfiguration: Could not find file: %s", trustedRootPath)
 		}
 		return errors.New("SaveConfiguration: Invalid pem certificate")
+	}
+
+	signQuoteResponse, err := c.GetenvString("SIGN_QUOTE_RESPONSE", "Enable Quote "+
+		"Response Signing")
+	if err == nil && strings.TrimSpace(signQuoteResponse) != "" {
+		u.Config.SignQuoteResponse, err = strconv.ParseBool(signQuoteResponse)
+		if err != nil {
+			log.Warning("SKIP_QUOTE_RESPONSE_SIGNING is not defined properly, must be true/false. Quote Signing" +
+				"will be skipped by default")
+			u.Config.SignQuoteResponse = false
+		}
+	} else {
+		u.Config.SignQuoteResponse = false
 	}
 
 	err = u.Config.Save()

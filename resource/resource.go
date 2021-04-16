@@ -70,8 +70,8 @@ func AuthorizeEndpoint(r *http.Request, roleName string, retNilCtxForEmptyCtx bo
 	_, foundRole := auth.ValidatePermissionAndGetRoleContext(privileges, []ct.RoleInfo{{Service: constants.ServiceName, Name: roleName}}, retNilCtxForEmptyCtx)
 	if !foundRole {
 		slog.Infof("resource/resource: AuthorizeEndpoint() %s: endpoint access unauthorized, request role: %v", commLogMsg.UnauthorizedAccess, roleName)
-		return &privilegeError{Message: "", StatusCode: http.StatusForbidden}
+		return &privilegeError{Message: "Endpoint access unauthorized", StatusCode: http.StatusForbidden}
 	}
-	slog.Infof("resource/resource: AuthorizeEndpoint() %s - %s", commLogMsg.AuthorizedAccess, r.RequestURI)
+	slog.Infof("resource/resource: Authorized Endpoint() %s - %s", commLogMsg.AuthorizedAccess, r.RequestURI)
 	return nil
 }

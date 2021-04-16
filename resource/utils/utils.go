@@ -5,11 +5,16 @@
 package utils
 
 import (
+	"crypto"
+	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"github.com/pkg/errors"
+	"intel/isecl/lib/common/v3/crypt"
 	commLog "intel/isecl/lib/common/v3/log"
+	"io/ioutil"
 	"net/url"
 	"strings"
 	"time"
@@ -94,4 +99,38 @@ func CheckDate(issueDate, nextUpdate string) bool {
 	} else {
 		return true
 	}
+}
+
+func GenerateSignature(responseBytes []byte, keyFilePath string) (string, error) {
+	log.Trace("resource/utils:GenerateSignature() Entering")
+	defer log.Trace("resource/utils:GenerateSignature() Leaving")
+
+	var privateKey *rsa.PrivateKey
+
+	//Get the private key from path
+	priv, err := ioutil.ReadFile(keyFilePath)
+	if err != nil {
+		log.WithError(err).Info("error reading signing private key from file")
+		return "", errors.Wrap(err, "error reading signing private key from file")
+	}
+
+	privPem, _ := pem.Decode(priv)
+	parsedKey, err := x509.ParsePKCS8PrivateKey(privPem.Bytes)
+	if err != nil {
+		log.WithError(err).Info("Cannot parse RSA private key from file")
+		return "", errors.New("Cannot parse RSA private key from file")
+	}
+	privateKey, ok := parsedKey.(*rsa.PrivateKey)
+	if !ok {
+		log.Error("Unable to parse RSA private key")
+		return "", errors.New("Unable to parse RSA private key")
+	}
+
+	signature, err := crypt.HashAndSignPKCS1v15(responseBytes, privateKey, crypto.SHA384)
+	if err != nil {
+		log.WithError(err).Info("error signing quote response")
+		return "", errors.Wrap(err, "error signing quote response")
+	}
+
+	return base64.StdEncoding.EncodeToString(signature), nil
 }

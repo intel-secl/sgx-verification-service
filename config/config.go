@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -39,6 +40,7 @@ type Configuration struct {
 	TLSKeyFile        string
 	TLSCertFile       string
 	CertSANList       string
+	SignQuoteResponse bool
 	ReadTimeout       time.Duration
 	ReadHeaderTimeout time.Duration
 	WriteTimeout      time.Duration
@@ -60,7 +62,7 @@ var ErrNoConfigFile = errors.New("no config file")
 func (conf *Configuration) SaveConfiguration(taskName string, c setup.Context) error {
 
 	// target config changes only in scope for the setup task
-	if taskName == "all" || taskName == "download_ca_cert" || taskName == "download_cert" {
+	if taskName == "all" || taskName == "download_ca_cert" || taskName == "download_cert" || taskName == "create_signing_key_pair" {
 		tlsCertDigest, err := c.GetenvString("CMS_TLS_CERT_SHA384", "TLS certificate digest")
 		if err == nil && strings.TrimSpace(tlsCertDigest) != "" {
 			conf.CmsTLSCertDigest = tlsCertDigest
@@ -81,6 +83,19 @@ func (conf *Configuration) SaveConfiguration(taskName string, c setup.Context) e
 			log.Error("CMS_BASE_URL is not defined in environment")
 			return errors.Wrap(errors.New("CMS_BASE_URL is not defined in environment"),
 				"SaveConfiguration() ENV variable not found")
+		}
+
+		signQuoteResponse, err := c.GetenvString("SIGN_QUOTE_RESPONSE", "Enable Quote "+
+			"Response Signing")
+		if err == nil && strings.TrimSpace(signQuoteResponse) != "" {
+			conf.SignQuoteResponse, err = strconv.ParseBool(signQuoteResponse)
+			if err != nil {
+				log.Warning("SKIP_QUOTE_RESPONSE_SIGNING is not defined properly, must be true/false. Quote Signing" +
+					"will be skipped by default")
+				conf.SignQuoteResponse = false
+			}
+		} else {
+			conf.SignQuoteResponse = false
 		}
 	}
 

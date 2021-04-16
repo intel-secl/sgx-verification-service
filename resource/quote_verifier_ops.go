@@ -22,25 +22,35 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type SGXResponse struct {
 	Message                string
-	ReportData             string `json:"reportData"`
+	ReportData             string `json:"reportData,omitempty"`
 	UserDataHashMatch      string `json:"userDataMatch,omitempty"`
-	EnclaveIssuer          string
-	EnclaveMeasurement     string
-	EnclaveIssuerProdID    string
-	EnclaveIssuerExtProdID string
-	ConfigSvn              string
-	IsvSvn                 string
-	ConfigID               string
-	TcbLevel               string
+	EnclaveIssuer          string `json:"EnclaveIssuer,omitempty"`
+	EnclaveMeasurement     string `json:"EnclaveMeasurement,omitempty"`
+	EnclaveIssuerProdID    string `json:"EnclaveIssuerProdID,omitempty"`
+	EnclaveIssuerExtProdID string `json:"EnclaveIssuerExtProdID,omitempty"`
+	ConfigSvn              string `json:"ConfigSvn,omitempty"`
+	IsvSvn                 string `json:"IsvSvn,omitempty"`
+	ConfigID               string `json:"ConfigID,omitempty"`
+	TcbLevel               string `json:"TcbLevel,omitempty"`
+	Quote                  string `json:"Quote,omitempty"`
+	Challenge              string `json:"Challenge,omitempty"`
+}
+
+type SignedSGXResponse struct {
+	Response         SGXResponse `json:"response"`
+	Signature        string      `json:"signature,omitempty"`
+	CertificateChain string      `json:"certificateChain,omitempty"`
 }
 
 type QuoteData struct {
 	QuoteBlob string `json:"quote"`
 	UserData  string `json:"userData"`
+	Challenge string `json:"challenge"`
 }
 
 func QuoteVerifyCB(router *mux.Router) {
@@ -52,14 +62,14 @@ func sgxVerifyQuote() errorHandlerFunc {
 		log.Trace("resource/quote_verifier_ops:sgxVerifyQuote() Entering")
 		defer log.Trace("resource/quote_verifier_ops:sgxVerifyQuote() Leaving")
 
-		c := config.Global()
-		if c == nil {
-			return &resourceError{Message: "could not read config",
-				StatusCode: http.StatusInternalServerError}
+		conf := config.Global()
+		if conf == nil {
+			return &resourceError{Message: "Could not read config", StatusCode: http.StatusInternalServerError}
 		}
-		if c.IncludeToken == true {
+		if conf.IncludeToken == true {
 			err := AuthorizeEndpoint(r, constants.QuoteVerifierGroupName, true)
 			if err != nil {
+				slog.WithError(err).Error("resource/quote_verifier_ops: sgxVerifyQuote() Authorization Error")
 				return err
 			}
 		}
@@ -73,71 +83,139 @@ func sgxVerifyQuote() errorHandlerFunc {
 		dec.DisallowUnknownFields()
 		err := dec.Decode(&data)
 		if err != nil {
-			slog.WithError(err).Errorf("resource/quote_verifier_ops: sgxVerifyQuote() %s:Failed to decode request body", commLogMsg.InvalidInputBadEncoding)
-			return &resourceError{Message: "invalid sgx ecdsa quote" + err.Error(),
-				StatusCode: http.StatusBadRequest}
+			slog.WithError(err).Errorf("resource/quote_verifier_ops: sgxVerifyQuote() %s:Failed to decode "+
+				"request body", commLogMsg.InvalidInputBadEncoding)
+			return &resourceError{Message: "Invalid JSON input provided", StatusCode: http.StatusBadRequest}
 		}
 
-		obj := parser.ParseQuoteBlob(data.QuoteBlob)
-		if obj == nil {
-			return &resourceError{Message: "could not parse sgx ecdsa quote",
-				StatusCode: http.StatusBadRequest}
+		sgxResponse, err := sgxEcdsaQuoteVerify(data)
+
+		var quoteResponseBytes []byte
+		if strings.TrimSpace(data.Challenge) != "" && conf.SignQuoteResponse {
+			if err != nil {
+				sgxResponse.Message = err.Error()
+			}
+			log.Info("sgxEcdsaQuoteVerify: Signing the quote response")
+			sgxResponse.Quote = data.QuoteBlob
+			sgxResponse.Challenge = data.Challenge
+
+			dataBytes, err := json.Marshal(sgxResponse)
+			if err != nil {
+				return &resourceError{Message: "Failed to marshal hostPlatformData to get trustReport" +
+					err.Error(), StatusCode: http.StatusInternalServerError}
+			}
+
+			signature, err := utils.GenerateSignature(dataBytes, constants.PrivateKeyLocation)
+			if err != nil {
+				return &resourceError{Message: "Failed to get signature for QVL response: " + err.Error(),
+					StatusCode: http.StatusInternalServerError}
+			}
+
+			certChain, err := ioutil.ReadFile(constants.PublicKeyLocation)
+			if err != nil {
+				log.WithError(err).Error("Error reading signing public key from file")
+				return &resourceError{Message: "Error reading signing public key from file",
+					StatusCode: http.StatusInternalServerError}
+			}
+
+			quoteResponseBytes, err = json.Marshal(SignedSGXResponse{
+				Response:         sgxResponse,
+				Signature:        signature,
+				CertificateChain: string(certChain),
+			})
+			if err != nil {
+				log.WithError(err).Error("Error marshalling signed SGX response in JSON")
+				return &resourceError{Message: "Error marshalling signed SGX response in JSON", StatusCode: http.StatusInternalServerError}
+			}
+		} else {
+			if err != nil {
+				return err
+			}
+			quoteResponseBytes, err = json.Marshal(sgxResponse)
+			if err != nil {
+				log.WithError(err).Error("Error marshalling SGX response in JSON")
+				return &resourceError{Message: "Error marshalling SGX response in JSON", StatusCode: http.StatusInternalServerError}
+			}
 		}
-		return sgxEcdsaQuoteVerify(w, r, obj, data.UserData)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		_, err = w.Write(quoteResponseBytes)
+		if err != nil {
+			return &resourceError{Message: err.Error(), StatusCode: http.StatusInternalServerError}
+		}
+
+		return nil
 	}
 }
 
-func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *parser.SkcBlobParsed,
-	userData string) error {
-	if len(skcBlobParser.GetQuoteBlob()) == 0 {
-		return &resourceError{Message: "invalid sgx ecdsa quote length", StatusCode: http.StatusBadRequest}
+func sgxEcdsaQuoteVerify(data QuoteData) (SGXResponse, error) {
+
+	skcBlobParsed := parser.ParseQuoteBlob(data.QuoteBlob)
+	if skcBlobParsed == nil {
+		log.Error("Could not parse sgx ecdsa quote")
+		return SGXResponse{}, &resourceError{Message: "Could not parse sgx ecdsa quote",
+			StatusCode: http.StatusBadRequest}
 	}
 
-	quoteObj := parser.ParseEcdsaQuoteBlob(skcBlobParser.GetQuoteBlob())
+	if len(skcBlobParsed.GetQuoteBlob()) == 0 {
+		log.Error("Invalid sgx ecdsa quote length")
+		return SGXResponse{}, &resourceError{Message: "Invalid sgx ecdsa quote length", StatusCode: http.StatusBadRequest}
+	}
+
+	quoteObj := parser.ParseEcdsaQuoteBlob(skcBlobParsed.GetQuoteBlob())
 	if quoteObj == nil {
-		return &resourceError{Message: "invalid sgx ecdsa quote", StatusCode: http.StatusBadRequest}
+		log.Error("Cannot parse sgx ecdsa quote")
+		return SGXResponse{}, &resourceError{Message: "Cannot parse sgx ecdsa quote", StatusCode: http.StatusBadRequest}
 	}
 
 	pckCertBytes, err := utils.GetCertPemData(quoteObj.GetQuotePckCertObj())
 	if err != nil {
-		return &resourceError{Message: "cannot extract cert pem data: " + err.Error(),
+		log.WithError(err).Error("Cannot extract PCK cert data")
+		return SGXResponse{}, &resourceError{Message: "Cannot extract PCK cert data",
 			StatusCode: http.StatusBadRequest}
 	}
 
 	certObj := parser.NewPCKCertObj(pckCertBytes)
 	if certObj == nil {
-		return &resourceError{Message: "Invalid PCK Certificate Buffer", StatusCode: http.StatusBadRequest}
+		return SGXResponse{}, &resourceError{Message: "Invalid PCK Certificate Buffer", StatusCode: http.StatusBadRequest}
 	}
 
 	sgxCaCert, err := readSGXRootCaCert()
 	if err != nil {
-		return &resourceError{Message: "cannot read SGX CA Cert: " + err.Error(),
+		log.WithError(err).Error("Cannot read SGX CA Cert")
+		return SGXResponse{}, &resourceError{Message: "Cannot read SGX CA Cert",
 			StatusCode: http.StatusBadRequest}
 	}
 
 	_, err = verifier.VerifyPCKCertificate(quoteObj.GetQuotePckCertObj(), quoteObj.GetQuotePckCertInterCAList(),
 		quoteObj.GetQuotePckCertRootCAList(), certObj.GetPckCrlObj(), sgxCaCert)
 	if err != nil {
-		return &resourceError{Message: "cannot verify pck cert: " + err.Error(),
+		log.WithError(err).Error("Cannot verify pck cert")
+		return SGXResponse{}, &resourceError{Message: "Cannot verify pck cert",
 			StatusCode: http.StatusBadRequest}
 	}
 
 	_, err = verifier.VerifyPckCrl(certObj.GetPckCrlURL(), certObj.GetPckCrlObj(), certObj.GetPckCrlInterCaList(),
 		certObj.GetPckCrlRootCaList(), sgxCaCert)
 	if err != nil {
-		return &resourceError{Message: "cannot verify pck crl: " + err.Error(),
+		log.WithError(err).Error("Cannot verify PCK crl")
+		return SGXResponse{}, &resourceError{Message: "Cannot verify PCK crl",
 			StatusCode: http.StatusBadRequest}
 	}
 
 	tcbObj, err := parser.NewTcbInfo(certObj.GetFmspcValue())
 	if err != nil {
-		return &resourceError{Message: "Get TCB Info data parsing/fetch failed: " + err.Error(),
+		log.WithError(err).Error("Get TCB Info data parsing/fetch failed")
+		return SGXResponse{}, &resourceError{Message: "Get TCB Info data parsing/fetch failed",
 			StatusCode: http.StatusInternalServerError}
 	}
 
 	err = verifyTcbInfo(certObj, tcbObj, sgxCaCert)
 	if err != nil {
-		return &resourceError{Message: "TCBInfo Verification failed: " + err.Error(),
+		log.WithError(err).Error("TCBInfo Verification failed")
+		return SGXResponse{}, &resourceError{Message: "TCBInfo Verification failed",
 			StatusCode: http.StatusInternalServerError}
 	}
 
@@ -146,19 +224,21 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 
 	qeIDObj, err := parser.NewQeIdentity()
 	if err != nil {
-		return &resourceError{Message: "QEIdentity Parsing failed: " + err.Error(),
+		log.WithError(err).Error("QEIdentity Parsing failed")
+		return SGXResponse{}, &resourceError{Message: "QEIdentity Parsing failed",
 			StatusCode: http.StatusInternalServerError}
 	}
 
 	_, err = verifyQeIdentity(qeIDObj, quoteObj, sgxCaCert)
 	if err != nil {
-		return &resourceError{Message: "verifyQeIdentity failed: " + err.Error(),
+		log.WithError(err).Error("verifyQeIdentity failed")
+		return SGXResponse{}, &resourceError{Message: "Verification of QeIdentity failed",
 			StatusCode: http.StatusInternalServerError}
 	}
 	hashMatched := false
 
-	if userData != "" {
-		data, err := base64.StdEncoding.DecodeString(userData)
+	if data.UserData != "" {
+		data, err := base64.StdEncoding.DecodeString(data.UserData)
 		if err != nil {
 			log.Error("Failed to Base64 Decode User Data")
 		}
@@ -174,34 +254,35 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 	blob1, err := quoteObj.GetRawBlob1()
 	if err != nil {
 		log.Error(err.Error())
-		return &resourceError{Message: "Invalid Raw Blob data in SGX ECDSA Quote: " + err.Error(),
+		return SGXResponse{}, &resourceError{Message: "Invalid Raw Blob data in SGX ECDSA Quote",
 			StatusCode: http.StatusInternalServerError}
 	}
 
 	_, err = verifier.VerifySGXECDSASign1(quoteObj.GetECDSASignature1(), blob1, certObj.GetECDSAPublicKey())
 	if err != nil {
-		return &resourceError{Message: "SGX ECDSA Signature Verification(1) failed: " + err.Error(),
+		log.WithError(err).Error("SGX ECDSA Signature Verification(1) failed")
+		return SGXResponse{}, &resourceError{Message: "SGX ECDSA Signature Verification(1) failed",
 			StatusCode: http.StatusInternalServerError}
 	}
 	blob2, err := quoteObj.GetRawBlob2()
 	if err != nil {
-		log.Error(err.Error())
-		return &resourceError{Message: "Invalid Raw Blob 2 data in SGX ECDSA Quote: " + err.Error(),
+		log.WithError(err).Error("Invalid Raw Blob 2 data in SGX ECDSA Quote")
+		return SGXResponse{}, &resourceError{Message: "Invalid Raw Blob 2 data in SGX ECDSA Quote",
 			StatusCode: http.StatusInternalServerError}
 	}
 
 	_, err = verifier.VerifySGXECDSASign2(quoteObj.GetECDSASignature2(), blob2, quoteObj.GetECDSAPublicKey2())
 	if err != nil {
-		log.Error(err.Error())
-		return &resourceError{Message: "SGX ECDSA Signature Verification(2) failed: " + err.Error(),
+		log.WithError(err).Error("SGX ECDSA Signature Verification(2) failed")
+		return SGXResponse{}, &resourceError{Message: "SGX ECDSA Signature Verification(2) failed",
 			StatusCode: http.StatusInternalServerError}
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 
 	var resp SGXResponse
 	resp.Message = "SGX_QL_QV_RESULT_OK"
-	resp.UserDataHashMatch = strconv.FormatBool(hashMatched)
+	if data.UserData != "" {
+		resp.UserDataHashMatch = strconv.FormatBool(hashMatched)
+	}
 	resp.ReportData = fmt.Sprintf("%02x", quoteObj.GetSHA256Hash())
 	resp.EnclaveIssuer = fmt.Sprintf("%02x", quoteObj.Header.ReportBody.MrSigner)
 	resp.EnclaveIssuerProdID = fmt.Sprintf("%02x", quoteObj.Header.ReportBody.SgxIsvProdID)
@@ -212,17 +293,9 @@ func sgxEcdsaQuoteVerify(w http.ResponseWriter, r *http.Request, skcBlobParser *
 	resp.ConfigID = fmt.Sprintf("%02x", quoteObj.Header.ReportBody.ConfigID)
 	resp.TcbLevel = tcbUptoDateStatus
 
-	js, err := json.Marshal(resp)
-	if err != nil {
-		return &resourceError{Message: err.Error(), StatusCode: http.StatusInternalServerError}
-	}
-	_, err = w.Write(js)
-	if err != nil {
-		return &resourceError{Message: err.Error(), StatusCode: http.StatusInternalServerError}
-	}
 	log.Info("Sgx Ecdsa Quote Verification completed")
 
-	return nil
+	return resp, nil
 }
 
 func verifyQeIdentityReport(qeIdObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteParsed) (bool, error) {
