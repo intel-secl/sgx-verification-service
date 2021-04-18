@@ -39,6 +39,9 @@ spec:
               mountPath: /etc/sqvs/
             - name: sqvs-logs-volume
               mountPath: /var/log/sqvs/
+            - mountPath: /etc/secret-volume/
+              name: sqvs-credentials
+              readOnly: true
       volumes:
         - name: sqvs-logs-volume
           persistentVolumeClaim:
@@ -46,4 +49,7 @@ spec:
         - name: sqvs-config-volume
           persistentVolumeClaim:
             claimName: sqvs-config-pvc
+        - name: sqvs-credentials
+          secret:
+              secretName: sqvs-secret
 

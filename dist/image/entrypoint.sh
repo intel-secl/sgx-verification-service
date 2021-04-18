@@ -1,12 +1,14 @@
 #!/bin/bash
 
+source /etc/secret-volume/secrets.txt
+export BEARER_TOKEN
+
 USER_ID=$(id -u)
 LOG_PATH=/var/log/sqvs
 CONFIG_PATH=/etc/sqvs
 CERTS_DIR=${CONFIG_PATH}/certs
 TRUSTED_CERTS=${CERTS_DIR}/trustedca
 CERTDIR_TRUSTEDJWTCERTS=${CERTS_DIR}/trustedjwt
-
 
 if [ ! -f $CONFIG_PATH/.setup_done ]; then
   for directory in $LOG_PATH $CONFIG_PATH $CERTS_DIR $TRUSTED_CERTS $CERTDIR_TRUSTEDJWTCERTS; do

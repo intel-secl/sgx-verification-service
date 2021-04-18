@@ -12,3 +12,4 @@ COPY dist/image/entrypoint.sh /entrypoint.sh
 RUN touch /.container-env && chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
+
