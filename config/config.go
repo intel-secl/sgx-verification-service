@@ -90,7 +90,7 @@ func (conf *Configuration) SaveConfiguration(taskName string, c setup.Context) e
 		if err == nil && strings.TrimSpace(signQuoteResponse) != "" {
 			conf.SignQuoteResponse, err = strconv.ParseBool(signQuoteResponse)
 			if err != nil {
-				log.Warning("SKIP_QUOTE_RESPONSE_SIGNING is not defined properly, must be true/false. Quote Signing" +
+				log.Warning("SIGN_QUOTE_RESPONSE is not defined properly, must be true/false. Quote Signing" +
 					"will be skipped by default")
 				conf.SignQuoteResponse = false
 			}

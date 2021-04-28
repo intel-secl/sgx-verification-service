@@ -189,7 +189,7 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 	if err == nil && strings.TrimSpace(signQuoteResponse) != "" {
 		u.Config.SignQuoteResponse, err = strconv.ParseBool(signQuoteResponse)
 		if err != nil {
-			log.Warning("SKIP_QUOTE_RESPONSE_SIGNING is not defined properly, must be true/false. Quote Signing" +
+			log.Warning("SIGN_QUOTE_RESPONSE is not defined properly, must be true/false. Quote Signing" +
 				"will be skipped by default")
 			u.Config.SignQuoteResponse = false
 		}

@@ -1,7 +1,8 @@
 /*
- * Copyright (C) 2020 Intel Corporation
- * SPDX-License-Identifier: BSD-3-Clause
+ *  Copyright (C) 2020 Intel Corporation
+ *  SPDX-License-Identifier: BSD-3-Clause
  */
+
 package resource
 
 import (
@@ -22,7 +23,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
-	"strings"
 )
 
 type SGXResponse struct {
@@ -42,7 +42,7 @@ type SGXResponse struct {
 }
 
 type SignedSGXResponse struct {
-	Response         SGXResponse `json:"response"`
+	QuoteData        SGXResponse `json:"quoteData"`
 	Signature        string      `json:"signature,omitempty"`
 	CertificateChain string      `json:"certificateChain,omitempty"`
 }
@@ -50,7 +50,13 @@ type SignedSGXResponse struct {
 type QuoteData struct {
 	QuoteBlob string `json:"quote"`
 	UserData  string `json:"userData"`
+}
+
+type QuoteDataWithChallenge struct {
+	QuoteData
 	Challenge string `json:"challenge"`
+	//For future use
+	Nonce string `json:"nonce"`
 }
 
 func QuoteVerifyCB(router *mux.Router) {
@@ -88,54 +94,16 @@ func sgxVerifyQuote() errorHandlerFunc {
 			return &resourceError{Message: "Invalid JSON input provided", StatusCode: http.StatusBadRequest}
 		}
 
-		sgxResponse, err := sgxEcdsaQuoteVerify(data)
-
-		var quoteResponseBytes []byte
-		if strings.TrimSpace(data.Challenge) != "" && conf.SignQuoteResponse {
-			if err != nil {
-				sgxResponse.Message = err.Error()
-			}
-			log.Info("sgxEcdsaQuoteVerify: Signing the quote response")
-			sgxResponse.Quote = data.QuoteBlob
-			sgxResponse.Challenge = data.Challenge
-
-			dataBytes, err := json.Marshal(sgxResponse)
-			if err != nil {
-				return &resourceError{Message: "Failed to marshal hostPlatformData to get trustReport" +
-					err.Error(), StatusCode: http.StatusInternalServerError}
-			}
-
-			signature, err := utils.GenerateSignature(dataBytes, constants.PrivateKeyLocation)
-			if err != nil {
-				return &resourceError{Message: "Failed to get signature for QVL response: " + err.Error(),
-					StatusCode: http.StatusInternalServerError}
-			}
-
-			certChain, err := ioutil.ReadFile(constants.PublicKeyLocation)
-			if err != nil {
-				log.WithError(err).Error("Error reading signing public key from file")
-				return &resourceError{Message: "Error reading signing public key from file",
-					StatusCode: http.StatusInternalServerError}
-			}
-
-			quoteResponseBytes, err = json.Marshal(SignedSGXResponse{
-				Response:         sgxResponse,
-				Signature:        signature,
-				CertificateChain: string(certChain),
-			})
-			if err != nil {
-				log.WithError(err).Error("Error marshalling signed SGX response in JSON")
-				return &resourceError{Message: "Error marshalling signed SGX response in JSON", StatusCode: http.StatusInternalServerError}
-			}
-		} else {
-			if err != nil {
-				return err
-			}
-			quoteResponseBytes, err = json.Marshal(sgxResponse)
-			if err != nil {
-				log.WithError(err).Error("Error marshalling SGX response in JSON")
-				return &resourceError{Message: "Error marshalling SGX response in JSON", StatusCode: http.StatusInternalServerError}
-			}
+		sgxResponse, err := SgxEcdsaQuoteVerify(QuoteDataWithChallenge{
+			QuoteData: data,
+		})
+		if err != nil {
+			return err
+		}
+		quoteResponseBytes, err := json.Marshal(sgxResponse)
+		if err != nil {
+			log.WithError(err).Error("Error marshalling SGX response in JSON")
+			return &resourceError{Message: "Error marshalling SGX response in JSON", StatusCode: http.StatusInternalServerError}
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -150,7 +118,7 @@ func sgxVerifyQuote() errorHandlerFunc {
 	}
 }
 
-func sgxEcdsaQuoteVerify(data QuoteData) (SGXResponse, error) {
+func SgxEcdsaQuoteVerify(data QuoteDataWithChallenge) (SGXResponse, error) {
 
 	skcBlobParsed := parser.ParseQuoteBlob(data.QuoteBlob)
 	if skcBlobParsed == nil {

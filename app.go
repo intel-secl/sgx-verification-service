@@ -102,7 +102,7 @@ func (a *App) printUsage() {
 	fmt.Fprintln(w, "")
 	fmt.Fprintln(w, "    download_cert TLS        Generates Key pair and CSR, gets it signed from CMS")
 	fmt.Fprintln(w, "                             - Option [--force] overwrites any existing files, and always downloads newly signed TLS cert")
-	fmt.Fprintln(w, "                             Required env variable if SCS_NOSETUP=true or variable not set in config.yml:")
+	fmt.Fprintln(w, "                             Required env variable if SQVS_NOSETUP=true or variable not set in config.yml:")
 	fmt.Fprintln(w, "                                 - CMS_TLS_CERT_SHA384=<CMS TLS cert sha384 hash>      : to ensure that AAS is talking to the right CMS instance")
 	fmt.Fprintln(w, "                             Required env variables specific to setup task are:")
 	fmt.Fprintln(w, "                                 - CMS_BASE_URL=<url>               : for CMS API url")
@@ -111,6 +111,13 @@ func (a *App) printUsage() {
 	fmt.Fprintln(w, "                             Optional env variables specific to setup task are:")
 	fmt.Fprintln(w, "                                - KEY_PATH=<key_path>              : Path of file where TLS key needs to be stored")
 	fmt.Fprintln(w, "                                - CERT_PATH=<cert_path>            : Path of file/directory where TLS certificate needs to be stored")
+	fmt.Fprintln(w, "    create_signing_key_pair  Generates Key pair and CSR and downloads Signing certificate from CMS")
+	fmt.Fprintln(w, "                             - Option [--force] overwrites any existing files and always downloads new Signing cert")
+	fmt.Fprintln(w, "                             Required env variable if SQVS_NOSETUP=true or variable not set in config.yml:")
+	fmt.Fprintln(w, "                                 - CMS_TLS_CERT_SHA384=<CMS TLS cert sha384 hash>      : to ensure that AAS is talking to the right CMS instance")
+	fmt.Fprintln(w, "                             Required env variables specific to setup task are:")
+	fmt.Fprintln(w, "                                 - CMS_BASE_URL=<url>               : for CMS API url")
+	fmt.Fprintln(w, "                                 - BEARER_TOKEN=<token>             : for authenticating with CMS")
 	fmt.Fprintln(w, "")
 }
 
@@ -277,7 +284,9 @@ func (a *App) Run(args []string) error {
 
 		err := validateSetupArgs(args[2], args[3:])
 		if err != nil {
-			return errors.Wrap(err, "app:Run() Invalid setup task arguments")
+			errMessage := "app:Run() Invalid setup task arguments"
+			a.printUsage()
+			return errors.Wrap(err, errMessage)
 		}
 
 		taskName := args[2]
@@ -404,7 +413,7 @@ func (a *App) startServer() error {
 	r.SkipClean(true)
 
 	// set version endpoint
-	sr := r.PathPrefix("/svs/v1/").Subrouter()
+	sr := r.PathPrefix("/svs/v{version:[1-2]}/").Subrouter()
 	func(setters ...func(*mux.Router)) {
 		for _, setter := range setters {
 			setter(sr)
@@ -413,13 +422,26 @@ func (a *App) startServer() error {
 
 	sr = r.PathPrefix("/svs/v1/").Subrouter()
 	if c.IncludeToken == true {
-		sr.Use(middleware.NewTokenAuth(constants.TrustedJWTSigningCertsDir, constants.TrustedCAsStoreDir, fnGetJwtCerts, time.Minute*constants.DefaultJwtValidateCacheKeyMins))
+		sr.Use(middleware.NewTokenAuth(constants.TrustedJWTSigningCertsDir, constants.TrustedCAsStoreDir, fnGetJwtCerts,
+			time.Minute*constants.DefaultJwtValidateCacheKeyMins))
 	}
+
 	func(setters ...func(*mux.Router)) {
 		for _, setter := range setters {
 			setter(sr)
 		}
 	}(resource.QuoteVerifyCB)
+
+	sr = r.PathPrefix("/svs/v2/").Subrouter()
+	if c.IncludeToken == true {
+		sr.Use(middleware.NewTokenAuth(constants.TrustedJWTSigningCertsDir, constants.TrustedCAsStoreDir, fnGetJwtCerts,
+			time.Minute*constants.DefaultJwtValidateCacheKeyMins))
+	}
+	func(setters ...func(*mux.Router)) {
+		for _, setter := range setters {
+			setter(sr)
+		}
+	}(resource.QuoteVerifyCBAndSign)
 
 	tlsconfig := &tls.Config{
 		MinVersion: tls.VersionTLS12,
