@@ -261,7 +261,7 @@ type SignedSGXResponseInfo struct {
 //  }
 // x-sample-call-output: |
 //  {
-//    response: {
+//    "quoteData": {
 //      "Message": "SGX_QL_QV_RESULT_OK",
 //      "reportData": "0000000000000000000000000000000000000000000000000000000000000000",
 //      "userDataMatch": "false",
