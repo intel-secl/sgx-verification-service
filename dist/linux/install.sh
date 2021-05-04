@@ -70,7 +70,7 @@ ln -sfT $BIN_PATH/$COMPONENT_NAME /usr/bin/$COMPONENT_NAME
 
 # Create logging dir in /var/log
 mkdir -p $LOG_PATH && chown sqvs:sqvs $LOG_PATH
-chmod 700 $LOG_PATH
+chmod 640 $LOG_PATH
 
 # Install systemd script
 cp sqvs.service $PRODUCT_HOME && chown $SERVICE_USERNAME:$SERVICE_USERNAME $PRODUCT_HOME/sqvs.service && chown $SERVICE_USERNAME:$SERVICE_USERNAME $PRODUCT_HOME
