@@ -40,10 +40,10 @@ installer: sqvs
 	cp dist/linux/install.sh out/installer/install.sh && chmod +x out/installer/install.sh
 	cp out/sqvs out/installer/sqvs
 
-	tmpdir=$(mktemp)
-	git clone --depth 1 -b $(MONOREPO_GITBRANCH) $(MONOREPO_GITURL) $tmpdir
-	cp -a $tmpdir/pkg/lib/common/upgrades/* out/installer
-	rm -rf $tmpdir
+	git clone --depth 1 -b $(MONOREPO_GITBRANCH) $(MONOREPO_GITURL) tmp_monorepo
+	cp -a tmp_monorepo/pkg/lib/common/upgrades/* out/installer
+	rm -rf tmp_monorepo
+	cp -a upgrades/* out/installer
 	mv out/installer/build/* out/installer
 	chmod +x out/installer/*.sh
 
