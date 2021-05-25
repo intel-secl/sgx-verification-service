@@ -7,7 +7,7 @@ package resource
 
 import (
 	"github.com/gorilla/mux"
-	"intel/isecl/sqvs/v3/version"
+	"intel/isecl/sqvs/v4/version"
 	"net/http"
 )
 

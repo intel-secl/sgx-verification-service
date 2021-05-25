@@ -8,7 +8,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"github.com/pkg/errors"
-	"intel/isecl/sqvs/v3/constants"
+	"intel/isecl/sqvs/v4/constants"
 	"strings"
 	"time"
 )

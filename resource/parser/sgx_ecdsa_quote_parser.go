@@ -12,8 +12,8 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"gopkg.in/restruct.v1"
-	clog "intel/isecl/lib/common/v3/log"
-	"intel/isecl/sqvs/v3/constants"
+	clog "intel/isecl/lib/common/v4/log"
+	"intel/isecl/sqvs/v4/constants"
 	"strings"
 	"unsafe"
 )

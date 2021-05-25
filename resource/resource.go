@@ -6,14 +6,14 @@ package resource
 
 import (
 	"fmt"
-	"intel/isecl/lib/common/v3/auth"
-	"intel/isecl/lib/common/v3/context"
-	"intel/isecl/sqvs/v3/constants"
+	"intel/isecl/lib/common/v4/auth"
+	"intel/isecl/lib/common/v4/context"
+	"intel/isecl/sqvs/v4/constants"
 	"net/http"
 
-	clog "intel/isecl/lib/common/v3/log"
-	commLogMsg "intel/isecl/lib/common/v3/log/message"
-	ct "intel/isecl/lib/common/v3/types/aas"
+	clog "intel/isecl/lib/common/v4/log"
+	commLogMsg "intel/isecl/lib/common/v4/log/message"
+	ct "intel/isecl/lib/common/v4/types/aas"
 )
 
 var log = clog.GetDefaultLogger()
