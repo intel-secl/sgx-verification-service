@@ -35,9 +35,14 @@ fi
 
 # Upgrade if component is already installed
 if command -v $COMPONENT_NAME &>/dev/null; then
-  echo "$COMPONENT_NAME is installed, proceeding with the upgrade"
-  ./${COMPONENT_NAME}_upgrade.sh
-  exit $?
+  echo "$COMPONENT_NAME is already installed, Do you want to proceed with the upgrade? [y/n]"
+  read UPGRADE_NEEDED
+  if [ $UPGRADE_NEEDED == "y" ] || [ $UPGRADE_NEEDED == "Y" ] ; then
+    echo "Proceeding with the upgrade.."
+    ./${COMPONENT_NAME}_upgrade.sh
+    exit $?
+  fi
+  exit 0
 fi
 
 echo "Setting up SGX Quote Verification Service Linux User..."
