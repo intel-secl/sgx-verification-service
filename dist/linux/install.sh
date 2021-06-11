@@ -35,13 +35,22 @@ fi
 
 # Upgrade if component is already installed
 if command -v $COMPONENT_NAME &>/dev/null; then
+  n=0
+  until [ "$n" -ge 3 ]
+  do
   echo "$COMPONENT_NAME is already installed, Do you want to proceed with the upgrade? [y/n]"
   read UPGRADE_NEEDED
   if [ $UPGRADE_NEEDED == "y" ] || [ $UPGRADE_NEEDED == "Y" ] ; then
     echo "Proceeding with the upgrade.."
     ./${COMPONENT_NAME}_upgrade.sh
     exit $?
+  elif [ $UPGRADE_NEEDED == "n" ] || [ $UPGRADE_NEEDED == "N" ] ; then
+    echo "Exiting the installation.."
+    exit 0
   fi
+  n=$((n+1))
+  done
+  echo "Exiting the installation.."
   exit 0
 fi
 
