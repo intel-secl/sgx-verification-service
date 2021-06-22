@@ -55,6 +55,9 @@ make
 ```
 
 ### Deploy
+Update sqvs.env present in dist/linux folder with required env values and then run below command to deploy SQVS.
+
+NOTE: Retrieve appropriate Trusted RootCA certificate files for SGX platform (trusted_rootca.pem for IceLake Sandbox PCS, trusted_rootca_icx_prod.pem for IceLake Live PCS and trusted_rootca_clx_prod.pem for CascadeLake Live PCS Server) from dist/linux directory in SQVS repository.
 
 ```shell
 > ./out/sqvs-*.bin
