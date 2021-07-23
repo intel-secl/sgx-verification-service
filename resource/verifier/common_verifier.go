@@ -11,7 +11,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"github.com/pkg/errors"
-	clog "intel/isecl/lib/common/v4/log"
+	clog "intel/isecl/lib/common/v5/log"
 	"strings"
 )
 

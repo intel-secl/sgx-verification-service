@@ -23,7 +23,7 @@
 // swagger:meta
 package docs
 
-import "intel/isecl/sqvs/v4/resource"
+import "intel/isecl/sqvs/v5/resource"
 
 // QuoteData request payload
 // swagger:parameters QuoteData

@@ -5,7 +5,7 @@
 package config
 
 import (
-	"intel/isecl/lib/common/v4/setup"
+	"intel/isecl/lib/common/v5/setup"
 	"io/ioutil"
 	"os"
 	"strings"
