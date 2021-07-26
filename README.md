@@ -50,7 +50,7 @@ export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 ```shell
 git clone https://github.com/intel-secl/sgx-verification-service.git
 cd sgx-verification-service
-git checkout v4.0.0
+git checkout v4.1.0
 make
 ```
 
