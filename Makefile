@@ -13,7 +13,7 @@ endif
 .PHONY: sqvs installer all test clean
 
 sqvs:
-	env GOOS=linux GOSUMDB=off GOPROXY=direct go build -ldflags "-X intel/isecl/sqvs/v4/version.BuildDate=$(BUILDDATE) -X intel/isecl/sqvs/v4/version.Version=$(VERSION) -X intel/isecl/sqvs/v4/version.GitHash=$(GITCOMMIT)" -o out/sqvs
+	env GOOS=linux GOSUMDB=off GOPROXY=direct go mod tidy && env GOOS=linux GOSUMDB=off GOPROXY=direct go build -ldflags "-X intel/isecl/sqvs/v4/version.BuildDate=$(BUILDDATE) -X intel/isecl/sqvs/v4/version.Version=$(VERSION) -X intel/isecl/sqvs/v4/version.GitHash=$(GITCOMMIT)" -o out/sqvs
 
 swagger-get:
 	wget https://github.com/go-swagger/go-swagger/releases/download/v0.26.1/swagger_linux_amd64 -O /usr/local/bin/swagger
@@ -29,7 +29,7 @@ swagger-doc:
 swagger: swagger-get swagger-doc
 
 test:
-	GOSUMDB=off GOPROXY=direct go  test ./... -coverprofile cover.out
+	env GOOS=linux GOSUMDB=off GOPROXY=direct go mod tidy && env GOSUMDB=off GOPROXY=direct go test ./... -coverprofile cover.out
 	go tool cover -func cover.out
 	go tool cover -html=cover.out -o cover.html
 

@@ -14,13 +14,11 @@ variables:
 
 compile:
   stage: build
-  image: golang:1.14
+  image: golang:1.16
   before_script:
+    - git config --global http.proxy "${HTTP_PROXY}"
     - git config --global http."https://${GITLAB_SERVER}".proxy ""
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@${GITLAB_SERVER}".insteadOf "https://${GITLAB_SERVER}"
-
-    - echo "[http \"https://${GITLAB_SERVER}\"]" >> ~/.gitconfig
-    - echo "        proxy = \"\"" >> ~/.gitconfig
     - cd $CI_PROJECT_DIR
     - apt update -yq && apt install -yq makeself
   tags:
@@ -34,11 +32,10 @@ compile:
 
 test:
   stage: test
-  image: golang:1.14
+  image: golang:1.16
   before_script:
     - git config --global http."https://${GITLAB_SERVER}".proxy ""
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@${GITLAB_SERVER}".insteadOf "https://${GITLAB_SERVER}"
-
     - echo "[http \"https://${GITLAB_SERVER}\"]" >> ~/.gitconfig
     - echo "        proxy = \"\"" >> ~/.gitconfig
     - cd $CI_PROJECT_DIR
@@ -55,15 +52,15 @@ Stylechecker:
   stage: scan
   only:
     - merge_requests
-  image: golang:1.14
+  image: golang:1.16
   tags:
     - go
   script:
     - gofmt -l .
     - |
-        if [ "$(gofmt -l . | wc -l)"  -gt 0 ]; then
-            exit 1
-        fi
+      if [ "$(gofmt -l . | wc -l)"  -gt 0 ]; then
+          exit 1
+      fi
 snykscan:
   stage: scan
   only:
@@ -83,7 +80,6 @@ snykscan:
       - snyc-scan.json
 
 
-
 checkmarx:
   stage: scan
   only:
@@ -93,7 +89,7 @@ checkmarx:
     - docker:dind
   image:
     name: ${DOCKER_REGISTRY_SERVER}:${DOCKER_REGISTRY_PORT}/checkmarx:isecl
-    entrypoint: [ '' ]
+    entrypoint: [""]
   tags:
     - docker-checkmarx
   script:
