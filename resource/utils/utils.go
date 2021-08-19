@@ -6,13 +6,14 @@ package utils
 
 import (
 	"crypto"
+	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha512"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"github.com/pkg/errors"
-	"intel/isecl/lib/common/v3/crypt"
 	commLog "intel/isecl/lib/common/v3/log"
 	"io/ioutil"
 	"net/url"
@@ -126,10 +127,14 @@ func GenerateSignature(responseBytes []byte, keyFilePath string) (string, error)
 		return "", errors.New("Unable to parse RSA private key")
 	}
 
-	signature, err := crypt.HashAndSignPKCS1v15(responseBytes, privateKey, crypto.SHA384)
+	hash := sha512.Sum384(responseBytes)
+	signature, err := rsa.SignPSS(rand.Reader, privateKey, crypto.SHA384, hash[:], &rsa.PSSOptions{
+		SaltLength: rsa.PSSSaltLengthAuto,
+		Hash:       crypto.SHA384,
+	})
 	if err != nil {
-		log.WithError(err).Info("error signing quote response")
-		return "", errors.Wrap(err, "error signing quote response")
+		log.WithError(err).Info("Error signing quote response")
+		return "", errors.Wrap(err, "Error signing quote response")
 	}
 
 	return base64.StdEncoding.EncodeToString(signature), nil

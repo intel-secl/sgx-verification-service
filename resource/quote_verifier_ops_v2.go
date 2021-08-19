@@ -5,6 +5,7 @@
 package resource
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -63,13 +64,13 @@ func sgxVerifyQuoteAndSign() errorHandlerFunc {
 			sgxResponse.Quote = data.QuoteBlob
 			sgxResponse.Challenge = data.Challenge
 
-			dataBytes, err := json.Marshal(sgxResponse)
+			dataBytes, err := json.Marshal(QuoteInfo(sgxResponse))
 			if err != nil {
 				return &resourceError{Message: "Failed to marshal hostPlatformData to get trustReport" +
 					err.Error(), StatusCode: http.StatusInternalServerError}
 			}
 
-			signature, err := utils.GenerateSignature(dataBytes, constants.PrivateKeyLocation)
+			signature, err := utils.GenerateSignature([]byte(base64.StdEncoding.EncodeToString(dataBytes)), constants.PrivateKeyLocation)
 			if err != nil {
 				return &resourceError{Message: "Failed to get signature for QVL response: " + err.Error(),
 					StatusCode: http.StatusInternalServerError}
@@ -83,7 +84,7 @@ func sgxVerifyQuoteAndSign() errorHandlerFunc {
 			}
 
 			quoteResponseBytes, err = json.Marshal(SignedSGXResponse{
-				QuoteData:        sgxResponse,
+				QuoteData:        base64.StdEncoding.EncodeToString(dataBytes),
 				Signature:        signature,
 				CertificateChain: string(certChain),
 			})
@@ -95,8 +96,8 @@ func sgxVerifyQuoteAndSign() errorHandlerFunc {
 			if err != nil {
 				return err
 			}
-			quoteResponseBytes, err = json.Marshal(SignedSGXResponse{
-				QuoteData: sgxResponse,
+			quoteResponseBytes, err = json.Marshal(UnsignedSGXResponse{
+				QuoteData: QuoteInfo(sgxResponse),
 			})
 			if err != nil {
 				log.WithError(err).Error("Error marshalling SGX response in JSON")

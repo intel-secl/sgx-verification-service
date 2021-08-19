@@ -26,9 +26,13 @@ import (
 )
 
 type SGXResponse struct {
+	ReportData        string `json:"reportData,omitempty"`
+	UserDataHashMatch string `json:"userDataMatch,omitempty"`
+	AdditionalQuoteData
+}
+
+type AdditionalQuoteData struct {
 	Message                string
-	ReportData             string `json:"reportData,omitempty"`
-	UserDataHashMatch      string `json:"userDataMatch,omitempty"`
 	EnclaveIssuer          string `json:"EnclaveIssuer,omitempty"`
 	EnclaveMeasurement     string `json:"EnclaveMeasurement,omitempty"`
 	EnclaveIssuerProdID    string `json:"EnclaveIssuerProdID,omitempty"`
@@ -42,9 +46,19 @@ type SGXResponse struct {
 }
 
 type SignedSGXResponse struct {
-	QuoteData        SGXResponse `json:"quoteData"`
-	Signature        string      `json:"signature,omitempty"`
-	CertificateChain string      `json:"certificateChain,omitempty"`
+	QuoteData        string `json:"quoteData"`
+	Signature        string `json:"signature,omitempty"`
+	CertificateChain string `json:"certificateChain,omitempty"`
+}
+
+type UnsignedSGXResponse struct {
+	QuoteData QuoteInfo `json:"quoteData"`
+}
+
+type QuoteInfo struct {
+	ReportData        string `json:"ReportData,omitempty"`
+	UserDataHashMatch string `json:"UserDataMatch,omitempty"`
+	AdditionalQuoteData
 }
 
 type QuoteData struct {
