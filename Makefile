@@ -22,6 +22,7 @@ swagger-get:
 
 swagger-doc:
 	mkdir -p out/swagger
+	env GOOS=linux GOSUMDB=off GOPROXY=direct go mod tidy
 	env GOOS=linux GOSUMDB=off GOPROXY=direct \
 	/usr/local/bin/swagger generate spec -o ./out/swagger/openapi.yml --scan-models
 	java -jar /usr/local/bin/swagger-codegen-cli.jar generate -i ./out/swagger/openapi.yml -o ./out/swagger/ -l html2 -t ./swagger/templates/
