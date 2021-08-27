@@ -106,6 +106,7 @@ func sgxVerifyQuoteAndSign() errorHandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+		w.Header().Add("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
 		w.WriteHeader(http.StatusOK)
 
 		_, err = w.Write(quoteResponseBytes)
