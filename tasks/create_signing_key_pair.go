@@ -18,8 +18,9 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/pkg/errors"
 	"os"
+
+	"github.com/pkg/errors"
 )
 
 type Create_Signing_Key_Pair struct {
@@ -91,23 +92,23 @@ func (cskp Create_Signing_Key_Pair) Run(c csetup.Context) error {
 			constants.TrustedCAsStoreDir, bearerToken)
 		if err != nil {
 			fmt.Fprintln(cskp.ConsoleWriter, "Error getting signing certificate ")
-			return fmt.Errorf("Certificate setup: %v", err)
+			return fmt.Errorf("certificate setup: %v", err)
 		}
 
 		err = crypt.SavePrivateKeyAsPKCS8(key, constants.PrivateKeyLocation)
 		if err != nil {
 			fmt.Fprintln(cskp.ConsoleWriter, "Error storing private key to file")
-			return fmt.Errorf("Certificate setup: %v", err)
+			return fmt.Errorf("certificate setup: %v", err)
 		}
 
 		err = ioutil.WriteFile(constants.PublicKeyLocation, cert, 0644)
 		if err != nil {
 			fmt.Fprintln(cskp.ConsoleWriter, "Could not store Certificate")
-			return fmt.Errorf("Certificate setup: %v", err)
+			return fmt.Errorf("certificate setup: %v", err)
 		}
 		if err = os.Chmod(constants.PublicKeyLocation, 0644); err != nil {
 			fmt.Fprintln(cskp.ConsoleWriter, "Could not store Certificate")
-			return fmt.Errorf("Certificate setup: %v", err)
+			return fmt.Errorf("certificate setup: %v", err)
 		}
 	} else {
 		fmt.Fprintln(cskp.ConsoleWriter, "Signing Certificate already downloaded, skipping")

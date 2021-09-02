@@ -5,9 +5,6 @@
 package config
 
 import (
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 	commLog "intel/isecl/lib/common/v4/log"
 	"intel/isecl/lib/common/v4/setup"
 	"intel/isecl/sqvs/v4/constants"
@@ -17,6 +14,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 var log = commLog.GetDefaultLogger()

@@ -6,8 +6,6 @@ package resource
 
 import (
 	"encoding/json"
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
 	commLogMsg "intel/isecl/lib/common/v4/log/message"
 	"intel/isecl/sqvs/v4/config"
 	"intel/isecl/sqvs/v4/constants"
@@ -15,6 +13,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
 )
 
 func QuoteVerifyCBAndSign(router *mux.Router) {
@@ -30,7 +31,7 @@ func sgxVerifyQuoteAndSign() errorHandlerFunc {
 		if conf == nil {
 			return &resourceError{Message: "Could not read config", StatusCode: http.StatusInternalServerError}
 		}
-		if conf.IncludeToken == true {
+		if conf.IncludeToken {
 			err := AuthorizeEndpoint(r, constants.QuoteVerifierGroupName, true)
 			if err != nil {
 				slog.WithError(err).Error("resource/quote_verifier_ops: sgxVerifyQuoteAndSign() Authorization Error")

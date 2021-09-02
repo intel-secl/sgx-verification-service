@@ -11,9 +11,6 @@ import (
 	"crypto/x509/pkix"
 	"flag"
 	"fmt"
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
 	"intel/isecl/lib/common/v4/crypt"
 	e "intel/isecl/lib/common/v4/exec"
 	commLog "intel/isecl/lib/common/v4/log"
@@ -39,6 +36,10 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 type App struct {
@@ -421,7 +422,7 @@ func (a *App) startServer() error {
 	}(resource.SetVersionRoutes)
 
 	sr = r.PathPrefix("/svs/v1/").Subrouter()
-	if c.IncludeToken == true {
+	if c.IncludeToken {
 		sr.Use(middleware.NewTokenAuth(constants.TrustedJWTSigningCertsDir, constants.TrustedCAsStoreDir, fnGetJwtCerts,
 			time.Minute*constants.DefaultJwtValidateCacheKeyMins))
 	}
@@ -433,7 +434,7 @@ func (a *App) startServer() error {
 	}(resource.QuoteVerifyCB)
 
 	sr = r.PathPrefix("/svs/v2/").Subrouter()
-	if c.IncludeToken == true {
+	if c.IncludeToken {
 		sr.Use(middleware.NewTokenAuth(constants.TrustedJWTSigningCertsDir, constants.TrustedCAsStoreDir, fnGetJwtCerts,
 			time.Minute*constants.DefaultJwtValidateCacheKeyMins))
 	}
