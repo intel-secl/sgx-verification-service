@@ -8,8 +8,6 @@ import (
 	"encoding/pem"
 	"flag"
 	"fmt"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	commLog "intel/isecl/lib/common/v3/log"
 	"intel/isecl/lib/common/v3/setup"
 	"intel/isecl/sqvs/v3/config"
@@ -21,6 +19,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 type Update_Service_Config struct {

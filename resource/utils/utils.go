@@ -13,12 +13,13 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
-	"github.com/pkg/errors"
 	commLog "intel/isecl/lib/common/v3/log"
 	"io/ioutil"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 var log = commLog.GetDefaultLogger()

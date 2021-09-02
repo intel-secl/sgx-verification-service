@@ -19,7 +19,7 @@
 - git
 - make
 - makeself
-- Go 1.14.1
+- Go 1.14.2
 
 ## Step-By-Step Build Instructions
 
@@ -31,12 +31,12 @@
 sudo dnf install -y git wget makeself
 ```
 
-### Install `go 1.14.1`
-The `SGX Verification Service` requires Go version 1.14.1 that has support for `go modules`. please keep in mind that the product has been validated with 1.14.1 and newer versions of `go` may introduce compatibility issues. You can use the following to install `go`.
+### Install `go 1.14.2`
+The `SGX Verification Service` requires Go version 1.14.2 that has support for `go modules`. please keep in mind that the product has been validated with 1.14.2 and newer versions of `go` may introduce compatibility issues. You can use the following to install `go`.
 
 ```shell
-wget https://dl.google.com/go/go1.14.1.linux-amd64.tar.gz
-tar -xzf go1.14.1.linux-amd64.tar.gz
+wget https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz
+tar -xzf go1.14.2.linux-amd64.tar.gz
 sudo mv go /usr/local
 export GOROOT=/usr/local/go
 export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
@@ -50,7 +50,7 @@ export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 ```shell
 git clone https://github.com/intel-secl/sgx-verification-service.git
 cd sgx-verification-service
-git checkout v3.6.0
+git checkout v3.6.1
 make
 ```
 
@@ -88,8 +88,8 @@ make
 | testify     | github.com/stretchr/testify  | v1.5.1                             |
 | yaml.v2     | gopkg.in/yaml.v2             | v2.4.0                             |
 | restruct    | gopkg.in/restruct            | v1.0.0                             |
-| common      | github.com/intel-secl/common | v3.5.0                             |
-| clients     | github.com/intel-secl/clients| v3.5.0                             |
+| common      | github.com/intel-secl/common | v3.6.1                             |
+| clients     | github.com/intel-secl/clients| v3.6.1                             |
 
 ### Indirect Dependencies
 

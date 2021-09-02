@@ -9,7 +9,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
 	"intel/isecl/lib/clients/v3"
 	"intel/isecl/sqvs/v3/config"
 	"intel/isecl/sqvs/v3/constants"
@@ -18,6 +17,8 @@ import (
 	"math/big"
 	"net/http"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 const (

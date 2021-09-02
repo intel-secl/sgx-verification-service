@@ -12,8 +12,6 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 	"intel/isecl/lib/common/v3/crypt"
 	"intel/isecl/lib/common/v3/setup"
 	"intel/isecl/sqvs/v3/config"
@@ -23,6 +21,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
