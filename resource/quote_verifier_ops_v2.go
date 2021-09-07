@@ -5,6 +5,7 @@
 package resource
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	commLogMsg "intel/isecl/lib/common/v4/log/message"
 	"intel/isecl/sqvs/v4/config"
@@ -70,7 +71,7 @@ func sgxVerifyQuoteAndSign() errorHandlerFunc {
 					err.Error(), StatusCode: http.StatusInternalServerError}
 			}
 
-			signature, err := utils.GenerateSignature(dataBytes, constants.PrivateKeyLocation)
+			signature, err := utils.GenerateSignature([]byte(base64.StdEncoding.EncodeToString(dataBytes)), constants.PrivateKeyLocation, conf.UsePSSPadding)
 			if err != nil {
 				return &resourceError{Message: "Failed to get signature for QVL response: " + err.Error(),
 					StatusCode: http.StatusInternalServerError}
