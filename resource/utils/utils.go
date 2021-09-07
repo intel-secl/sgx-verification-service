@@ -103,7 +103,7 @@ func CheckDate(issueDate, nextUpdate string) bool {
 	}
 }
 
-func GenerateSignature(responseBytes []byte, keyFilePath string) (string, error) {
+func GenerateSignature(responseBytes []byte, keyFilePath string, usePSSPadding bool) (string, error) {
 	log.Trace("resource/utils:GenerateSignature() Entering")
 	defer log.Trace("resource/utils:GenerateSignature() Leaving")
 
@@ -129,10 +129,16 @@ func GenerateSignature(responseBytes []byte, keyFilePath string) (string, error)
 	}
 
 	hash := sha512.Sum384(responseBytes)
-	signature, err := rsa.SignPSS(rand.Reader, privateKey, crypto.SHA384, hash[:], &rsa.PSSOptions{
-		SaltLength: rsa.PSSSaltLengthAuto,
-		Hash:       crypto.SHA384,
-	})
+	var signature []byte
+	if usePSSPadding {
+		signature, err = rsa.SignPSS(rand.Reader, privateKey, crypto.SHA384, hash[:], &rsa.PSSOptions{
+			SaltLength: rsa.PSSSaltLengthAuto,
+			Hash:       crypto.SHA384,
+		})
+	} else {
+		signature, err = rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA384, hash[:])
+	}
+
 	if err != nil {
 		log.WithError(err).Info("Error signing quote response")
 		return "", errors.Wrap(err, "Error signing quote response")
