@@ -288,9 +288,7 @@ type SignedSGXResponseInfo struct {
 //      "TcbLevel": "OutofDate",
 //      "Quote": "<quote in request>",
 //      "Challenge": "DJ4m0A9eBwTUuuiJOwi5ALgyMP5X99KH+afqF6qjn0ImiA2ej8LnNgV377sdsS17JRkHJWzJbucmHufcuRtpfA=="
-//    },
-//    "signature": "<Digital Signature of the content of response field>",
-//	  "certificateChain": "<Chain of leaf and intermediate signing certs in PEM format>"
-//  }
+//    }
+//   }
 
 // ---
