@@ -190,7 +190,7 @@ type SignedSGXResponseInfo struct {
 //       "$ref": "#/definitions/SignedSGXResponse"
 //
 // x-sample-call-endpoint: https://svs.com:12000/svs/v2/sgx_qv_verify_quote
-// x-sample-call-input: |
+// x-signed-sample-call-input: |
 //  {
 //    "quote":"AwACAAAAAAAFAAoAk5pyM/ecTKmUCg2zlX8GBykaeX/IbYBtMzyC5lkpA0IAAAAAAgIAAQEAAAAAAAAAAAAAAAAAAA
 //    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABQAAAAAAAADnAAAAAAAAAJJwRC0b0ZYfo52+HyzfT4eVClT8r5ouUBOHXDNGV
@@ -256,7 +256,7 @@ type SignedSGXResponseInfo struct {
 //    ZFUlNVelpjClN4aWFFZnhER0N5bDNDQ0FTREFPQmdOVkhROEJBZjhFQkFNQ0FRWXdFZ1lEVlIwVEFRSC9CQWd3QmdFQi93SUIKQ
 //    VRBS0JnZ3Foa2pPUFFRREFnTkpBREJHQWlFQXp3OXpkVWlVSFBNVWQwQzRteDQxamxGWmtyTTN5NWYxbGduVgpPN0Ziak9vQ0lR
 //    Q29HdFVtVDRjWHQ3Vit5U0hiSjhIb2I5QWFucHZYTkgxRVIrL2daRitvcFE9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==",
-//    "userData": "",
+//    "userData": "AQABAInMt78RXOI5qbKUWPDKQVxS7sLuuR2oZaRdloO9yuuzg01MvfRboZ6UtYpzdx9dgeWG4w1MEC6av3dos3bMD/yc+YCiYm6nPSHeSG9C4dg9QZxGa4aQ53uBUn4vmOr6u7IFddsKlvUIynkVHM8TZzv8rvjVA7oz8efCiz6gTk64DBv+PClyFwjEUeZmkdu99ouDjWwJ3ajeMm9R5VbBTYDRiJQ0vmG1oMU3ezdrDqezE0U9hyywZLIFICa1hn7FC8n6NYfombkTJ8tVIeld2Ac3OzJTADmzdqxPwRWKePOgIbO+eibB+thgMt6hSk3vX2qp7nj6iFAir+di/C92ZVb1iRbtvXx9/fW92fsTKiGy/8Cj/Vw7tOs+e2Z9xKzkL74c2Vdf0dkJtzKpB0ISrwkS4da/MDZda/AEN4EnLfiN+LWWMAzdz1jE3dzPtrf69gO0SdE+zzVc9K9FuCJRfKvTrmyXiAAgO9eZXaRnmmAsfzY9SysfC0jI+/WdPofehw==",
 //    "challenge": "DJ4m0A9eBwTUuuiJOwi5ALgyMP5X99KH+afqF6qjn0ImiA2ej8LnNgV377sdsS17JRkHJWzJbucmHufcuRtpfA=="
 //  }
 //
