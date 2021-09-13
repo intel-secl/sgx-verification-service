@@ -63,7 +63,7 @@ func (cskp Create_Signing_Key_Pair) Validate(c csetup.Context) error {
 
 	// Check the length of Private Key
 	switch keyLength {
-	case 2048, 3072, 4096:
+	case 2048, 3072:
 	default:
 		return errors.Wrap(err, "tasks/create_signing_key_pair: Validate() Unsupported key length.")
 	}
