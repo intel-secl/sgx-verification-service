@@ -14,7 +14,7 @@ variables:
 
 compile:
   stage: build
-  image: golang:1.14
+  image: golang:1.16
   before_script:
     - git config --global http."https://${GITLAB_SERVER}".proxy ""
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@${GITLAB_SERVER}".insteadOf "https://${GITLAB_SERVER}"
@@ -34,7 +34,7 @@ compile:
 
 test:
   stage: test
-  image: golang:1.14
+  image: golang:1.16
   before_script:
     - git config --global http."https://${GITLAB_SERVER}".proxy ""
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@${GITLAB_SERVER}".insteadOf "https://${GITLAB_SERVER}"
@@ -55,16 +55,14 @@ Stylechecker:
   stage: scan
   only:
     - merge_requests
-  image: golang:1.14
+  image: golang:1.16
   tags:
-    - go
+    - k8s
   script:
-    - gofmt -l .
     - |
-        if [ "$(gofmt -l . | wc -l)"  -gt 0 ]; then
-            exit 1
-        fi
-
+      if [ "$(GOPROXY=direct GOSUMDB=off gofmt -l . | wc -l)"  -gt 0 ]; then
+             exit 1
+      fi
 
 checkmarx:
   stage: scan
@@ -75,7 +73,7 @@ checkmarx:
     - docker:dind
   image:
     name: ${DOCKER_REGISTRY_SERVER}:${DOCKER_REGISTRY_PORT}/checkmarx:isecl
-    entrypoint: [ '' ]
+    entrypoint: [""]
   tags:
     - docker-checkmarx
   script:
