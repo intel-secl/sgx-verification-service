@@ -1,7 +1,10 @@
 #!/bin/bash
 
-source /etc/secret-volume/secrets.txt
-export BEARER_TOKEN
+SECRETS=/etc/secrets
+IFS=$'\r\n' GLOBIGNORE='*' command eval 'secretFiles=($(ls  $SECRETS))'
+for i in "${secretFiles[@]}"; do
+    export $i=$(cat $SECRETS/$i)
+done
 
 USER_ID=$(id -u)
 LOG_PATH=/var/log/sqvs
@@ -47,5 +50,9 @@ if [ ! -z "$SETUP_TASK" ]; then
   done
   rm -rf /tmp/config.yml
 fi
+
+for i in "${secretFiles[@]}"; do
+    unset $i
+done
 
 sqvs run
