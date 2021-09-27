@@ -8,8 +8,9 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/sha256"
-	"github.com/pkg/errors"
 	"math/big"
+
+	"github.com/pkg/errors"
 )
 
 type ECDSASignature struct {
@@ -30,44 +31,30 @@ func verifyECDSA256Signature(data []byte, pubkey *ecdsa.PublicKey, signatureByte
 	signature.S = new(big.Int).SetBytes(sBytes)
 
 	h := generateHash(data)
-	valid := ecdsa.Verify(pubkey, h, signature.R, signature.S)
-
-	if valid {
-		log.Debug("ECDSA Signature Verification Passed")
-	} else {
-		log.Error("ecdsa Signature Verification Failed")
-	}
-	return valid
+	return ecdsa.Verify(pubkey, h, signature.R, signature.S)
 }
 
-func VerifySGXECDSASign1(sigBlob, blob []byte, pubKey *ecdsa.PublicKey) (bool, error) {
-	if len(sigBlob) <= 1 || len(blob) <= 1 || pubKey == nil {
-		return false, errors.New("VerifySGXECDSASign1: Invalid input data")
-	}
-	ret := verifyECDSA256Signature(blob, pubKey, sigBlob)
+func VerifyQeReportSignature(sigBlob, blob []byte, pckPubKey *ecdsa.PublicKey) error {
+	ret := verifyECDSA256Signature(blob, pckPubKey, sigBlob)
 	if !ret {
-		return false, errors.New("ECDSA Signature Verification(1) is Failed")
+		return errors.New("QE Report Signature Verification Failed")
 	}
-	return true, nil
+	return nil
 }
 
-func VerifySGXECDSASign2(sigBlob, blob, pubKeyBlob []byte) (bool, error) {
-	if len(sigBlob) < 1 || len(blob) < 1 || len(pubKeyBlob) < 1 {
-		return false, errors.New("VerifySGXECDSASign2: Invalid input data")
-	}
-
+func VerifyEnclaveReportSignature(sigBlob, blob, attestPubKeyBlob []byte) error {
 	curve := elliptic.P256()
-	keyLen := len(pubKeyBlob)
+	keyLen := len(attestPubKeyBlob)
 
 	x := big.Int{}
 	y := big.Int{}
-	x.SetBytes(pubKeyBlob[:(keyLen / 2)])
-	y.SetBytes(pubKeyBlob[(keyLen / 2):])
+	x.SetBytes(attestPubKeyBlob[:(keyLen / 2)])
+	y.SetBytes(attestPubKeyBlob[(keyLen / 2):])
 
-	pubKey := ecdsa.PublicKey{Curve: curve, X: &x, Y: &y}
-	ret := verifyECDSA256Signature(blob, &pubKey, sigBlob)
+	attestPubKey := ecdsa.PublicKey{Curve: curve, X: &x, Y: &y}
+	ret := verifyECDSA256Signature(blob, &attestPubKey, sigBlob)
 	if !ret {
-		return false, errors.New("ECDSA Signature Verification(2) is Failed")
+		return errors.New("Enclave Report Signature Verification Failed")
 	}
-	return true, nil
+	return nil
 }

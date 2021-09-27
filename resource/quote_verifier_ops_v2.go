@@ -5,9 +5,8 @@
 package resource
 
 import (
+	"encoding/base64"
 	"encoding/json"
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
 	commLogMsg "intel/isecl/lib/common/v5/log/message"
 	"intel/isecl/sqvs/v5/config"
 	"intel/isecl/sqvs/v5/constants"
@@ -15,6 +14,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
 )
 
 func QuoteVerifyCBAndSign(router *mux.Router) {
@@ -30,7 +32,7 @@ func sgxVerifyQuoteAndSign() errorHandlerFunc {
 		if conf == nil {
 			return &resourceError{Message: "Could not read config", StatusCode: http.StatusInternalServerError}
 		}
-		if conf.IncludeToken == true {
+		if conf.IncludeToken {
 			err := AuthorizeEndpoint(r, constants.QuoteVerifierGroupName, true)
 			if err != nil {
 				slog.WithError(err).Error("resource/quote_verifier_ops: sgxVerifyQuoteAndSign() Authorization Error")
@@ -69,7 +71,7 @@ func sgxVerifyQuoteAndSign() errorHandlerFunc {
 					err.Error(), StatusCode: http.StatusInternalServerError}
 			}
 
-			signature, err := utils.GenerateSignature(dataBytes, constants.PrivateKeyLocation)
+			signature, err := utils.GenerateSignature([]byte(base64.StdEncoding.EncodeToString(dataBytes)), constants.PrivateKeyLocation, conf.UsePSSPadding)
 			if err != nil {
 				return &resourceError{Message: "Failed to get signature for QVL response: " + err.Error(),
 					StatusCode: http.StatusInternalServerError}
@@ -105,6 +107,7 @@ func sgxVerifyQuoteAndSign() errorHandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+		w.Header().Add("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
 		w.WriteHeader(http.StatusOK)
 
 		_, err = w.Write(quoteResponseBytes)

@@ -6,9 +6,10 @@
 package resource
 
 import (
-	"github.com/gorilla/mux"
 	"intel/isecl/sqvs/v5/version"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 func SetVersionRoutes(router *mux.Router) {

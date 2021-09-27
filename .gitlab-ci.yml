@@ -16,11 +16,9 @@ compile:
   stage: build
   image: golang:1.16
   before_script:
+    - git config --global http.proxy "${HTTP_PROXY}"
     - git config --global http."https://${GITLAB_SERVER}".proxy ""
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@${GITLAB_SERVER}".insteadOf "https://${GITLAB_SERVER}"
-
-    - echo "[http \"https://${GITLAB_SERVER}\"]" >> ~/.gitconfig
-    - echo "        proxy = \"\"" >> ~/.gitconfig
     - cd $CI_PROJECT_DIR
     - apt update -yq && apt install -yq makeself
   tags:
@@ -38,7 +36,6 @@ test:
   before_script:
     - git config --global http."https://${GITLAB_SERVER}".proxy ""
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@${GITLAB_SERVER}".insteadOf "https://${GITLAB_SERVER}"
-
     - echo "[http \"https://${GITLAB_SERVER}\"]" >> ~/.gitconfig
     - echo "        proxy = \"\"" >> ~/.gitconfig
     - cd $CI_PROJECT_DIR
@@ -57,12 +54,31 @@ Stylechecker:
     - merge_requests
   image: golang:1.16
   tags:
-    - k8s
+    - go
   script:
+    - gofmt -l .
     - |
-      if [ "$(GOPROXY=direct GOSUMDB=off gofmt -l . | wc -l)"  -gt 0 ]; then
-             exit 1
+      if [ "$(gofmt -l . | wc -l)"  -gt 0 ]; then
+          exit 1
       fi
+snykscan:
+  stage: scan
+  only:
+    - merge_requests
+  tags:
+    - snyk-scan-svs
+  before_script:
+    - export CGO_CFLAGS_ALLOW="-f.*" GOOS=linux GOSUMDB=off GOPROXY=direct
+    - snyk config set endpoint=$SNYK_URL
+    - snyk auth $AUTH_TOKEN
+    - snyk config set api=$SYNK_API_TOKEN
+    - snyk config set org=$ORG_NAME
+  script:
+    - snyk test --insecure --all-projects --json-file-output=snyc-scan.json
+  artifacts:
+    paths:
+      - snyc-scan.json
+
 
 checkmarx:
   stage: scan

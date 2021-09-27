@@ -5,10 +5,11 @@
 package resource
 
 import (
-	"github.com/gorilla/mux"
-	"github.com/stretchr/testify/assert"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/assert"
 )
 
 type TestData struct {

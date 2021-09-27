@@ -51,8 +51,14 @@ const (
 	SGXQEInfoSubjectStr            = "CN=Intel SGX TCB Signing,O=Intel Corporation,L=Santa Clara,ST=CA,C=US"
 	MaxTcbLevels                   = 16
 	MaxTCBCompLevels               = 18
-	FmspcLen                       = 12
-	PCKCertType                    = 5
-	PublicKeyLocation              = ConfigDir + "sqvs_signing_pub_key.pem"
-	PrivateKeyLocation             = ConfigDir + "sqvs_signing_priv_key.pem"
+	// At a minimum, Quote Should contain header, ecdsa report, attestation public key, signature, cert data
+	MinQuoteSize        = 1020
+	MaxQuoteSize        = (30 * 1024)
+	MinCertDataSize     = 500
+	MaxCertDataSize     = (4098 * 3)
+	MinCertsInCertChain = 3 // PCK Leaf/Intermediate/Root CA certificates expected in quote
+	FmspcLen            = 12
+	PCKCertType         = 5
+	PublicKeyLocation   = ConfigDir + "sqvs_signing_pub_key.pem"
+	PrivateKeyLocation  = ConfigDir + "sqvs_signing_priv_key.pem"
 )

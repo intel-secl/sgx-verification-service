@@ -1,6 +1,8 @@
 module intel/isecl/sqvs/v5
 
 require (
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
+	github.com/form3tech-oss/jwt-go v3.2.5+incompatible // indirect
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/mux v1.7.4
 	github.com/pkg/errors v0.9.1
@@ -13,6 +15,6 @@ require (
 )
 
 replace (
-	intel/isecl/lib/common/v5 => gitlab.devtools.intel.com/sst/isecl/lib/common.git/v5 v5.0/develop
 	intel/isecl/lib/clients/v5 => gitlab.devtools.intel.com/sst/isecl/lib/clients.git/v5 v5.0/develop
+	intel/isecl/lib/common/v5 => gitlab.devtools.intel.com/sst/isecl/lib/common.git/v5 v5.0/develop
 )

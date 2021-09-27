@@ -8,8 +8,6 @@ import (
 	"encoding/pem"
 	"flag"
 	"fmt"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	commLog "intel/isecl/lib/common/v5/log"
 	"intel/isecl/lib/common/v5/setup"
 	"intel/isecl/sqvs/v5/config"
@@ -21,6 +19,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 type Update_Service_Config struct {
@@ -195,6 +196,29 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 		}
 	} else {
 		u.Config.SignQuoteResponse = false
+	}
+
+	usePSSPadding, err := c.GetenvString("USE_PSS_PADDING", "Enable PSS padding")
+	if err == nil && strings.TrimSpace(usePSSPadding) != "" {
+		u.Config.UsePSSPadding, err = strconv.ParseBool(usePSSPadding)
+		if err != nil {
+			fmt.Fprintf(u.ConsoleWriter, "USE_PSS_PADDING is not defined properly, must be true/false. PKCS1V1.5 padding will be used\n")
+			u.Config.UsePSSPadding = false
+		}
+	} else {
+		u.Config.UsePSSPadding = false
+	}
+
+	u.Config.ResponseSigningKeyLength, err = c.GetenvInt("RESPONSE_SIGNING_KEY_LENGTH", "Response signing key length")
+	if err == nil {
+		switch u.Config.ResponseSigningKeyLength {
+		case 2048, 3072:
+		default:
+			fmt.Fprintf(u.ConsoleWriter, "Response Signing Key Length must be 2048 or 3072. 3072 will be used by default.\n")
+			u.Config.ResponseSigningKeyLength = constants.DefaultKeyAlgorithmLength
+		}
+	} else {
+		u.Config.ResponseSigningKeyLength = constants.DefaultKeyAlgorithmLength
 	}
 
 	err = u.Config.Save()

@@ -13,7 +13,6 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
-	"github.com/pkg/errors"
 	"intel/isecl/lib/clients/v5"
 	"intel/isecl/sqvs/v5/config"
 	"intel/isecl/sqvs/v5/constants"
@@ -23,6 +22,8 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 type PckCRL struct {
@@ -42,11 +43,6 @@ type PckCert struct {
 }
 
 func NewPCKCertObj(certBlob []byte) *PckCert {
-	if len(certBlob) < 1 {
-		log.Error("PckCertParsed Object Spawn: Pck Cert Blob is Empty")
-		return nil
-	}
-
 	parsedPck := new(PckCert)
 	err := parsedPck.genCertObj(certBlob)
 	if err != nil {
@@ -54,13 +50,13 @@ func NewPCKCertObj(certBlob []byte) *PckCert {
 		return nil
 	}
 	parsedPck.genPckCertRequiredExtMap()
-	_, err = verifier.CheckMandatoryExt(parsedPck.PckCertObj, parsedPck.getPckCertRequiredExtMap())
+	err = verifier.CheckMandatoryExt(parsedPck.PckCertObj, parsedPck.getPckCertRequiredExtMap())
 	if err != nil {
 		log.Error("NewPCKCertObj: VerifyRequiredExtensions not found", err.Error())
 		return nil
 	}
 	parsedPck.genPckCertRequiredSgxExtMap()
-	_, err = verifier.CheckMandatorySGXExt(parsedPck.PckCertObj, parsedPck.getPckCertRequiredSgxExtMap())
+	err = verifier.CheckMandatorySGXExt(parsedPck.PckCertObj, parsedPck.getPckCertRequiredSgxExtMap())
 	if err != nil {
 		log.Error("NewPCKCertObj: VerifyRequiredSGXExtensions not found", err.Error())
 		return nil
@@ -194,7 +190,7 @@ func (e *PckCert) parseTcbExtensions() error {
 					}
 					for k, tcbExt := range tcbExts {
 						var ext2 TcbExtn
-						rest, _ = asn1.Unmarshal(tcbExt.FullBytes, &ext2)
+						_, _ = asn1.Unmarshal(tcbExt.FullBytes, &ext2)
 						if verifier.ExtSgxTcbPceSvnOid.Equal(ext2.ID) {
 							var h, l = uint8(ext2.Value >> 8), uint8(ext2.Value & 0xff)
 							e.TcbCompLevels[k] = l
@@ -210,7 +206,7 @@ func (e *PckCert) parseTcbExtensions() error {
 	return nil
 }
 
-func (e *PckCert) GetECDSAPublicKey() *ecdsa.PublicKey {
+func (e *PckCert) GetPCKPublicKey() *ecdsa.PublicKey {
 	return e.PckCertObj.PublicKey.(*ecdsa.PublicKey)
 }
 
@@ -333,7 +329,7 @@ func (e *PckCert) parsePckCrl() error {
 				intermediateCACount++
 				e.PckCRL.IntermediateCA[cert.Subject.String()] = cert
 			}
-			log.Debug("Cert[", i, "]Issuer:", cert.Issuer.String(), ", Subject:", cert.Subject.String())
+			log.Debug("Cert[", i, "] - Issuer:", cert.Issuer.String(), ", Subject:", cert.Subject.String())
 		}
 
 		if intermediateCACount == 0 || rootCACount == 0 {

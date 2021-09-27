@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
 	"intel/isecl/lib/clients/v5"
 	"intel/isecl/sqvs/v5/config"
 	"intel/isecl/sqvs/v5/constants"
@@ -17,6 +16,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 type QeIdentityJSON struct {

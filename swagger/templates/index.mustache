@@ -198,14 +198,14 @@
       			<li>Bearer Token Authorization.
       			<ul>
          			<li>Enter your bearer token in the format: Bearer &lt;token&gt;</li>
-         			<li>Name of header: Authorization</li> 
+         			<li>Name of header: Authorization</li>
       			</ul></li>
 			{{/isBearer}}
       			{{#isApiKey}}
       			<li>Bearer Token Authorization.
       			<ul>
          			<li>Enter your bearer token in the format: Bearer &lt;token&gt;</li>
-         			{{#keyParamName}}<li>Name of header: {{keyParamName}}</li>{{/keyParamName}} 
+         			{{#keyParamName}}<li>Name of header: {{keyParamName}}</li>{{/keyParamName}}
       			</ul></li>
       			{{/isApiKey}}
     			{{/authMethods}}
@@ -378,17 +378,32 @@
                           <h2>Sample REST Call</h2>
                         </p>
                         <ul class="nav nav-tabs nav-tabs-examples">
-			  <li class="active"><a href="#examples-{{baseName}}-{{nickname}}-0-curl">Curl</a></li> 
-			  <li class=""><a href="#examples-{{baseName}}-{{nickname}}-0-support"></a></li> 
-			</ul> 
+                            {{#vendorExtensions.x-signed-sample-call-output}}
+                                <li class="active"><a href="#examples-{{baseName}}-{{nickname}}-1-curl">Curl For Signed Response</a></li>
+                            {{/vendorExtensions.x-signed-sample-call-output}}
+                            {{#vendorExtensions.x-unsigned-sample-call-output}}
+                                <li class="active"><a href="#examples-{{baseName}}-{{nickname}}-2-curl">Curl For Unsigned Response</a></li>
+                            {{/vendorExtensions.x-unsigned-sample-call-output}}
+                            {{#vendorExtensions.x-sample-call-output}}
+                                <li class="active"><a href="#examples-{{baseName}}-{{nickname}}-0-curl">Curl</a></li>
+                            {{/vendorExtensions.x-sample-call-output}}
+                            <li class=""><a href="#examples-{{baseName}}-{{nickname}}-0-support"></a></li>
+                        </ul>
 
                         <div class="tab-content">
-                          <div class="tab-pane active" id="examples-{{baseName}}-{{nickname}}-0-curl">
-			  <pre><code class="language-bsh">curl -X {{vendorExtensions.x-codegen-httpMethodUpperCase}} "{{#vendorExtensions.x-sample-call-endpoint}}{{{vendorExtensions.x-sample-call-endpoint}}}{{/vendorExtensions.x-sample-call-endpoint}}"{{#authMethods}}{{#is this 'api-key'}}{{#is this 'key-in-header'}} -H "{{keyParamName}}: Bearer &lt;token&gt;"{{/is}}{{/is}}{{#is this 'basic'}} -H "Authorization: Basic &lt;basicHash&gt;"{{/is}}{{/authMethods}}{{#hasProduces}} -H "Accept: {{#produces}}{{{mediaType}}}{{#hasMore}},{{/hasMore}}{{/produces}}"{{/hasProduces}}{{#hasConsumes}} -H "Content-Type: {{#consumes}}{{{mediaType}}}{{#hasMore}},{{/hasMore}}{{/consumes}}"{{/hasConsumes}}</br>{{#vendorExtensions.x-sample-call-input}}Input: </br>{{{vendorExtensions.x-sample-call-input}}}{{/vendorExtensions.x-sample-call-input}}</br>{{#vendorExtensions.x-sample-call-output}}Output: </br>{{{vendorExtensions.x-sample-call-output}}}{{/vendorExtensions.x-sample-call-output}}</code></pre> 
-			  </div>
-			  <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-support">
-			  </div> 
-                          </div>
+                            <div class="tab-pane active" id="examples-{{baseName}}-{{nickname}}-0-curl">
+                                <pre><code class="language-bsh">curl -X {{vendorExtensions.x-codegen-httpMethodUpperCase}} "{{#vendorExtensions.x-sample-call-endpoint}}{{{vendorExtensions.x-sample-call-endpoint}}}{{/vendorExtensions.x-sample-call-endpoint}}"{{#authMethods}}{{#is this 'api-key'}}{{#is this 'key-in-header'}} -H "{{keyParamName}}: Bearer &lt;token&gt;"{{/is}}{{/is}}{{#is this 'basic'}} -H "Authorization: Basic &lt;basicHash&gt;"{{/is}}{{/authMethods}}{{#hasProduces}} -H "Accept: {{#produces}}{{{mediaType}}}{{#hasMore}},{{/hasMore}}{{/produces}}"{{/hasProduces}}{{#hasConsumes}} -H "Content-Type: {{#consumes}}{{{mediaType}}}{{#hasMore}},{{/hasMore}}{{/consumes}}"{{/hasConsumes}}</br>{{#vendorExtensions.x-sample-call-input}}Input: </br>{{{vendorExtensions.x-sample-call-input}}}{{/vendorExtensions.x-sample-call-input}}</br>{{#vendorExtensions.x-sample-call-output}}Output: </br>{{{vendorExtensions.x-sample-call-output}}}{{/vendorExtensions.x-sample-call-output}}</code></pre>
+                            </div>
+                            <div class="tab-pane active" id="examples-{{baseName}}-{{nickname}}-1-curl">
+                                <pre><code class="language-bsh">curl -X {{vendorExtensions.x-codegen-httpMethodUpperCase}} "{{#vendorExtensions.x-sample-call-endpoint}}{{{vendorExtensions.x-sample-call-endpoint}}}{{/vendorExtensions.x-sample-call-endpoint}}"{{#authMethods}}{{#is this 'api-key'}}{{#is this 'key-in-header'}} -H "{{keyParamName}}: Bearer &lt;token&gt;"{{/is}}{{/is}}{{#is this 'basic'}} -H "Authorization: Basic &lt;basicHash&gt;"{{/is}}{{/authMethods}}{{#hasProduces}} -H "Accept: {{#produces}}{{{mediaType}}}{{#hasMore}},{{/hasMore}}{{/produces}}"{{/hasProduces}}{{#hasConsumes}} -H "Content-Type: {{#consumes}}{{{mediaType}}}{{#hasMore}},{{/hasMore}}{{/consumes}}"{{/hasConsumes}}</br>{{#vendorExtensions.x-signed-sample-call-input}}Input: </br>{{{vendorExtensions.x-signed-sample-call-input}}}{{/vendorExtensions.x-signed-sample-call-input}}</br>{{#vendorExtensions.x-signed-sample-call-output}}Output: </br>{{{vendorExtensions.x-signed-sample-call-output}}}{{/vendorExtensions.x-signed-sample-call-output}}</code></pre>
+                            </div>
+                            <div class="tab-pane active" id="examples-{{baseName}}-{{nickname}}-2-curl">
+                                <pre><code class="language-bsh">curl -X {{vendorExtensions.x-codegen-httpMethodUpperCase}} "{{#vendorExtensions.x-sample-call-endpoint}}{{{vendorExtensions.x-sample-call-endpoint}}}{{/vendorExtensions.x-sample-call-endpoint}}"{{#authMethods}}{{#is this 'api-key'}}{{#is this 'key-in-header'}} -H "{{keyParamName}}: Bearer &lt;token&gt;"{{/is}}{{/is}}{{#is this 'basic'}} -H "Authorization: Basic &lt;basicHash&gt;"{{/is}}{{/authMethods}}{{#hasProduces}} -H "Accept: {{#produces}}{{{mediaType}}}{{#hasMore}},{{/hasMore}}{{/produces}}"{{/hasProduces}}{{#hasConsumes}} -H "Content-Type: {{#consumes}}{{{mediaType}}}{{#hasMore}},{{/hasMore}}{{/consumes}}"{{/hasConsumes}}</br>{{#vendorExtensions.x-unsigned-sample-call-input}}Input: </br>{{{vendorExtensions.x-unsigned-sample-call-input}}}{{/vendorExtensions.x-unsigned-sample-call-input}}</br>{{#vendorExtensions.x-unsigned-sample-call-output}}Output: </br>{{{vendorExtensions.x-unsigned-sample-call-output}}}{{/vendorExtensions.x-unsigned-sample-call-output}}</code></pre>
+                            </div>
+                            <div class="tab-pane" id="examples-{{baseName}}-{{nickname}}-0-support">
+
+                            </div>
+                        </div>
                         </article>
                       </div>
                       <hr>
