@@ -13,6 +13,9 @@ spec:
   accessModes:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
+  claimRef:
+    namespace: isecl
+    name: sqvs-config-pvc
   storageClassName: nfs
   nfs:
     path: /mnt/nfs_share/isecl/sqvs/config
