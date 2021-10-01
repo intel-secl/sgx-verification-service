@@ -93,16 +93,13 @@ type UnsignedSGXResponseInfo struct {
 //  }
 // x-sample-call-output: |
 //  {
-//    "reportData": "0000000000000000000000000000000000000000000000000000000000000000",
-//    "userDataMatch": "false",
+//    "ReportData": "0000000000000000000000000000000000000000000000000000000000000000",
+//    "UserDataMatch": "false",
 //    "Message": "SGX_QL_QV_RESULT_OK",
 //    "EnclaveIssuer": "d412a4f07ef83892a5915fb2ab584be31e186e5a4f95ab5f6950fd4eb8694d7b",
 //    "EnclaveMeasurement": "9270442d1bd1961fa39dbe1f2cdf4f87950a54fcaf9a2e5013875c3346542dca",
 //    "EnclaveIssuerProdID": "00",
-//    "EnclaveIssuerExtProdID": "00000000000000000000000000000000",
-//    "ConfigSvn": "00",
 //    "IsvSvn": "01",
-//    "ConfigId": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 //    "TcbLevel": "OutofDate"
 //  }
 // ---
@@ -166,10 +163,7 @@ type UnsignedSGXResponseInfo struct {
 //        "EnclaveIssuer": "83d719e77deaca1470f6baf62a4d774303c899db69020f9c70ee1dfc08c7ce9e",
 //        "EnclaveMeasurement": "ad46749ed41ebaa2327252041ee746d3791a9f2431830fee0883f7993caf316a",
 //        "EnclaveIssuerProdID": "00",
-//        "EnclaveIssuerExtProdID": "00000000000000000000000000000000",
-//        "ConfigSvn": "00",
 //        "IsvSvn": "00",
-//        "ConfigID": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 //        "TcbLevel": "OutOfDate"
 //    }
 //  }
