@@ -4,8 +4,8 @@ VERSION := "v3.6.1"
 BUILDDATE := $(shell TZ=UTC date +%Y-%m-%dT%H:%M:%S%z)
 PROXY_EXISTS := $(shell if [[ "${https_proxy}" || "${http_proxy}" ]]; then echo 1; else echo 0; fi)
 DOCKER_PROXY_FLAGS := ""
-MONOREPO_GITURL := "https://gitlab.devtools.intel.com/sst/isecl/intel-secl.git"
-MONOREPO_GITBRANCH := "v3.6.1/develop"
+MONOREPO_GITURL := "https://github.com/intel-secl/intel-secl.git"
+MONOREPO_GITBRANCH := "v3.6.1"
 
 ifeq ($(PROXY_EXISTS),1)
         DOCKER_PROXY_FLAGS = --build-arg http_proxy=${http_proxy} --build-arg https_proxy=${https_proxy}
