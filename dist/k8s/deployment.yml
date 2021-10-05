@@ -42,6 +42,8 @@ spec:
             - mountPath: /etc/secret-volume/
               name: sqvs-credentials
               readOnly: true
+            - name: trusted-rootca
+              mountPath: /tmp/
       volumes:
         - name: sqvs-logs-volume
           persistentVolumeClaim:
@@ -52,4 +54,7 @@ spec:
         - name: sqvs-credentials
           secret:
               secretName: sqvs-secret
+        - name: trusted-rootca
+          secret:
+              secretName: sqvs-trusted-rootca
 

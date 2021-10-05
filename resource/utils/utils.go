@@ -6,18 +6,21 @@ package utils
 
 import (
 	"crypto"
+	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha512"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
-	"github.com/pkg/errors"
 	"intel/isecl/lib/common/v4/crypt"
 	commLog "intel/isecl/lib/common/v4/log"
 	"io/ioutil"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 var log = commLog.GetDefaultLogger()
@@ -101,7 +104,7 @@ func CheckDate(issueDate, nextUpdate string) bool {
 	}
 }
 
-func GenerateSignature(responseBytes []byte, keyFilePath string) (string, error) {
+func GenerateSignature(responseBytes []byte, keyFilePath string, usePSSPadding bool) (string, error) {
 	log.Trace("resource/utils:GenerateSignature() Entering")
 	defer log.Trace("resource/utils:GenerateSignature() Leaving")
 
@@ -126,10 +129,20 @@ func GenerateSignature(responseBytes []byte, keyFilePath string) (string, error)
 		return "", errors.New("Unable to parse RSA private key")
 	}
 
-	signature, err := crypt.HashAndSignPKCS1v15(responseBytes, privateKey, crypto.SHA384)
+	hash := sha512.Sum384(responseBytes)
+	var signature []byte
+	if usePSSPadding {
+		signature, err = rsa.SignPSS(rand.Reader, privateKey, crypto.SHA384, hash[:], &rsa.PSSOptions{
+			SaltLength: rsa.PSSSaltLengthAuto,
+			Hash:       crypto.SHA384,
+		})
+	} else {
+		signature, err = rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA384, hash[:])
+	}
+
 	if err != nil {
-		log.WithError(err).Info("error signing quote response")
-		return "", errors.Wrap(err, "error signing quote response")
+		log.WithError(err).Info("Error signing quote response")
+		return "", errors.Wrap(err, "Error signing quote response")
 	}
 
 	return base64.StdEncoding.EncodeToString(signature), nil

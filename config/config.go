@@ -17,6 +17,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 var log = commLog.GetDefaultLogger()
@@ -37,15 +41,17 @@ type Configuration struct {
 	Subject         struct {
 		TLSCertCommonName string
 	}
-	TLSKeyFile        string
-	TLSCertFile       string
-	CertSANList       string
-	SignQuoteResponse bool
-	ReadTimeout       time.Duration
-	ReadHeaderTimeout time.Duration
-	WriteTimeout      time.Duration
-	IdleTimeout       time.Duration
-	MaxHeaderBytes    int
+	TLSKeyFile               string
+	TLSCertFile              string
+	CertSANList              string
+	SignQuoteResponse        bool
+	ResponseSigningKeyLength int
+	UsePSSPadding            bool
+	ReadTimeout              time.Duration
+	ReadHeaderTimeout        time.Duration
+	WriteTimeout             time.Duration
+	IdleTimeout              time.Duration
+	MaxHeaderBytes           int
 }
 
 var global *Configuration
@@ -95,7 +101,33 @@ func (conf *Configuration) SaveConfiguration(taskName string, c setup.Context) e
 				conf.SignQuoteResponse = false
 			}
 		} else {
+			log.Warning("SIGN_QUOTE_RESPONSE is not defined. Quote Signing be skipped by default")
 			conf.SignQuoteResponse = false
+		}
+
+		usePSSPadding, err := c.GetenvString("USE_PSS_PADDING", "Enable PSS padding")
+		if err == nil && strings.TrimSpace(usePSSPadding) != "" {
+			conf.UsePSSPadding, err = strconv.ParseBool(usePSSPadding)
+			if err != nil {
+				log.Warning("USE_PSS_PADDING is not defined properly, must be true/false. PKCS1V1.5 padding will be used")
+				conf.UsePSSPadding = false
+			}
+		} else {
+			log.Warning("USE_PSS_PADDING is not defined. PKCS1V1.5 padding will be used by default")
+			conf.UsePSSPadding = false
+		}
+
+		conf.ResponseSigningKeyLength, err = c.GetenvInt("RESPONSE_SIGNING_KEY_LENGTH", "Response signing key length")
+		if err == nil {
+			switch conf.ResponseSigningKeyLength {
+			case 2048, 3072:
+			default:
+				log.Warning("Response Signing Key Length must be 2048 or 3072. 3072 will be used by default.")
+				conf.ResponseSigningKeyLength = constants.DefaultKeyAlgorithmLength
+			}
+		} else {
+			log.Warning("Response signing key length is not defined properly, must be 2048 or 3072. 3072 will be used by default")
+			conf.ResponseSigningKeyLength = constants.DefaultKeyAlgorithmLength
 		}
 	}
 
