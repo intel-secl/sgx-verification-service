@@ -212,9 +212,9 @@ func (u Update_Service_Config) Run(c setup.Context) error {
 	u.Config.ResponseSigningKeyLength, err = c.GetenvInt("RESPONSE_SIGNING_KEY_LENGTH", "Response signing key length")
 	if err == nil {
 		switch u.Config.ResponseSigningKeyLength {
-		case 2048, 3072:
+		case 2048, 3072, 4096:
 		default:
-			fmt.Fprintf(u.ConsoleWriter, "Response Signing Key Length must be 2048 or 3072. 3072 will be used by default.\n")
+			fmt.Fprintf(u.ConsoleWriter, "Response Signing Key Length must be 2048, 3072 or 4096. 3072 will be used by default.\n")
 			u.Config.ResponseSigningKeyLength = constants.DefaultKeyAlgorithmLength
 		}
 	} else {

@@ -117,13 +117,13 @@ func (conf *Configuration) SaveConfiguration(taskName string, c setup.Context) e
 		conf.ResponseSigningKeyLength, err = c.GetenvInt("RESPONSE_SIGNING_KEY_LENGTH", "Response signing key length")
 		if err == nil {
 			switch conf.ResponseSigningKeyLength {
-			case 2048, 3072:
+			case 2048, 3072, 4096:
 			default:
-				log.Warning("Response Signing Key Length must be 2048 or 3072. 3072 will be used by default.")
+				log.Warning("Response Signing Key Length must be 2048, 3072 or 4096. 3072 will be used by default.")
 				conf.ResponseSigningKeyLength = constants.DefaultKeyAlgorithmLength
 			}
 		} else {
-			log.Warning("Response signing key length is not defined properly, must be 2048 or 3072. 3072 will be used by default")
+			log.Warning("Response signing key length is not defined properly, must be 2048, 3072 or 4096. 3072 will be used by default")
 			conf.ResponseSigningKeyLength = constants.DefaultKeyAlgorithmLength
 		}
 	}
