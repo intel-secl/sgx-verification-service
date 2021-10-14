@@ -53,9 +53,7 @@ spec:
             claimName: sqvs-config-pvc
         - name: sqvs-secrets
           secret:
-              secretName: bearer-token
+            secretName: bearer-token
         - name: trusted-rootca
           secret:
-              secretName: sqvs-trusted-rootca
-
-
+            secretName: sqvs-trusted-rootca
