@@ -140,8 +140,8 @@ func GenerateSignature(responseBytes []byte, keyFilePath string, usePSSPadding b
 	}
 
 	if err != nil {
-		log.WithError(err).Info("error signing quote response")
-		return "", errors.Wrap(err, "error signing quote response")
+		log.WithError(err).Info("Error signing quote response")
+		return "", errors.Wrap(err, "Error signing quote response")
 	}
 
 	return base64.StdEncoding.EncodeToString(signature), nil
