@@ -13,6 +13,6 @@ require (
 )
 
 replace (
-	intel/isecl/lib/common/v4 => gitlab.devtools.intel.com/sst/isecl/lib/common.git/v4 v4.0.1/develop
-	intel/isecl/lib/clients/v4 => gitlab.devtools.intel.com/sst/isecl/lib/clients.git/v4 v4.0.1/develop
+	intel/isecl/lib/common/v4 => github.com/intel-secl/common/v4 v4.0.1
+	intel/isecl/lib/clients/v4 => github.com/intel-secl/clients/v4 v4.0.1
 )
