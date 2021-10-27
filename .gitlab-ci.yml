@@ -22,7 +22,7 @@ compile:
     - echo "[http \"https://${GITLAB_SERVER}\"]" >> ~/.gitconfig
     - echo "        proxy = \"\"" >> ~/.gitconfig
     - cd $CI_PROJECT_DIR
-    - apt update -yq && apt install -yq makeself
+    - apt update -yq && apt install -yq makeself apt-transport-https ca-certificates && update-ca-certificates
   tags:
     - k8s
   script:
@@ -42,7 +42,7 @@ test:
     - echo "[http \"https://${GITLAB_SERVER}\"]" >> ~/.gitconfig
     - echo "        proxy = \"\"" >> ~/.gitconfig
     - cd $CI_PROJECT_DIR
-    - apt update -yq && apt install -yq make
+    - apt update -yq && apt install -yq makeself apt-transport-https ca-certificates && update-ca-certificates
   tags:
     - k8s
   script:
