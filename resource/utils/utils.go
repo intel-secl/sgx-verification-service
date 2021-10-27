@@ -13,7 +13,6 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
-	"intel/isecl/lib/common/v4/crypt"
 	commLog "intel/isecl/lib/common/v4/log"
 	"io/ioutil"
 	"net/url"
