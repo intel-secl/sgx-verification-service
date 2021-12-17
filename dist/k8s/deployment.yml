@@ -24,7 +24,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: sqvs
-          image: <image-name>:<tag>
+          image: <image-name>:<image-tag>
           imagePullPolicy: Always
           securityContext:
             runAsUser: 1001
