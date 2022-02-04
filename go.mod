@@ -8,11 +8,11 @@ require (
 	github.com/stretchr/testify v1.6.1
 	gopkg.in/restruct.v1 v1.0.0-20190323193435-3c2afb705f3c
 	gopkg.in/yaml.v2 v2.4.0
-	intel/isecl/lib/clients/v4 v4.0.1
-	intel/isecl/lib/common/v4 v4.0.1
+	intel/isecl/lib/clients/v4 v4.0.2
+	intel/isecl/lib/common/v4 v4.0.2
 )
 
 replace (
-	intel/isecl/lib/common/v4 => github.com/intel-secl/common/v4 v4.0.1
-	intel/isecl/lib/clients/v4 => github.com/intel-secl/clients/v4 v4.0.1
+	intel/isecl/lib/common/v4 => github.com/intel-innersource/libraries.security.isecl.common/v4 v4.0.2/develop
+	intel/isecl/lib/clients/v4 => github.com/intel-innersource/libraries.security.isecl.clients/v4 v4.0.2/develop
 )
