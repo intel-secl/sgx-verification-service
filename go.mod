@@ -13,6 +13,6 @@ require (
 )
 
 replace (
-	intel/isecl/lib/common/v4 => github.com/intel-innersource/libraries.security.isecl.common/v4 v4.0.2/develop
-	intel/isecl/lib/clients/v4 => github.com/intel-innersource/libraries.security.isecl.clients/v4 v4.0.2/develop
+	intel/isecl/lib/common/v4 => github.com/intel-secl/common/v4 v4.0.2
+	intel/isecl/lib/clients/v4 => github.com/intel-secl/clients/v4 v4.0.2
 )
