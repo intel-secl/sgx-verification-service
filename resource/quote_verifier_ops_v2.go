@@ -7,6 +7,7 @@ package resource
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	commLogMsg "intel/isecl/lib/common/v4/log/message"
 	"intel/isecl/sqvs/v4/config"
 	"intel/isecl/sqvs/v4/constants"
@@ -55,6 +56,9 @@ func sgxVerifyQuoteAndSign() errorHandlerFunc {
 		}
 
 		sgxResponse, err := SgxEcdsaQuoteVerify(data)
+		if err != nil {
+			return fmt.Errorf("Quote verification failure: %v", err)
+		}
 
 		var quoteResponseBytes []byte
 		if strings.TrimSpace(data.Challenge) != "" && conf.SignQuoteResponse {

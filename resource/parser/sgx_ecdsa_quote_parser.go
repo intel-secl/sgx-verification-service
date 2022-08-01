@@ -128,14 +128,13 @@ func (e *SkcBlobParsed) GetQuoteBlob() []byte {
 	return e.QuoteBlob
 }
 
-func ParseEcdsaQuoteBlob(rawBlob []byte) *SgxQuoteParsed {
+func ParseEcdsaQuoteBlob(rawBlob []byte) (*SgxQuoteParsed, error) {
 	parsedObj := new(SgxQuoteParsed)
 	err := parsedObj.parseRawECDSAQuote(rawBlob)
 	if err != nil {
-		log.Error("ParseEcdsaQuoteBlob: Raw SGX ECDSA Quote parsing error: ", err.Error())
-		return nil
+		return nil, fmt.Errorf("ParseEcdsaQuoteBlob: Raw SGX ECDSA Quote parsing error: %v", err.Error())
 	}
-	return parsedObj
+	return parsedObj, nil
 }
 
 func (e *SgxQuoteParsed) GetSHA256Hash() []byte {
@@ -367,14 +366,13 @@ func (e *SgxQuoteParsed) parseRawECDSAQuote(decodedQuote []byte) error {
 	qeCertStart := qeAuthStart + 34
 	err = restruct.Unpack(decodedQuote[qeCertStart:], binary.LittleEndian, &e.QuoteSignatureData.QeCertData)
 	if err != nil {
-		log.Error("Failed to extract certification data from quote")
+		log.Errorf("Failed to extract certification data from quote: %v", err)
 		return errors.Wrap(err, "parseRawECDSAQuote: Failed to extract certification data from  quote")
 	}
 
 	certDataSize := e.QuoteSignatureData.QeCertData.ParsedDataSize
 	if certDataSize < constants.MinCertDataSize || certDataSize > constants.MaxCertDataSize {
-		log.Error("Failed to extract certification data from quote")
-		return errors.Wrap(err, "parseRawECDSAQuote: Failed to extract certification data from  quote")
+		return fmt.Errorf("parseRawECDSAQuote: Failed to extract certification data from quote: certificate data size '%v' is not in limit", certDataSize)
 	}
 
 	// QE Cert Data starts at offset 1046. First two bytes denote Cert type

@@ -132,7 +132,7 @@ func sgxVerifyQuote() errorHandlerFunc {
 
 func SgxEcdsaQuoteVerify(data QuoteDataWithChallenge) (SGXResponse, error) {
 	log.Trace("resource/quote_verifier_ops:SgxEcdsaQuoteVerify() Entering")
-	log.Trace("resource/quote_verifier_ops:SgxEcdsaQuoteVerify() Leaving")
+	defer log.Trace("resource/quote_verifier_ops:SgxEcdsaQuoteVerify() Leaving")
 	skcBlobParsed := parser.ParseQuoteBlob(data.QuoteBlob)
 	if skcBlobParsed == nil {
 		log.Error("Could not parse sgx ecdsa quote")
@@ -140,10 +140,10 @@ func SgxEcdsaQuoteVerify(data QuoteDataWithChallenge) (SGXResponse, error) {
 			StatusCode: http.StatusBadRequest}
 	}
 
-	quoteObj := parser.ParseEcdsaQuoteBlob(skcBlobParsed.GetQuoteBlob())
-	if quoteObj == nil {
+	quoteObj, err := parser.ParseEcdsaQuoteBlob(skcBlobParsed.GetQuoteBlob())
+	if err != nil {
 		log.Error("Cannot parse sgx ecdsa quote")
-		return SGXResponse{}, &resourceError{Message: "Cannot parse sgx ecdsa quote", StatusCode: http.StatusBadRequest}
+		return SGXResponse{}, &resourceError{Message: err.Error(), StatusCode: http.StatusBadRequest}
 	}
 
 	pckCertBytes, err := utils.GetCertPemData(quoteObj.GetQuotePckCertObj())
@@ -279,7 +279,7 @@ func SgxEcdsaQuoteVerify(data QuoteDataWithChallenge) (SGXResponse, error) {
 
 func verifyQeIdentityReport(qeIdObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteParsed) error {
 	log.Trace("resource/quote_verifier_ops:verifyQeIdentityReport() Entering")
-	log.Trace("resource/quote_verifier_ops:verifyQeIdentityReport() Leaving")
+	defer log.Trace("resource/quote_verifier_ops:verifyQeIdentityReport() Leaving")
 
 	err := verifier.VerifyMiscSelect(quoteObj.GetQeReportMiscSelect(), qeIdObj.GetQeIDMiscSelect(),
 		qeIdObj.GetQeIDMiscSelectMask())
@@ -311,7 +311,7 @@ func verifyQeIdentityReport(qeIdObj *parser.QeIdentityData, quoteObj *parser.Sgx
 func verifyQeIdentity(qeIDObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteParsed,
 	trustedRootCA *x509.Certificate) error {
 	log.Trace("resource/quote_verifier_ops:verifyQeIdentity() Entering")
-	log.Trace("resource/quote_verifier_ops:verifyQeIdentity() Leaving")
+	defer log.Trace("resource/quote_verifier_ops:verifyQeIdentity() Leaving")
 
 	if qeIDObj == nil || quoteObj == nil {
 		return errors.New("verifyQeIdentity: QEIdentity/Quote Object is empty")
@@ -336,7 +336,7 @@ func verifyQeIdentity(qeIDObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteP
 
 func verifyTcbInfo(certObj *parser.PckCert, tcbObj *parser.TcbInfoStruct, trustedRootCA *x509.Certificate) error {
 	log.Trace("resource/quote_verifier_ops:verifyTcbInfo() Entering")
-	log.Trace("resource/quote_verifier_ops:verifyTcbInfo() Leaving")
+	defer log.Trace("resource/quote_verifier_ops:verifyTcbInfo() Leaving")
 
 	if tcbObj.GetTcbInfoFmspc() != certObj.GetFmspcValue() {
 		return errors.New("verifyTcbInfo: FMSPC in TCBInfoStruct does not match with PCK Cert FMSPC")
@@ -357,7 +357,7 @@ func verifyTcbInfo(certObj *parser.PckCert, tcbObj *parser.TcbInfoStruct, truste
 
 func readSGXRootCaCert() (*x509.Certificate, error) {
 	log.Trace("resource/quote_verifier_ops:readSGXRootCaCert() Entering")
-	log.Trace("resource/quote_verifier_ops:readSGXRootCaCert() Leaving")
+	defer log.Trace("resource/quote_verifier_ops:readSGXRootCaCert() Leaving")
 
 	certBytes, err := ioutil.ReadFile(constants.TrustedSGXRootCAFile)
 	if err != nil {
