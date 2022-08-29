@@ -43,6 +43,10 @@ type PckCert struct {
 }
 
 func NewPCKCertObj(certBlob []byte) *PckCert {
+	if certBlob == nil {
+		log.Error("NewPCKCertObj: Nil cert blob bytes")
+		return nil
+	}
 	parsedPck := new(PckCert)
 	err := parsedPck.genCertObj(certBlob)
 	if err != nil {
