@@ -10,7 +10,7 @@
 
 ## System Requirements
 
-- RHEL 8.2
+- RHEL 8.4 or ubuntu 20.04
 - Epel 8 Repo
 - Proxy settings if applicable
 
@@ -19,7 +19,7 @@
 - git
 - make
 - makeself
-- Go 1.16.7
+- Go 1.18.8
 
 ## Step-By-Step Build Instructions
 
@@ -31,13 +31,13 @@
 sudo dnf install -y git wget makeself
 ```
 
-### Install `go 1.16.7`
+### Install `go 1.18.8`
 
-The `SGX Verification Service` requires Go version 1.16.7 that has support for `go modules`. please keep in mind that the product has been validated with 1.16.7 and newer versions of `go` may introduce compatibility issues. You can use the following to install `go`.
+The `SGX Verification Service` requires Go version 1.18.8 that has support for `go modules`. please keep in mind that the product has been validated with 1.18.8 and newer versions of `go` may introduce compatibility issues. You can use the following to install `go`.
 
 ```shell
-wget https://dl.google.com/go/go1.16.7.linux-amd64.tar.gz
-tar -xzf go1.16.7.linux-amd64.tar.gz
+wget https://dl.google.com/go/go1.18.8.linux-amd64.tar.gz
+tar -xzf go1.18.8.linux-amd64.tar.gz
 sudo mv go /usr/local
 export GOROOT=/usr/local/go
 export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
@@ -96,12 +96,12 @@ Name     | Repo URL                      | Minimum Version Required
 handlers | github.com/gorilla/handlers   |          v1.4.2
 mux      | github.com/gorilla/mux        |          v1.7.4
 errors   | github.com/pkg/errors         |          v0.9.1
-logrus   | github.com/sirupsen/logrus    |          v1.5.0
-testify  | github.com/stretchr/testify   |          v1.5.1
-yaml.v2  | gopkg.in/yaml.v2              |          v2.4.0
+logrus   | github.com/sirupsen/logrus    |          v1.7.0
+testify  | github.com/stretchr/testify   |          v1.6.1
+yaml.v3  | gopkg.in/yaml.v3              |          v3.0.1
 restruct | gopkg.in/restruct             |          v1.0.0
-common   | github.com/intel-secl/common  |          v4.1.0
-clients  | github.com/intel-secl/clients |          v4.1.0
+common   | github.com/intel-secl/common  |          v5.0.0
+clients  | github.com/intel-secl/clients |          v5.0.0
 
 ### Indirect Dependencies
 

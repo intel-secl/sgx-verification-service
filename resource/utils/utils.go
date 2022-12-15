@@ -25,9 +25,8 @@ import (
 var log = commLog.GetDefaultLogger()
 
 func GetCertPemData(cert *x509.Certificate) ([]byte, error) {
-	var err error
 	if cert == nil {
-		return nil, errors.Wrap(err, "Certificate Object is empty")
+		return nil, errors.New("Certificate Object is empty")
 	}
 
 	block := &pem.Block{

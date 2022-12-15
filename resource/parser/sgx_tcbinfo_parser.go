@@ -9,9 +9,9 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"intel/isecl/lib/clients/v5"
 	"intel/isecl/sqvs/v5/config"
 	"intel/isecl/sqvs/v5/constants"
+	"intel/isecl/sqvs/v5/resource/domain"
 	"intel/isecl/sqvs/v5/resource/utils"
 	"io/ioutil"
 	"math/big"
@@ -75,18 +75,23 @@ type TcbInfoStruct struct {
 	RootCA         map[string]*x509.Certificate
 	IntermediateCA map[string]*x509.Certificate
 	RawBlob        []byte
+
+	Conf   *config.Configuration
+	Client domain.HttpClient
 }
 type ECDSASignature struct {
 	R, S *big.Int
 }
 
-func NewTcbInfo(fmspc string) (*TcbInfoStruct, error) {
+func NewTcbInfo(fmspc string, conf *config.Configuration, client domain.HttpClient) (*TcbInfoStruct, error) {
 	var err error
 	if len(fmspc) < constants.FmspcLen {
-		return nil, errors.Wrap(err, "NewTcbInfo: FMSPC value not found")
+		return nil, errors.New("NewTcbInfo: FMSPC value not found")
 	}
 
 	tcbInfoStruct := new(TcbInfoStruct)
+	tcbInfoStruct.Conf = conf
+	tcbInfoStruct.Client = client
 	err = tcbInfoStruct.getTcbInfoStruct(fmspc)
 	if err != nil {
 		return nil, errors.Wrap(err, "NewTcbInfo: Failed to get Tcb Info")
@@ -123,17 +128,8 @@ func (e *TcbInfoStruct) GetTcbInfoNextUpdate() string {
 }
 
 func (e *TcbInfoStruct) getTcbInfoStruct(fmspc string) error {
-	conf := config.Global()
-	if conf == nil {
-		return errors.Wrap(errors.New("getTcbInfoStruct: Configuration pointer is null"), "Config error")
-	}
 
-	client, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
-	if err != nil {
-		return errors.Wrap(err, "getTcbInfoStruct: Error in getting client object")
-	}
-
-	url := fmt.Sprintf("%s/tcb", conf.SCSBaseURL)
+	url := fmt.Sprintf("%s/tcb", e.Conf.SCSBaseURL)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Error("getTcbInfoStruct: req object error")
@@ -145,7 +141,7 @@ func (e *TcbInfoStruct) getTcbInfoStruct(fmspc string) error {
 	q.Add("fmspc", fmspc)
 	req.URL.RawQuery = q.Encode()
 
-	resp, err := client.Do(req)
+	resp, err := e.Client.Do(req)
 	if resp != nil {
 		defer func() {
 			derr := resp.Body.Close()

@@ -5,44 +5,81 @@
 package verifier
 
 import (
-	"net/http"
-	"net/http/httptest"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/sha256"
+	"crypto/x509"
+	"encoding/pem"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-type TestData struct {
-	Description string
-	Recorder    *httptest.ResponseRecorder
-	Assert      *assert.Assertions
-	Test        *testing.T
-	Token       string
-	URL         string
-	StatusCode  int
-	PostData    []byte
+func TestGenerateHash(t *testing.T) {
+
+	testValue := []byte("test")
+
+	h := sha256.New()
+	h.Write(testValue)
+	expected := h.Sum(nil)
+
+	got := generateHash(testValue)
+	assert.Equal(t, expected, got)
 }
 
-func ExecuteQPLTest(input TestData) {
-	input.Test.Log("Test:", input.Description)
-	req := httptest.NewRequest("GET", input.URL, nil)
-	req.Header.Add("Accept", "application/json")
-	req.Header.Add("Content-Type", "application/json")
+func TestVerifyECDSA256Signature(t *testing.T) {
+
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	assert.Nil(t, err)
+
+	msg := []byte("hello, world")
+	hash := sha256.Sum256(msg)
+
+	signatureBytes, err := ecdsa.SignASN1(rand.Reader, privateKey, hash[:])
+	assert.Nil(t, err)
+
+	publicKey := &privateKey.PublicKey
+
+	got := verifyECDSA256Signature(msg, publicKey, signatureBytes)
+	assert.Equal(t, false, got)
 }
 
-func TestGetFmspc(t *testing.T) {
-	input := TestData{
-		Recorder:    httptest.NewRecorder(),
-		Assert:      assert.New(t),
-		Test:        t,
-		URL:         "/svs/v1/test/tcb",
-		StatusCode:  http.StatusBadRequest,
-		PostData:    nil,
-		Token:       "",
-		Description: "Without Query Params",
+func TestVerifyQeReportSignature(t *testing.T) {
+
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	assert.Nil(t, err)
+
+	msg := []byte("hello, world")
+	hash := sha256.Sum256(msg)
+
+	signatureBytes, err := ecdsa.SignASN1(rand.Reader, privateKey, hash[:])
+	assert.Nil(t, err)
+
+	publicKey := &privateKey.PublicKey
+
+	err = VerifyQeReportSignature(signatureBytes, msg, publicKey)
+	assert.NotNil(t, err)
+}
+
+func TestVerifyEnclaveReportSignature(t *testing.T) {
+
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	assert.Nil(t, err)
+
+	msg := []byte("hello, world")
+	hash := sha256.Sum256(msg)
+
+	signatureBytes, err := ecdsa.SignASN1(rand.Reader, privateKey, hash[:])
+	assert.Nil(t, err)
+
+	pubBytes, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
+	assert.Nil(t, err)
+	publickeyPem := &pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: pubBytes,
 	}
-	ExecuteQPLTest(input)
-	input.URL = "/svs/v1/tcb?fmspc=invalid"
-	input.Description = "Invalid Query Params"
-	input.Test.Log("Test:", input.Description, " ended")
+
+	err = VerifyEnclaveReportSignature(signatureBytes, msg, pem.EncodeToMemory(publickeyPem))
+	assert.NotNil(t, err)
 }

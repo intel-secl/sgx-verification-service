@@ -9,12 +9,12 @@ require (
 	github.com/sirupsen/logrus v1.7.0
 	github.com/stretchr/testify v1.6.1
 	gopkg.in/restruct.v1 v1.0.0-20190323193435-3c2afb705f3c
-	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.1
 	intel/isecl/lib/clients/v5 v5.0.0
 	intel/isecl/lib/common/v5 v5.0.0
 )
 
 replace (
-	intel/isecl/lib/clients/v5 => gitlab.devtools.intel.com/sst/isecl/lib/clients.git/v5 v5.0/develop
-	intel/isecl/lib/common/v5 => gitlab.devtools.intel.com/sst/isecl/lib/common.git/v5 v5.0/develop
+	intel/isecl/lib/clients/v5 => github.com/intel-innersource/libraries.security.isecl.clients/v5 v5.0/develop-innersource
+	intel/isecl/lib/common/v5 => github.com/intel-innersource/libraries.security.isecl.common/v5 v5.0/develop
 )

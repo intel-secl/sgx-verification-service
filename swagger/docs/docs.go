@@ -23,27 +23,30 @@
 // swagger:meta
 package docs
 
-import "intel/isecl/sqvs/v5/resource"
+import (
+	"intel/isecl/sqvs/v5/resource"
+	"intel/isecl/sqvs/v5/resource/domain/models"
+)
 
 // QuoteData request payload
 // swagger:parameters QuoteData
 type QuoteDataInfo struct {
 	// in:body
-	Body resource.QuoteData
+	Body models.QuoteData
 }
 
 // QuoteDataWithChallenge request payload
 // swagger:parameters QuoteDataWithChallenge
 type QuoteDataAndChallengeInfo struct {
 	// in:body
-	Body resource.QuoteDataWithChallenge
+	Body models.QuoteDataWithChallenge
 }
 
 // SGXResponse response payload
 // swagger:response SGXResponse
 type SGXResponseInfo struct {
 	// in:body
-	Body resource.SGXResponse
+	Body models.SGXResponse
 }
 
 // SignedSGXResponse response payload

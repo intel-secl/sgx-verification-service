@@ -1,0 +1,23 @@
+configfile: config.yml
+port: 1337
+cmstlscertdigest: f5662f725b1440b6103c2a8cf1e993a7e7931bae53883f57d3e0b88ed54e1f53fe88672b77ee9a944b13c41299916d13
+logmaxlength: 1500
+logenablestdout: false
+loglevel: info
+includetoken: true
+cmsbaseurl: https://cms.com/cms/v1/
+authserviceurl: https://aas.com/aas/v1/
+scsbaseurl: https://scs.com/scs/v1/
+subject:
+  tlscertcommonname: SQVS TLS Certificate
+tlskeyfile: test-key-file.pem
+tlscertfile: test-cert-file.pem
+certsanlist: testName.com
+signquoteresponse: false
+responsesigningkeylength: 3072
+usepsspadding: false
+readtimeout: 5m0s
+readheadertimeout: 5m0s
+writetimeout: 5m0s
+idletimeout: 5m0s
+maxheaderbytes: 1000

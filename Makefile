@@ -3,7 +3,7 @@ VERSION := "v5.0.0"
 BUILDDATE := $(shell TZ=UTC date +%Y-%m-%dT%H:%M:%S%z)
 PROXY_EXISTS := $(shell if [[ "${https_proxy}" || "${http_proxy}" ]]; then echo 1; else echo 0; fi)
 DOCKER_PROXY_FLAGS := ""
-MONOREPO_GITURL := "https://gitlab.devtools.intel.com/sst/isecl/intel-secl.git"
+MONOREPO_GITURL := "https://github.com/intel-innersource/applications.security.isecl.intel-secl.git"
 MONOREPO_GITBRANCH := "v5.0/develop"
 
 ifeq ($(PROXY_EXISTS),1)
@@ -51,9 +51,9 @@ installer: sqvs
 
 docker: sqvs
 ifeq ($(PROXY_EXISTS),1)
-	docker build ${DOCKER_PROXY_FLAGS} --label org.label-schema.build-date=$(BUILDDATE) -f dist/image/Dockerfile -t isecl/sqvs:$(VERSION) .
+	docker build ${DOCKER_PROXY_FLAGS} --label org.label-schema.build-date=$(BUILDDATE) -f dist/image/Dockerfile -t $(DOCKER_REGISTRY)isecl/sqvs:$(VERSION)-$(GITCOMMIT) .
 else
-	docker build --label org.label-schema.build-date=$(BUILDDATE) -f dist/image/Dockerfile -t isecl/sqvs:$(VERSION) .
+	docker build --label org.label-schema.build-date=$(BUILDDATE) -f dist/image/Dockerfile -t $(DOCKER_REGISTRY)isecl/sqvs:$(VERSION)-$(GITCOMMIT) .
 endif
 
 oci-archive: docker
@@ -61,6 +61,11 @@ oci-archive: docker
 
 k8s: oci-archive
 	cp -r dist/k8s out/k8s
+
+sqvs-docker-push: docker
+	docker tag $(DOCKER_REGISTRY)isecl/sqvs:$(VERSION)-$(GITCOMMIT) $(DOCKER_REGISTRY)isecl/sqvs:$(VERSION)
+	docker push $(DOCKER_REGISTRY)isecl/sqvs:$(VERSION)
+	docker push $(DOCKER_REGISTRY)isecl/sqvs:$(VERSION)-$(GITCOMMIT)
 
 all: clean installer k8s
 

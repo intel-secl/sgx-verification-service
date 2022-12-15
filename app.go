@@ -22,6 +22,7 @@ import (
 	"intel/isecl/sqvs/v5/config"
 	"intel/isecl/sqvs/v5/constants"
 	"intel/isecl/sqvs/v5/resource"
+	"intel/isecl/sqvs/v5/resource/domain"
 	"intel/isecl/sqvs/v5/tasks"
 	"intel/isecl/sqvs/v5/version"
 	"io"
@@ -338,9 +339,12 @@ func (a *App) Run(args []string) error {
 					TrustedSGXRootCAFilePath: constants.TrustedSGXRootCAFile,
 				},
 				tasks.Create_Signing_Key_Pair{
-					Flags:         flags,
-					Config:        a.configuration(),
-					ConsoleWriter: os.Stdout,
+					Flags:              flags,
+					Config:             a.configuration(),
+					ConsoleWriter:      os.Stdout,
+					PrivateKeyLocation: constants.PrivateKeyLocation,
+					PublicKeyLocation:  constants.PublicKeyLocation,
+					TrustedCAsStoreDir: constants.TrustedCAsStoreDir,
 				},
 			},
 			AskInput: false,
@@ -427,9 +431,11 @@ func (a *App) startServer() error {
 			time.Minute*constants.DefaultJwtValidateCacheKeyMins))
 	}
 
-	func(setters ...func(*mux.Router)) {
+	scsClient := domain.NewSCSClient(constants.TrustedCAsStoreDir)
+	sqxQuoteVerifier := resource.NewSGXEcdsaQuoteVerifier()
+	func(setters ...func(*mux.Router, *config.Configuration, domain.HttpClient, string, domain.SGXQuoteVerifier)) {
 		for _, setter := range setters {
-			setter(sr)
+			setter(sr, c, scsClient, constants.TrustedSGXRootCAFile, sqxQuoteVerifier)
 		}
 	}(resource.QuoteVerifyCB)
 
@@ -438,9 +444,9 @@ func (a *App) startServer() error {
 		sr.Use(middleware.NewTokenAuth(constants.TrustedJWTSigningCertsDir, constants.TrustedCAsStoreDir, fnGetJwtCerts,
 			time.Minute*constants.DefaultJwtValidateCacheKeyMins))
 	}
-	func(setters ...func(*mux.Router)) {
+	func(setters ...func(*mux.Router, *config.Configuration, domain.HttpClient, string, domain.SGXQuoteVerifier, string, string)) {
 		for _, setter := range setters {
-			setter(sr)
+			setter(sr, c, scsClient, constants.TrustedSGXRootCAFile, sqxQuoteVerifier, constants.PrivateKeyLocation, constants.PublicKeyLocation)
 		}
 	}(resource.QuoteVerifyCBAndSign)
 

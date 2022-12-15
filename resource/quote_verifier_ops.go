@@ -14,6 +14,8 @@ import (
 	commLogMsg "intel/isecl/lib/common/v5/log/message"
 	"intel/isecl/sqvs/v5/config"
 	"intel/isecl/sqvs/v5/constants"
+	"intel/isecl/sqvs/v5/resource/domain"
+	"intel/isecl/sqvs/v5/resource/domain/models"
 	"intel/isecl/sqvs/v5/resource/parser"
 	"intel/isecl/sqvs/v5/resource/utils"
 	"intel/isecl/sqvs/v5/resource/verifier"
@@ -25,23 +27,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
-
-type SGXResponse struct {
-	ReportData        string `json:"reportData,omitempty"`
-	UserDataHashMatch string `json:"userDataMatch,omitempty"`
-	AdditionalQuoteData
-}
-
-type AdditionalQuoteData struct {
-	Message             string
-	EnclaveIssuer       string `json:"EnclaveIssuer,omitempty"`
-	EnclaveMeasurement  string `json:"EnclaveMeasurement,omitempty"`
-	EnclaveIssuerProdID string `json:"EnclaveIssuerProdID,omitempty"`
-	IsvSvn              string `json:"IsvSvn,omitempty"`
-	TcbLevel            string `json:"TcbLevel,omitempty"`
-	Quote               string `json:"Quote,omitempty"`
-	Challenge           string `json:"Challenge,omitempty"`
-}
 
 type SignedSGXResponse struct {
 	QuoteData        string `json:"quoteData"`
@@ -56,35 +41,48 @@ type UnsignedSGXResponse struct {
 type QuoteInfo struct {
 	ReportData        string `json:"ReportData,omitempty"`
 	UserDataHashMatch string `json:"UserDataMatch,omitempty"`
-	AdditionalQuoteData
+	models.AdditionalQuoteData
 }
 
-type QuoteData struct {
-	QuoteBlob string `json:"quote"`
-	UserData  string `json:"userData"`
+type SgxQuoteVerifier struct {
+	config               *config.Configuration
+	scsClient            domain.HttpClient
+	trustedSGXRootCAFile string
+	SGXQuoteVerifier     domain.SGXQuoteVerifier
 }
 
-type QuoteDataWithChallenge struct {
-	QuoteData
-	Challenge string `json:"challenge"`
-	//For future use
-	Nonce string `json:"nonce"`
+func NewSGXQuoteVerifier(conf *config.Configuration, scsClient domain.HttpClient, trustedSGXRootCAFile string,
+	sgxQuoteVerifier domain.SGXQuoteVerifier) *SgxQuoteVerifier {
+	return &SgxQuoteVerifier{
+		config:               conf,
+		scsClient:            scsClient,
+		trustedSGXRootCAFile: trustedSGXRootCAFile,
+		SGXQuoteVerifier:     sgxQuoteVerifier,
+	}
 }
 
-func QuoteVerifyCB(router *mux.Router) {
-	router.Handle("/sgx_qv_verify_quote", handlers.ContentTypeHandler(sgxVerifyQuote(), "application/json")).Methods("POST")
+type SgxEcdsaQuoteVerifier struct {
 }
 
-func sgxVerifyQuote() errorHandlerFunc {
+func NewSGXEcdsaQuoteVerifier() domain.SGXQuoteVerifier {
+
+	return &SgxEcdsaQuoteVerifier{}
+}
+
+func QuoteVerifyCB(router *mux.Router, conf *config.Configuration, scsClient domain.HttpClient,
+	trustedSGXRootCAFile string, sgxQuoteVerifier domain.SGXQuoteVerifier) {
+
+	quoteVerifier := NewSGXQuoteVerifier(conf, scsClient, trustedSGXRootCAFile, sgxQuoteVerifier)
+
+	router.Handle("/sgx_qv_verify_quote", handlers.ContentTypeHandler(quoteVerifier.sgxVerifyQuote(), "application/json")).Methods("POST")
+}
+
+func (sqv *SgxQuoteVerifier) sgxVerifyQuote() errorHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		log.Trace("resource/quote_verifier_ops:sgxVerifyQuote() Entering")
 		defer log.Trace("resource/quote_verifier_ops:sgxVerifyQuote() Leaving")
 
-		conf := config.Global()
-		if conf == nil {
-			return &resourceError{Message: "Could not read config", StatusCode: http.StatusInternalServerError}
-		}
-		if conf.IncludeToken {
+		if sqv.config.IncludeToken {
 			err := AuthorizeEndpoint(r, constants.QuoteVerifierGroupName, true)
 			if err != nil {
 				slog.WithError(err).Error("resource/quote_verifier_ops: sgxVerifyQuote() Authorization Error")
@@ -92,7 +90,7 @@ func sgxVerifyQuote() errorHandlerFunc {
 			}
 		}
 
-		var data QuoteData
+		var data models.QuoteData
 		if r.ContentLength == 0 {
 			slog.Error("resource/quote_verifier_ops: sgxVerifyQuote() The request body was not provided")
 			return &resourceError{Message: "SGX_QL_ERROR_INVALID_PARAMETER", StatusCode: http.StatusBadRequest}
@@ -106,9 +104,13 @@ func sgxVerifyQuote() errorHandlerFunc {
 			return &resourceError{Message: "Invalid JSON input provided", StatusCode: http.StatusBadRequest}
 		}
 
-		sgxResponse, err := SgxEcdsaQuoteVerify(QuoteDataWithChallenge{
+		if sqv.SGXQuoteVerifier == nil {
+			sqv.SGXQuoteVerifier = NewSGXEcdsaQuoteVerifier()
+		}
+
+		sgxResponse, err := sqv.SGXQuoteVerifier.SgxEcdsaQuoteVerify(models.QuoteDataWithChallenge{
 			QuoteData: data,
-		})
+		}, sqv.scsClient, sqv.config, sqv.trustedSGXRootCAFile)
 		if err != nil {
 			return err
 		}
@@ -130,38 +132,35 @@ func sgxVerifyQuote() errorHandlerFunc {
 	}
 }
 
-func SgxEcdsaQuoteVerify(data QuoteDataWithChallenge) (SGXResponse, error) {
+func (seqv *SgxEcdsaQuoteVerifier) SgxEcdsaQuoteVerify(data models.QuoteDataWithChallenge, scsClient domain.HttpClient, config *config.Configuration,
+	trustedSGXRootCAFile string) (models.SGXResponse, error) {
 	log.Trace("resource/quote_verifier_ops:SgxEcdsaQuoteVerify() Entering")
 	log.Trace("resource/quote_verifier_ops:SgxEcdsaQuoteVerify() Leaving")
 	skcBlobParsed := parser.ParseQuoteBlob(data.QuoteBlob)
 	if skcBlobParsed == nil {
 		log.Error("Could not parse sgx ecdsa quote")
-		return SGXResponse{}, &resourceError{Message: "Could not parse sgx ecdsa quote",
+		return models.SGXResponse{}, &resourceError{Message: "Could not parse sgx ecdsa quote",
 			StatusCode: http.StatusBadRequest}
 	}
 
-	quoteObj := parser.ParseEcdsaQuoteBlob(skcBlobParsed.GetQuoteBlob())
-	if quoteObj == nil {
-		log.Error("Cannot parse sgx ecdsa quote")
-		return SGXResponse{}, &resourceError{Message: "Cannot parse sgx ecdsa quote", StatusCode: http.StatusBadRequest}
-	}
+	quoteObj := parser.NewSGXQuoteParser(skcBlobParsed.GetQuoteBlob())
 
 	pckCertBytes, err := utils.GetCertPemData(quoteObj.GetQuotePckCertObj())
 	if err != nil {
 		log.WithError(err).Error("Cannot extract PCK cert data")
-		return SGXResponse{}, &resourceError{Message: "Cannot extract PCK cert data",
+		return models.SGXResponse{}, &resourceError{Message: "Cannot extract PCK cert data",
 			StatusCode: http.StatusBadRequest}
 	}
 
-	certObj := parser.NewPCKCertObj(pckCertBytes)
+	certObj := parser.NewPCKCertObj(pckCertBytes, scsClient, config)
 	if certObj == nil {
-		return SGXResponse{}, &resourceError{Message: "Invalid PCK Certificate Buffer", StatusCode: http.StatusBadRequest}
+		return models.SGXResponse{}, &resourceError{Message: "Invalid PCK Certificate Buffer", StatusCode: http.StatusBadRequest}
 	}
 
-	sgxCaCert, err := readSGXRootCaCert()
+	sgxCaCert, err := readSGXRootCaCert(trustedSGXRootCAFile)
 	if err != nil {
 		log.WithError(err).Error("Cannot read SGX CA Cert")
-		return SGXResponse{}, &resourceError{Message: "Cannot read SGX CA Cert",
+		return models.SGXResponse{}, &resourceError{Message: "Cannot read SGX CA Cert",
 			StatusCode: http.StatusBadRequest}
 	}
 
@@ -169,7 +168,7 @@ func SgxEcdsaQuoteVerify(data QuoteDataWithChallenge) (SGXResponse, error) {
 		quoteObj.GetQuotePckCertRootCAList(), certObj.GetPckCrlObj(), sgxCaCert)
 	if err != nil {
 		log.WithError(err).Error("Cannot verify pck cert")
-		return SGXResponse{}, &resourceError{Message: "Cannot verify pck cert",
+		return models.SGXResponse{}, &resourceError{Message: "Cannot verify pck cert",
 			StatusCode: http.StatusBadRequest}
 	}
 
@@ -178,22 +177,22 @@ func SgxEcdsaQuoteVerify(data QuoteDataWithChallenge) (SGXResponse, error) {
 		certObj.GetPckCrlRootCaList(), sgxCaCert)
 	if err != nil {
 		log.WithError(err).Error("Cannot verify PCK crl")
-		return SGXResponse{}, &resourceError{Message: "Cannot verify PCK crl",
+		return models.SGXResponse{}, &resourceError{Message: "Cannot verify PCK crl",
 			StatusCode: http.StatusBadRequest}
 	}
 
 	log.Info("PCK Certificates checked against PCK Certificate Revocation List")
-	tcbObj, err := parser.NewTcbInfo(certObj.GetFmspcValue())
+	tcbObj, err := parser.NewTcbInfo(certObj.GetFmspcValue(), config, scsClient)
 	if err != nil {
 		log.WithError(err).Error("Get TCB Info data parsing/fetch failed")
-		return SGXResponse{}, &resourceError{Message: "Get TCB Info data parsing/fetch failed",
+		return models.SGXResponse{}, &resourceError{Message: "Get TCB Info data parsing/fetch failed",
 			StatusCode: http.StatusInternalServerError}
 	}
 
 	err = verifyTcbInfo(certObj, tcbObj, sgxCaCert)
 	if err != nil {
 		log.WithError(err).Error("TCBInfo Verification failed")
-		return SGXResponse{}, &resourceError{Message: "TCBInfo Verification failed",
+		return models.SGXResponse{}, &resourceError{Message: "TCBInfo Verification failed",
 			StatusCode: http.StatusInternalServerError}
 	}
 
@@ -201,17 +200,17 @@ func SgxEcdsaQuoteVerify(data QuoteDataWithChallenge) (SGXResponse, error) {
 	tcbUptoDateStatus := tcbObj.GetTcbUptoDateStatus(certObj.GetPckCertTcbLevels())
 	log.Info("Current Tcb-Upto-Date Status is : ", tcbUptoDateStatus)
 
-	qeIDObj, err := parser.NewQeIdentity()
+	qeIDObj, err := parser.NewQeIdentity(config, scsClient)
 	if err != nil {
 		log.WithError(err).Error("QEIdentity Parsing failed")
-		return SGXResponse{}, &resourceError{Message: "QEIdentity Parsing failed",
+		return models.SGXResponse{}, &resourceError{Message: "QEIdentity Parsing failed",
 			StatusCode: http.StatusInternalServerError}
 	}
 
 	err = verifyQeIdentity(qeIDObj, quoteObj, sgxCaCert)
 	if err != nil {
 		log.WithError(err).Error("verifyQeIdentity failed")
-		return SGXResponse{}, &resourceError{Message: "Verification of QeIdentity failed",
+		return models.SGXResponse{}, &resourceError{Message: "Verification of QeIdentity failed",
 			StatusCode: http.StatusInternalServerError}
 	}
 	log.Info("QEIdentity Structure Verified")
@@ -234,14 +233,14 @@ func SgxEcdsaQuoteVerify(data QuoteDataWithChallenge) (SGXResponse, error) {
 	repBlob, err := quoteObj.GetHeaderAndEnclaveReportBlob()
 	if err != nil {
 		log.WithError(err).Error("Invalid Header and Enclave Report Blob in SGX ECDSA Quote")
-		return SGXResponse{}, &resourceError{Message: "Invalid Header and Enclave Report Blob in SGX ECDSA Quote",
+		return models.SGXResponse{}, &resourceError{Message: "Invalid Header and Enclave Report Blob in SGX ECDSA Quote",
 			StatusCode: http.StatusInternalServerError}
 	}
 
 	err = verifier.VerifyEnclaveReportSignature(quoteObj.GetEnclaveReportSignature(), repBlob, quoteObj.GetAttestationPublicKey())
 	if err != nil {
 		log.WithError(err).Error("Enclave Report Signature Verification failed")
-		return SGXResponse{}, &resourceError{Message: "Enclave Report Signature Verification failed",
+		return models.SGXResponse{}, &resourceError{Message: "Enclave Report Signature Verification failed",
 			StatusCode: http.StatusInternalServerError}
 	}
 
@@ -249,27 +248,27 @@ func SgxEcdsaQuoteVerify(data QuoteDataWithChallenge) (SGXResponse, error) {
 	qeBlob, err := quoteObj.GetQeReportBlob()
 	if err != nil {
 		log.Error(err.Error())
-		return SGXResponse{}, &resourceError{Message: "Invalid QE Report Blob in SGX ECDSA Quote",
+		return models.SGXResponse{}, &resourceError{Message: "Invalid QE Report Blob in SGX ECDSA Quote",
 			StatusCode: http.StatusInternalServerError}
 	}
 	err = verifier.VerifyQeReportSignature(quoteObj.GetQeReportSignature(), qeBlob, certObj.GetPCKPublicKey())
 	if err != nil {
 		log.WithError(err).Error("QE Report Signature Verification failed")
-		return SGXResponse{}, &resourceError{Message: "QE Report Signature Verification failed",
+		return models.SGXResponse{}, &resourceError{Message: "QE Report Signature Verification failed",
 			StatusCode: http.StatusInternalServerError}
 	}
 	log.Info("QE Report Signature Verified")
 
-	var resp SGXResponse
+	var resp models.SGXResponse
 	resp.Message = "SGX_QL_QV_RESULT_OK"
 	if data.UserData != "" {
 		resp.UserDataHashMatch = strconv.FormatBool(hashMatched)
 	}
 	resp.ReportData = fmt.Sprintf("%02x", quoteObj.GetSHA256Hash())
-	resp.EnclaveIssuer = fmt.Sprintf("%02x", quoteObj.EnclaveReport.MrSigner)
-	resp.EnclaveIssuerProdID = fmt.Sprintf("%02x", quoteObj.EnclaveReport.SgxIsvProdID)
-	resp.EnclaveMeasurement = fmt.Sprintf("%02x", quoteObj.EnclaveReport.MrEnclave)
-	resp.IsvSvn = fmt.Sprintf("%02x", quoteObj.EnclaveReport.SgxIsvSvn)
+	resp.EnclaveIssuer = fmt.Sprintf("%02x", quoteObj.GetEnclaveMrSigner())
+	resp.EnclaveIssuerProdID = fmt.Sprintf("%02x", quoteObj.GetEnclaveReportProdID())
+	resp.EnclaveMeasurement = fmt.Sprintf("%02x", quoteObj.GetEnclaveReportMrEnclave())
+	resp.IsvSvn = fmt.Sprintf("%02x", quoteObj.GetEnclaveReportIsvSvn())
 	resp.TcbLevel = tcbUptoDateStatus
 
 	log.Info("Sgx Ecdsa Quote Verification completed")
@@ -277,7 +276,7 @@ func SgxEcdsaQuoteVerify(data QuoteDataWithChallenge) (SGXResponse, error) {
 	return resp, nil
 }
 
-func verifyQeIdentityReport(qeIdObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteParsed) error {
+func verifyQeIdentityReport(qeIdObj *parser.QeIdentityData, quoteObj domain.SGXQuoteParser) error {
 	log.Trace("resource/quote_verifier_ops:verifyQeIdentityReport() Entering")
 	log.Trace("resource/quote_verifier_ops:verifyQeIdentityReport() Leaving")
 
@@ -308,7 +307,7 @@ func verifyQeIdentityReport(qeIdObj *parser.QeIdentityData, quoteObj *parser.Sgx
 	return nil
 }
 
-func verifyQeIdentity(qeIDObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteParsed,
+func verifyQeIdentity(qeIDObj *parser.QeIdentityData, quoteObj domain.SGXQuoteParser,
 	trustedRootCA *x509.Certificate) error {
 	log.Trace("resource/quote_verifier_ops:verifyQeIdentity() Entering")
 	log.Trace("resource/quote_verifier_ops:verifyQeIdentity() Leaving")
@@ -334,7 +333,7 @@ func verifyQeIdentity(qeIDObj *parser.QeIdentityData, quoteObj *parser.SgxQuoteP
 	return verifyQeIdentityReport(qeIDObj, quoteObj)
 }
 
-func verifyTcbInfo(certObj *parser.PckCert, tcbObj *parser.TcbInfoStruct, trustedRootCA *x509.Certificate) error {
+func verifyTcbInfo(certObj domain.PCKCertParser, tcbObj *parser.TcbInfoStruct, trustedRootCA *x509.Certificate) error {
 	log.Trace("resource/quote_verifier_ops:verifyTcbInfo() Entering")
 	log.Trace("resource/quote_verifier_ops:verifyTcbInfo() Leaving")
 
@@ -355,11 +354,11 @@ func verifyTcbInfo(certObj *parser.PckCert, tcbObj *parser.TcbInfoStruct, truste
 	return nil
 }
 
-func readSGXRootCaCert() (*x509.Certificate, error) {
+func readSGXRootCaCert(trustedSGXRootCAFile string) (*x509.Certificate, error) {
 	log.Trace("resource/quote_verifier_ops:readSGXRootCaCert() Entering")
 	log.Trace("resource/quote_verifier_ops:readSGXRootCaCert() Leaving")
 
-	certBytes, err := ioutil.ReadFile(constants.TrustedSGXRootCAFile)
+	certBytes, err := ioutil.ReadFile(trustedSGXRootCAFile)
 	if err != nil {
 		return nil, errors.Wrap(err, "readSGXRootCaCert: error reading SGX CA certificate")
 	}
