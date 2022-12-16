@@ -1,0 +1,68 @@
+name: push
+
+on:
+  push:
+    branches: [ v*/develop, master]
+
+env:
+  HTTP_PROXY: ${{ secrets.HTTP_PROXY }}
+  HTTPS_PROXY: ${{ secrets.HTTPS_PROXY }}
+  NO_PROXY: ${{ secrets.NO_PROXY }}
+  GITHUB_TOKEN: ${{secrets.GH_TOKEN}}
+  ARTIFACTORY: ${{secrets.UBIT_ARTIFACTORY}}
+  USERNAME: ${{secrets.UBIT_USERNAME}}
+  PASSWORD: ${{secrets.CHECKMARX_PASSWORD}}
+
+jobs:
+  StyleChecker:    
+    runs-on: [ self-hosted ]
+    container: amr-registry.caas.intel.com/isecl/iseclbuilder:v5.0.0
+    env:
+      no_proxy: ${{secrets.NO_PROXY}}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Runing Style Checker
+        run: |
+          gofmt -l . >> intel-secl.log 2>&1
+
+  Checkmarx-scan:    
+    runs-on: [ self-hosted ]
+    container: amr-registry.caas.intel.com/isecl/checkmarx:isecl
+    env:
+      TEAM: ${{ secrets.CHECKMARX_TEAM }}
+      CHECKMARX_BASE_URL: ${{ secrets.CHECKMARX_URL }}
+      CHECKMARX_USERNAME: ${{ secrets.CHECKMARX_USERNAME }}
+      CHECKMARX_PASSWORD: ${{ secrets.CHECKMARX_PASSWORD }}
+      CHECKMARX_CLIENT_SECRET: ${{ secrets.CHECKMARX_CLIENT_SECRET }}
+      CX_FLOW_BREAK_BUILD: false
+      CX_FLOW_ENABLED_VULNERABILITY_SCANNERS: sast
+      CX_FLOW_BUG_TRACKER: Sarif
+      CHECKMARX_SCAN_PRESET: IntelDefault
+      CXFLOW_PARAMS: "--namespace=${{ github.repository_owner }} --repo-name=${{ github.event.repository.name }} --branch=${{ github.ref }} --cx-flow.filterSeverity --cx-flow.filterCategory"
+    steps:
+      - name: Checkmarx CxFlow Action
+        uses: actions/checkout@v2
+      - name: Checkmarx CxFlow run
+        run: |
+          java ${JAVA_OPTS} -jar /app/cx-flow.jar --spring.profiles.active="${CX_FLOW_ENABLED_VULNERABILITY_SCANNERS}" --scan --github.api-url="${GITHUB_API_URL}/repos/" --cx-project="intel-secl-${{github.ref_name}}"  --cx-team="${TEAM}" --app="${APP}" --f=. ${CXFLOW_PARAMS}
+
+  docker-push:
+    runs-on: [ self-hosted ]
+    env:
+      http_proxy: ${{ secrets.HTTP_PROXY }}
+      https_proxy: ${{ secrets.HTTPS_PROXY }}
+      no_proxy: localhost,127.0.0.1,0.0.0.0
+      DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+           go-version: 1.16.7
+                 
+      - name: Build-sqvs-docker
+        run: |
+          make sqvs-docker-push
