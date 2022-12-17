@@ -57,7 +57,7 @@ else
 endif
 
 oci-archive: docker
-	skopeo copy docker-daemon:isecl/sqvs:$(VERSION) oci-archive:out/sqvs-$(VERSION)-$(GITCOMMIT).tar
+	skopeo copy docker-daemon:isecl/sqvs:$(VERSION)-$(GITCOMMIT) oci-archive:out/sqvs-$(VERSION)-$(GITCOMMIT).tar
 
 k8s: oci-archive
 	cp -r dist/k8s out/k8s
