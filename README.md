@@ -51,7 +51,7 @@ export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 ```shell
 git clone https://github.com/intel-secl/sgx-verification-service.git
 cd sgx-verification-service
-git checkout v5.0.0
+git checkout v5.1.0
 make
 ```
 
@@ -100,8 +100,8 @@ logrus   | github.com/sirupsen/logrus    |          v1.7.0
 testify  | github.com/stretchr/testify   |          v1.6.1
 yaml.v3  | gopkg.in/yaml.v3              |          v3.0.1
 restruct | gopkg.in/restruct             |          v1.0.0
-common   | github.com/intel-secl/common  |          v5.0.0
-clients  | github.com/intel-secl/clients |          v5.0.0
+common   | github.com/intel-secl/common  |          v5.1.0
+clients  | github.com/intel-secl/clients |          v5.1.0
 
 ### Indirect Dependencies
 

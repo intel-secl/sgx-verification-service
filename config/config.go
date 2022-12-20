@@ -65,7 +65,7 @@ var ErrNoConfigFile = errors.New("no config file")
 func (conf *Configuration) SaveConfiguration(taskName string, c setup.Context) error {
 
 	// target config changes only in scope for the setup task
-	if taskName == "all" || taskName == "download_ca_cert" || taskName == "download_cert" || taskName == "create_signing_key_pair" {
+	if taskName == "all" || taskName == "download_ca_cert" || taskName == "download_cert_tls" || taskName == "create_signing_key_pair" {
 		tlsCertDigest, err := c.GetenvString("CMS_TLS_CERT_SHA384", "TLS certificate digest")
 		if err == nil && strings.TrimSpace(tlsCertDigest) != "" {
 			conf.CmsTLSCertDigest = tlsCertDigest
@@ -128,7 +128,7 @@ func (conf *Configuration) SaveConfiguration(taskName string, c setup.Context) e
 		}
 	}
 
-	if taskName == "all" || taskName == "download_cert" {
+	if taskName == "all" || taskName == "download_cert_tls" {
 		tlsCertCN, err := c.GetenvString("SQVS_TLS_CERT_CN", "SQVS TLS Certificate Common Name")
 		if err == nil && strings.TrimSpace(tlsCertCN) != "" {
 			conf.Subject.TLSCertCommonName = tlsCertCN

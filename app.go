@@ -102,7 +102,7 @@ func (a *App) printUsage() {
 	fmt.Fprintln(w, "                                 - CMS_BASE_URL=<url>                                : for CMS API url")
 	fmt.Fprintln(w, "                                 - CMS_TLS_CERT_SHA384=<CMS TLS cert sha384 hash>    : to ensure that AAS is talking to the right CMS instance")
 	fmt.Fprintln(w, "")
-	fmt.Fprintln(w, "    download_cert TLS        Generates Key pair and CSR, gets it signed from CMS")
+	fmt.Fprintln(w, "    download_cert_tls        Generates Key pair and CSR, gets it signed from CMS")
 	fmt.Fprintln(w, "                             - Option [--force] overwrites any existing files, and always downloads newly signed TLS cert")
 	fmt.Fprintln(w, "                             Required env variable if SQVS_NOSETUP=true or variable not set in config.yml:")
 	fmt.Fprintln(w, "                                 - CMS_TLS_CERT_SHA384=<CMS TLS cert sha384 hash>      : to ensure that AAS is talking to the right CMS instance")
@@ -302,7 +302,7 @@ func (a *App) Run(args []string) error {
 		task := strings.ToLower(args[2])
 		flags := args[3:]
 
-		if args[2] == "download_cert" && len(args) > 3 {
+		if args[2] == "download_cert_tls" && len(args) > 3 {
 			flags = args[4:]
 		}
 
@@ -384,7 +384,7 @@ func (a *App) Run(args []string) error {
 		if err != nil {
 			return errors.Wrap(err, "Error while changing file ownership")
 		}
-		if task == "download_cert" {
+		if task == "download_cert_tls" {
 			err = os.Chown(a.Config.TLSKeyFile, uid, gid)
 			if err != nil {
 				return errors.Wrap(err, "Error while changing ownership of TLS Key file")
@@ -599,7 +599,7 @@ func validateSetupArgs(cmd string, args []string) error {
 	case "download_ca_cert":
 		return nil
 
-	case "download_cert":
+	case "download_cert_tls":
 		return nil
 
 	case "update_service_config":

@@ -1,10 +1,10 @@
 GITCOMMIT := $(shell git describe --always)
-VERSION := "v5.0.0"
+VERSION := "v5.1.0"
 BUILDDATE := $(shell TZ=UTC date +%Y-%m-%dT%H:%M:%S%z)
 PROXY_EXISTS := $(shell if [[ "${https_proxy}" || "${http_proxy}" ]]; then echo 1; else echo 0; fi)
 DOCKER_PROXY_FLAGS := ""
 MONOREPO_GITURL := "https://github.com/intel-innersource/applications.security.isecl.intel-secl.git"
-MONOREPO_GITBRANCH := "v5.0/develop"
+MONOREPO_GITBRANCH := "v5.1/develop"
 
 ifeq ($(PROXY_EXISTS),1)
         DOCKER_PROXY_FLAGS = --build-arg http_proxy=${http_proxy} --build-arg https_proxy=${https_proxy}
