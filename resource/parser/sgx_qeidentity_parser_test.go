@@ -28,6 +28,11 @@ const (
 )
 
 func ReadCertFromFile(t *testing.T, certFilePath string) *x509.Certificate {
+	_, err := os.Stat(certFilePath)
+	if os.IsNotExist(err) {
+		return errors.Wrap(err, "cert file path does not exist")
+	}
+
 	trustedSGXRootCABytes, err := ioutil.ReadFile(certFilePath)
 	assert.Nil(t, err)
 

@@ -35,14 +35,21 @@ func createRSAKeyFiles() {
 
 	publicKey := &keyPair.PublicKey
 
-	privateKeyBytes, _ := x509.MarshalPKCS8PrivateKey(keyPair)
+	privateKeyBytes, err := x509.MarshalPKCS8PrivateKey(keyPair)
+	if err != nil {
+		log.Fatalf("Failed to parse private key bytes %v", err)
+	}
+
 	// save private key
 	privateKey := &pem.Block{
 		Type:  "PRIVATE KEY",
 		Bytes: privateKeyBytes,
 	}
 
-	pubKeyBytes, _ := x509.MarshalPKIXPublicKey(publicKey)
+	pubKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey)
+	if err != nil {
+		log.Fatalf("Failed to parse public key bytes %v", err)
+	}
 	publickeyPem := &pem.Block{
 		Type:  "PUBLIC KEY",
 		Bytes: pubKeyBytes,

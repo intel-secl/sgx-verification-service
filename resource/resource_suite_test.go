@@ -41,7 +41,11 @@ func generateRSAKeyPairs() {
 		log.Fatalf("Failed to generate KeyPair %v", err)
 	}
 
-	privKeyBytes, _ := x509.MarshalPKCS8PrivateKey(keypair)
+	privKeyBytes, err := x509.MarshalPKCS8PrivateKey(keypair)
+	if err != nil {
+		log.Fatalf("Failed to parse private key bytes %v", err)
+	}
+
 	// save private key
 	privateKey := &pem.Block{
 		Type:  "PRIVATE KEY",
@@ -63,7 +67,10 @@ func generateRSAKeyPairs() {
 		log.Fatalf("I/O error while encoding private key file %v", err)
 	}
 
-	pubKeyBytes, _ := x509.MarshalPKIXPublicKey(&keypair.PublicKey)
+	pubKeyBytes, err := x509.MarshalPKIXPublicKey(&keypair.PublicKey)
+	if err != nil {
+		log.Fatalf("Failed to parse public key bytes %v", err)
+	}
 	// save public key
 	pubKey := &pem.Block{
 		Type:  "PUBLIC KEY",
