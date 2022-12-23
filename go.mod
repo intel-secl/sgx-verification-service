@@ -15,6 +15,6 @@ require (
 )
 
 replace (
-	intel/isecl/lib/clients/v5 => github.com/intel-innersource/libraries.security.isecl.clients/v5 v5.1/develop
-	intel/isecl/lib/common/v5 => github.com/intel-innersource/libraries.security.isecl.common/v5 v5.1/develop
+	intel/isecl/lib/clients/v5 => github.com/intel-secl/clients/v5 v5.1.0
+	intel/isecl/lib/common/v5 => github.com/intel-secl/common/v5 v5.1.0
 )
