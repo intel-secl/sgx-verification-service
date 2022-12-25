@@ -11,11 +11,11 @@ import (
 	"encoding/pem"
 	"flag"
 	"fmt"
-	"intel/isecl/lib/common/v4/crypt"
-	commLog "intel/isecl/lib/common/v4/log"
-	csetup "intel/isecl/lib/common/v4/setup"
-	"intel/isecl/sqvs/v4/config"
-	"intel/isecl/sqvs/v4/constants"
+	"intel/isecl/lib/common/v5/crypt"
+	commLog "intel/isecl/lib/common/v5/log"
+	csetup "intel/isecl/lib/common/v5/setup"
+	"intel/isecl/sqvs/v5/config"
+	"intel/isecl/sqvs/v5/constants"
 	"io"
 	"io/ioutil"
 
@@ -25,9 +25,14 @@ import (
 )
 
 type Create_Signing_Key_Pair struct {
-	Flags         []string
-	Config        *config.Configuration
-	ConsoleWriter io.Writer
+	Flags                    []string
+	Config                   *config.Configuration
+	ConsoleWriter            io.Writer
+	PrivateKeyLocation       string
+	PublicKeyLocation        string
+	TrustedCAsStoreDir       string
+	DefaultKeyAlgorithm      string
+	DefaultSQVSSigningCertCn string
 }
 
 var defaultLog = commLog.GetDefaultLogger()
@@ -37,12 +42,12 @@ func (cskp Create_Signing_Key_Pair) Validate(c csetup.Context) error {
 	defaultLog.Trace("tasks/create_signing_key_pair: Validate() Entering")
 	defer defaultLog.Trace("tasks/create_signing_key_pair: Validate() Leaving")
 
-	_, err := os.Stat(constants.PrivateKeyLocation)
+	_, err := os.Stat(cskp.PrivateKeyLocation)
 	if os.IsNotExist(err) {
 		return errors.Wrap(err, "tasks/create_signing_key_pair: Validate() Private key does not exist")
 	}
 
-	priv, err := ioutil.ReadFile(constants.PrivateKeyLocation)
+	priv, err := ioutil.ReadFile(cskp.PrivateKeyLocation)
 	if err != nil {
 		return errors.Wrap(err, "error reading signing key from file")
 	}
@@ -68,12 +73,12 @@ func (cskp Create_Signing_Key_Pair) Validate(c csetup.Context) error {
 		return errors.Wrap(err, "tasks/create_signing_key_pair: Validate() Unsupported key length.")
 	}
 
-	_, err = os.Stat(constants.PublicKeyLocation)
+	_, err = os.Stat(cskp.PublicKeyLocation)
 	if os.IsNotExist(err) {
 		return errors.Wrap(err, "tasks/create_signing_key_pair: Validate() Public key does not exist")
 	}
 
-	_, err = ioutil.ReadFile(constants.PublicKeyLocation)
+	_, err = ioutil.ReadFile(cskp.PublicKeyLocation)
 	if err != nil {
 		return errors.Wrap(err, "error reading signing certificate from file")
 	}
@@ -84,7 +89,7 @@ func (cskp Create_Signing_Key_Pair) Run(c csetup.Context) error {
 	defaultLog.Trace("tasks/create_signing_key_pair: Run() Entering")
 	defer defaultLog.Trace("tasks/create_signing_key_pair: Run() Leaving")
 
-	conf := config.Global()
+	conf := cskp.Config
 
 	fs := flag.NewFlagSet("ca", flag.ContinueOnError)
 	force := fs.Bool("force", false, "force recreation, will overwrite any existing key-pair Keys")
@@ -106,24 +111,24 @@ func (cskp Create_Signing_Key_Pair) Run(c csetup.Context) error {
 
 		key, cert, err := csetup.GetCertificateFromCMS("Signing", constants.DefaultKeyAlgorithm, conf.ResponseSigningKeyLength,
 			conf.CMSBaseURL, pkix.Name{CommonName: constants.DefaultSQVSSigningCertCn}, "",
-			constants.TrustedCAsStoreDir, bearerToken)
+			cskp.TrustedCAsStoreDir, bearerToken)
 		if err != nil {
 			fmt.Fprintln(cskp.ConsoleWriter, "Error getting signing certificate ")
 			return fmt.Errorf("certificate setup: %v", err)
 		}
 
-		err = crypt.SavePrivateKeyAsPKCS8(key, constants.PrivateKeyLocation)
+		err = crypt.SavePrivateKeyAsPKCS8(key, cskp.PrivateKeyLocation)
 		if err != nil {
 			fmt.Fprintln(cskp.ConsoleWriter, "Error storing private key to file")
 			return fmt.Errorf("certificate setup: %v", err)
 		}
 
-		err = ioutil.WriteFile(constants.PublicKeyLocation, cert, 0644)
+		err = ioutil.WriteFile(cskp.PublicKeyLocation, cert, 0644)
 		if err != nil {
 			fmt.Fprintln(cskp.ConsoleWriter, "Could not store Certificate")
 			return fmt.Errorf("certificate setup: %v", err)
 		}
-		if err = os.Chmod(constants.PublicKeyLocation, 0644); err != nil {
+		if err = os.Chmod(cskp.PublicKeyLocation, 0644); err != nil {
 			fmt.Fprintln(cskp.ConsoleWriter, "Could not store Certificate")
 			return fmt.Errorf("certificate setup: %v", err)
 		}

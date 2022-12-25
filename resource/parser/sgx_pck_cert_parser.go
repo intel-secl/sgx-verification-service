@@ -13,11 +13,11 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
-	"intel/isecl/lib/clients/v4"
-	"intel/isecl/sqvs/v4/config"
-	"intel/isecl/sqvs/v4/constants"
-	"intel/isecl/sqvs/v4/resource/utils"
-	"intel/isecl/sqvs/v4/resource/verifier"
+	"intel/isecl/sqvs/v5/config"
+	"intel/isecl/sqvs/v5/constants"
+	"intel/isecl/sqvs/v5/resource/domain"
+	"intel/isecl/sqvs/v5/resource/utils"
+	"intel/isecl/sqvs/v5/resource/verifier"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -40,41 +40,49 @@ type PckCert struct {
 	PckCRL               PckCRL
 	RequiredExtension    map[string]asn1.ObjectIdentifier
 	RequiredSGXExtension map[string]asn1.ObjectIdentifier
+
+	SCSClient          domain.HttpClient
+	Config             *config.Configuration
+	TrustedCAsStoreDir string
 }
 
-func NewPCKCertObj(certBlob []byte) *PckCert {
+func NewPCKCertObj(certBlob []byte, client domain.HttpClient, config *config.Configuration) domain.PCKCertParser {
 	parsedPck := new(PckCert)
-	err := parsedPck.genCertObj(certBlob)
+
+	parsedPck.Config = config
+	parsedPck.SCSClient = client
+
+	err := parsedPck.GenCertObj(certBlob)
 	if err != nil {
 		log.Error("NewPCKCertObj: Generate Certificate Object Error", err.Error())
 		return nil
 	}
-	parsedPck.genPckCertRequiredExtMap()
-	err = verifier.CheckMandatoryExt(parsedPck.PckCertObj, parsedPck.getPckCertRequiredExtMap())
+	parsedPck.GenPckCertRequiredExtMap()
+	err = verifier.CheckMandatoryExt(parsedPck.PckCertObj, parsedPck.GetPckCertRequiredExtMap())
 	if err != nil {
 		log.Error("NewPCKCertObj: VerifyRequiredExtensions not found", err.Error())
 		return nil
 	}
-	parsedPck.genPckCertRequiredSgxExtMap()
-	err = verifier.CheckMandatorySGXExt(parsedPck.PckCertObj, parsedPck.getPckCertRequiredSgxExtMap())
+	parsedPck.GenPckCertRequiredSgxExtMap()
+	err = verifier.CheckMandatorySGXExt(parsedPck.PckCertObj, parsedPck.GetPckCertRequiredSgxExtMap())
 	if err != nil {
 		log.Error("NewPCKCertObj: VerifyRequiredSGXExtensions not found", err.Error())
 		return nil
 	}
 
-	err = parsedPck.parseFMSPCValue()
+	err = parsedPck.ParseFMSPCValue()
 	if err != nil {
 		log.Error("NewPCKCertObj: Fmspc Parse error", err.Error())
 		return nil
 	}
 
-	err = parsedPck.parseTcbExtensions()
+	err = parsedPck.ParseTcbExtensions()
 	if err != nil {
 		log.Error("NewPCKCertObj: Tcb Extensions Parse error", err.Error())
 		return nil
 	}
 
-	err = parsedPck.parsePckCrl()
+	err = parsedPck.ParsePckCrl()
 	if err != nil {
 		log.Error("NewPCKCertObj: PCK CRL Parse error", err.Error())
 		return nil
@@ -82,7 +90,7 @@ func NewPCKCertObj(certBlob []byte) *PckCert {
 	return parsedPck
 }
 
-func (e *PckCert) genPckCertRequiredExtMap() {
+func (e *PckCert) GenPckCertRequiredExtMap() {
 	e.RequiredExtension = make(map[string]asn1.ObjectIdentifier)
 	e.RequiredExtension[verifier.ExtAuthorityKeyIdentifierOid.String()] = verifier.ExtAuthorityKeyIdentifierOid
 	e.RequiredExtension[verifier.ExtCRLDistributionPointOid.String()] = verifier.ExtCRLDistributionPointOid
@@ -90,7 +98,7 @@ func (e *PckCert) genPckCertRequiredExtMap() {
 	e.RequiredExtension[verifier.ExtBasicConstrainsOid.String()] = verifier.ExtBasicConstrainsOid
 }
 
-func (e *PckCert) genPckCertRequiredSgxExtMap() {
+func (e *PckCert) GenPckCertRequiredSgxExtMap() {
 	e.RequiredSGXExtension = make(map[string]asn1.ObjectIdentifier)
 	e.RequiredSGXExtension[verifier.ExtSgxPPIDOid.String()] = verifier.ExtSgxPPIDOid
 	e.RequiredSGXExtension[verifier.ExtSgxTCBOid.String()] = verifier.ExtSgxTCBOid
@@ -99,15 +107,15 @@ func (e *PckCert) genPckCertRequiredSgxExtMap() {
 	e.RequiredSGXExtension[verifier.ExtSgxSGXTypeOid.String()] = verifier.ExtSgxSGXTypeOid
 }
 
-func (e *PckCert) getPckCertRequiredExtMap() map[string]asn1.ObjectIdentifier {
+func (e *PckCert) GetPckCertRequiredExtMap() map[string]asn1.ObjectIdentifier {
 	return e.RequiredExtension
 }
 
-func (e *PckCert) getPckCertRequiredSgxExtMap() map[string]asn1.ObjectIdentifier {
+func (e *PckCert) GetPckCertRequiredSgxExtMap() map[string]asn1.ObjectIdentifier {
 	return e.RequiredSGXExtension
 }
 
-func (e *PckCert) genCertObj(certBlob []byte) error {
+func (e *PckCert) GenCertObj(certBlob []byte) error {
 	var err error
 	block, _ := pem.Decode(certBlob)
 	e.PckCertObj, err = x509.ParseCertificate(block.Bytes)
@@ -125,7 +133,7 @@ func (e *PckCert) GetPckCertTcbLevels() []byte {
 	return e.TcbCompLevels
 }
 
-func (e *PckCert) parseFMSPCValue() error {
+func (e *PckCert) ParseFMSPCValue() error {
 	var ext pkix.Extension
 	var err error
 	for i := 0; i < len(e.PckCertObj.Extensions); i++ {
@@ -162,7 +170,7 @@ type TcbExtn struct {
 	Value int
 }
 
-func (e *PckCert) parseTcbExtensions() error {
+func (e *PckCert) ParseTcbExtensions() error {
 	var ext pkix.Extension
 	e.TcbCompLevels = make([]byte, constants.MaxTCBCompLevels)
 
@@ -240,29 +248,27 @@ func (e *PckCert) GetPckCrlRootCaList() []*x509.Certificate {
 	return rootCAArr
 }
 
-func (e *PckCert) parsePckCrl() error {
+func (e *PckCert) ParsePckCrl() error {
 	e.PckCRL.PckCRLURLs = e.PckCertObj.CRLDistributionPoints
 	e.PckCRL.PckCRLObjs = make([]*pkix.CertificateList, len(e.PckCRL.PckCRLURLs))
 
-	conf := config.Global()
-	if conf == nil {
+	if e.Config == nil {
 		return errors.Wrap(errors.New("parsePckCrl: Configuration pointer is null"), "Config error")
 	}
 
-	client, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
-	if err != nil {
-		return errors.Wrap(err, "parsePckCrl: Error in getting client object")
+	if e.SCSClient == nil {
+		return errors.Wrap(errors.New("parsePckCrl: HTTPClient pointer is null"), "Config error")
 	}
 
 	for i := 0; i < len(e.PckCRL.PckCRLURLs); i++ {
 		url := e.PckCRL.PckCRLURLs[i]
 
-		scsURL := conf.SCSBaseURL
+		scsURL := e.Config.SCSBaseURL
 		if !strings.Contains(url, scsURL) {
 			a := regexp.MustCompile(`v\d`)
 			splitURL := a.Split(url, -1)
 			if len(splitURL) != 2 {
-				return errors.Wrap(err, "parsePckCrl: Invalid PCK CRL URL")
+				return errors.New("parsePckCrl: Invalid PCK CRL URL")
 			}
 			finalURL := strings.Trim(splitURL[1], "&encoding")
 			url = scsURL + finalURL
@@ -274,7 +280,7 @@ func (e *PckCert) parsePckCrl() error {
 		}
 
 		req.Header.Set("Accept", "application/json")
-		resp, err := client.Do(req)
+		resp, err := e.SCSClient.Do(req)
 		if resp != nil {
 			defer func() {
 				derr := resp.Body.Close()
@@ -336,5 +342,5 @@ func (e *PckCert) parsePckCrl() error {
 			return errors.Wrap(err, "parsePckCrl: PCK CRL- Root CA/Intermediate CA Invalid count")
 		}
 	}
-	return err
+	return nil
 }

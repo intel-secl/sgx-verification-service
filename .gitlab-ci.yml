@@ -14,7 +14,7 @@ variables:
 
 compile:
   stage: build
-  image: golang:1.16
+  image: golang:1.18
   before_script:
     - git config --global http.proxy "${HTTP_PROXY}"
     - git config --global http."https://${GITLAB_SERVER}".proxy ""
@@ -32,7 +32,7 @@ compile:
 
 test:
   stage: test
-  image: golang:1.16
+  image: golang:1.18
   before_script:
     - git config --global http."https://${GITLAB_SERVER}".proxy ""
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@${GITLAB_SERVER}".insteadOf "https://${GITLAB_SERVER}"
@@ -52,7 +52,7 @@ Stylechecker:
   stage: scan
   only:
     - merge_requests
-  image: golang:1.16
+  image: golang:1.18
   tags:
     - go
   script:

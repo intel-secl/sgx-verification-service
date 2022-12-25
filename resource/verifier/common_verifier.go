@@ -10,7 +10,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
-	clog "intel/isecl/lib/common/v4/log"
+	clog "intel/isecl/lib/common/v5/log"
 	"strings"
 
 	"github.com/pkg/errors"

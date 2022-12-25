@@ -23,27 +23,30 @@
 // swagger:meta
 package docs
 
-import "intel/isecl/sqvs/v4/resource"
+import (
+	"intel/isecl/sqvs/v5/resource"
+	"intel/isecl/sqvs/v5/resource/domain/models"
+)
 
 // QuoteData request payload
 // swagger:parameters QuoteData
 type QuoteDataInfo struct {
 	// in:body
-	Body resource.QuoteData
+	Body models.QuoteData
 }
 
 // QuoteDataWithChallenge request payload
 // swagger:parameters QuoteDataWithChallenge
 type QuoteDataAndChallengeInfo struct {
 	// in:body
-	Body resource.QuoteDataWithChallenge
+	Body models.QuoteDataWithChallenge
 }
 
 // SGXResponse response payload
 // swagger:response SGXResponse
 type SGXResponseInfo struct {
 	// in:body
-	Body resource.SGXResponse
+	Body models.SGXResponse
 }
 
 // SignedSGXResponse response payload
@@ -157,16 +160,20 @@ type UnsignedSGXResponseInfo struct {
 // x-unsigned-sample-call-output: |
 //  {
 //    "quoteData": {
-//        "ReportData": "14f39d2b1dda32661b631c7cdeff10c5e9efe1370a209a845de34899641feff8",
-//        "UserDataMatch": "true",
-//        "Message": "SGX_QL_QV_RESULT_OK",
-//        "EnclaveIssuer": "83d719e77deaca1470f6baf62a4d774303c899db69020f9c70ee1dfc08c7ce9e",
-//        "EnclaveMeasurement": "ad46749ed41ebaa2327252041ee746d3791a9f2431830fee0883f7993caf316a",
-//        "EnclaveIssuerProdID": "00",
-//        "IsvSvn": "00",
-//        "TcbLevel": "OutOfDate"
+//      "Message": "SGX_QL_QV_RESULT_OK",
+//      "reportData": "0000000000000000000000000000000000000000000000000000000000000000",
+//      "userDataMatch": "false",
+//      "EnclaveIssuer": "d412a4f07ef83892a5915fb2ab584be31e186e5a4f95ab5f6950fd4eb8694d7b",
+//      "EnclaveMeasurement": "9270442d1bd1961fa39dbe1f2cdf4f87950a54fcaf9a2e5013875c3346542dca",
+//      "EnclaveIssuerProdID": "00",
+//      "EnclaveIssuerExtProdID": "00000000000000000000000000000000",
+//      "ConfigSvn": "00",
+//      "IsvSvn": "01",
+//      "ConfigId": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+//      "TcbLevel": "OutofDate",
+//      "Quote": "<quote in request>",
+//      "Challenge": "DJ4m0A9eBwTUuuiJOwi5ALgyMP5X99KH+afqF6qjn0ImiA2ej8LnNgV377sdsS17JRkHJWzJbucmHufcuRtpfA=="
 //    }
-//  }
-//
+//   }
 
 // ---

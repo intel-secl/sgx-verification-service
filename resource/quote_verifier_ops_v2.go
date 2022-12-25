@@ -7,10 +7,12 @@ package resource
 import (
 	"encoding/base64"
 	"encoding/json"
-	commLogMsg "intel/isecl/lib/common/v4/log/message"
-	"intel/isecl/sqvs/v4/config"
-	"intel/isecl/sqvs/v4/constants"
-	"intel/isecl/sqvs/v4/resource/utils"
+	commLogMsg "intel/isecl/lib/common/v5/log/message"
+	"intel/isecl/sqvs/v5/config"
+	"intel/isecl/sqvs/v5/constants"
+	"intel/isecl/sqvs/v5/resource/domain"
+	"intel/isecl/sqvs/v5/resource/domain/models"
+	"intel/isecl/sqvs/v5/resource/utils"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -19,20 +21,40 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func QuoteVerifyCBAndSign(router *mux.Router) {
-	router.Handle("/sgx_qv_verify_quote", handlers.ContentTypeHandler(sgxVerifyQuoteAndSign(), "application/json")).Methods("POST")
+type SgxQuoteVerifierCBAndSign struct {
+	config               *config.Configuration
+	scsClient            domain.HttpClient
+	trustedSGXRootCAFile string
+	SGXQuoteVerifier     domain.SGXQuoteVerifier
+	PrivateKeyLocation   string
+	PublicKeyLocation    string
 }
 
-func sgxVerifyQuoteAndSign() errorHandlerFunc {
+func NewSGXQuoteVerifierCBAndSign(conf *config.Configuration, scsClient domain.HttpClient, trustedSGXRootCAFile string,
+	sgxQuoteVerifier domain.SGXQuoteVerifier, privateKeyLocation, publicKeyLocation string) *SgxQuoteVerifierCBAndSign {
+	return &SgxQuoteVerifierCBAndSign{
+		config:               conf,
+		scsClient:            scsClient,
+		trustedSGXRootCAFile: trustedSGXRootCAFile,
+		SGXQuoteVerifier:     sgxQuoteVerifier,
+		PrivateKeyLocation:   privateKeyLocation,
+		PublicKeyLocation:    publicKeyLocation,
+	}
+}
+
+func QuoteVerifyCBAndSign(router *mux.Router, conf *config.Configuration, scsClient domain.HttpClient, trustedSGXRootCAFile string,
+	sgxQuoteVerifier domain.SGXQuoteVerifier, privateKeyLocation, publicKeyLocation string) {
+	quoteVerifierCBAndSign := NewSGXQuoteVerifierCBAndSign(conf, scsClient, trustedSGXRootCAFile, sgxQuoteVerifier, privateKeyLocation, publicKeyLocation)
+
+	router.Handle("/sgx_qv_verify_quote", handlers.ContentTypeHandler(quoteVerifierCBAndSign.sgxVerifyQuoteAndSign(), "application/json")).Methods("POST")
+}
+
+func (sqvcs *SgxQuoteVerifierCBAndSign) sgxVerifyQuoteAndSign() errorHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		log.Trace("resource/quote_verifier_ops:sgxVerifyQuoteAndSign() Entering")
 		defer log.Trace("resource/quote_verifier_ops:sgxVerifyQuoteAndSign() Leaving")
 
-		conf := config.Global()
-		if conf == nil {
-			return &resourceError{Message: "Could not read config", StatusCode: http.StatusInternalServerError}
-		}
-		if conf.IncludeToken {
+		if sqvcs.config.IncludeToken {
 			err := AuthorizeEndpoint(r, constants.QuoteVerifierGroupName, true)
 			if err != nil {
 				slog.WithError(err).Error("resource/quote_verifier_ops: sgxVerifyQuoteAndSign() Authorization Error")
@@ -40,7 +62,7 @@ func sgxVerifyQuoteAndSign() errorHandlerFunc {
 			}
 		}
 
-		var data QuoteDataWithChallenge
+		var data models.QuoteDataWithChallenge
 		if r.ContentLength == 0 {
 			slog.Error("resource/quote_verifier_ops: sgxVerifyQuoteAndSign() The request body was not provided")
 			return &resourceError{Message: "SGX_QL_ERROR_INVALID_PARAMETER", StatusCode: http.StatusBadRequest}
@@ -51,13 +73,18 @@ func sgxVerifyQuoteAndSign() errorHandlerFunc {
 		if err != nil {
 			slog.WithError(err).Errorf("resource/quote_verifier_ops: sgxVerifyQuoteAndSign() %s:Failed to decode "+
 				"request body", commLogMsg.InvalidInputBadEncoding)
-			return &resourceError{Message: "Invalid JSON input provided", StatusCode: http.StatusBadRequest}
+			return &resourceError{Message: "Invalid JSON input provided", StatusCode: http.StatusInternalServerError}
 		}
 
-		sgxResponse, err := SgxEcdsaQuoteVerify(data)
+		if sqvcs.SGXQuoteVerifier == nil {
+			slog.Error("resource/quote_verifier_ops: sgxVerifyQuoteAndSign() SGX quote verifier was not provided")
+			return &resourceError{Message: "Invalid quote verifier", StatusCode: http.StatusBadRequest}
+		}
+
+		sgxResponse, err := sqvcs.SGXQuoteVerifier.SgxEcdsaQuoteVerify(data, sqvcs.scsClient, sqvcs.config, sqvcs.trustedSGXRootCAFile)
 
 		var quoteResponseBytes []byte
-		if strings.TrimSpace(data.Challenge) != "" && conf.SignQuoteResponse {
+		if strings.TrimSpace(data.Challenge) != "" && sqvcs.config.SignQuoteResponse {
 			if err != nil {
 				sgxResponse.Message = err.Error()
 			}
@@ -71,13 +98,13 @@ func sgxVerifyQuoteAndSign() errorHandlerFunc {
 					err.Error(), StatusCode: http.StatusInternalServerError}
 			}
 
-			signature, err := utils.GenerateSignature([]byte(base64.StdEncoding.EncodeToString(dataBytes)), constants.PrivateKeyLocation, conf.UsePSSPadding)
+			signature, err := utils.GenerateSignature([]byte(base64.StdEncoding.EncodeToString(dataBytes)), sqvcs.PrivateKeyLocation, sqvcs.config.UsePSSPadding)
 			if err != nil {
 				return &resourceError{Message: "Failed to get signature for QVL response: " + err.Error(),
 					StatusCode: http.StatusInternalServerError}
 			}
 
-			certChain, err := ioutil.ReadFile(constants.PublicKeyLocation)
+			certChain, err := ioutil.ReadFile(sqvcs.PublicKeyLocation)
 			if err != nil {
 				log.WithError(err).Error("Error reading signing public key from file")
 				return &resourceError{Message: "Error reading signing public key from file",

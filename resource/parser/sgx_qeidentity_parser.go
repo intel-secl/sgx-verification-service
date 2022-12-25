@@ -9,10 +9,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"intel/isecl/lib/clients/v4"
-	"intel/isecl/sqvs/v4/config"
-	"intel/isecl/sqvs/v4/constants"
-	"intel/isecl/sqvs/v4/resource/utils"
+	"intel/isecl/sqvs/v5/config"
+	"intel/isecl/sqvs/v5/resource/domain"
+	"intel/isecl/sqvs/v5/resource/utils"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -57,18 +56,8 @@ type EnclaveIdentityType struct {
 	TcbLevels               []TcbLevelsInfo `json:"tcbLevels"`
 }
 
-func NewQeIdentity() (*QeIdentityData, error) {
+func NewQeIdentity(conf *config.Configuration, client domain.HttpClient) (*QeIdentityData, error) {
 	obj := new(QeIdentityData)
-
-	conf := config.Global()
-	if conf == nil {
-		return nil, errors.Wrap(errors.New("NewQeIdentity: Configuration pointer is null"), "Config error")
-	}
-
-	client, err := clients.HTTPClientWithCADir(constants.TrustedCAsStoreDir)
-	if err != nil {
-		return nil, errors.Wrap(err, "NewQeIdentity: Error in getting client object")
-	}
 
 	url := fmt.Sprintf("%s/qe/identity", conf.SCSBaseURL)
 	req, err := http.NewRequest("GET", url, nil)

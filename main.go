@@ -6,8 +6,8 @@ package main
 
 import (
 	"fmt"
-	"intel/isecl/sqvs/v4/constants"
-	_ "intel/isecl/sqvs/v4/swagger/docs"
+	"intel/isecl/sqvs/v5/constants"
+	_ "intel/isecl/sqvs/v5/swagger/docs"
 	"os"
 	"os/user"
 	"strconv"

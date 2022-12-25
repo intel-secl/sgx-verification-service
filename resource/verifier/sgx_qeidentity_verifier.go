@@ -9,7 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/binary"
 	"encoding/hex"
-	"intel/isecl/sqvs/v4/constants"
+	"intel/isecl/sqvs/v5/constants"
 	"strings"
 
 	"github.com/pkg/errors"

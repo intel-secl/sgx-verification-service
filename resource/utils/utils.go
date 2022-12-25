@@ -13,7 +13,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
-	commLog "intel/isecl/lib/common/v4/log"
+	commLog "intel/isecl/lib/common/v5/log"
 	"io/ioutil"
 	"net/url"
 	"strings"
@@ -25,9 +25,8 @@ import (
 var log = commLog.GetDefaultLogger()
 
 func GetCertPemData(cert *x509.Certificate) ([]byte, error) {
-	var err error
 	if cert == nil {
-		return nil, errors.Wrap(err, "Certificate Object is empty")
+		return nil, errors.New("Certificate Object is empty")
 	}
 
 	block := &pem.Block{
