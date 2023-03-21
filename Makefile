@@ -1,3 +1,4 @@
+SHELL := /bin/bash
 GITTAG := $(shell git describe --tags --abbrev=0 2> /dev/null)
 GITCOMMIT := $(shell git describe --always)
 VERSION := "v3.6.1"
@@ -14,7 +15,7 @@ endif
 .PHONY: sqvs installer all test clean
 
 sqvs:
-	env GOOS=linux GOSUMDB=off GOPROXY=direct go build -ldflags "-X intel/isecl/sqvs/v3/version.BuildDate=$(BUILDDATE) -X intel/isecl/sqvs/v3/version.Version=$(VERSION) -X intel/isecl/sqvs/v3/version.GitHash=$(GITCOMMIT)" -o out/sqvs
+	env GOOS=linux GOSUMDB=off go build -ldflags "-X intel/isecl/sqvs/v3/version.BuildDate=$(BUILDDATE) -X intel/isecl/sqvs/v3/version.Version=$(VERSION) -X intel/isecl/sqvs/v3/version.GitHash=$(GITCOMMIT)" -o out/sqvs
 
 swagger-get:
 	wget https://github.com/go-swagger/go-swagger/releases/download/v0.26.1/swagger_linux_amd64 -O /usr/local/bin/swagger
@@ -23,14 +24,14 @@ swagger-get:
 
 swagger-doc:
 	mkdir -p out/swagger
-	env GOOS=linux GOSUMDB=off GOPROXY=direct \
+	env GOOS=linux GOSUMDB=off \
 	/usr/local/bin/swagger generate spec -o ./out/swagger/openapi.yml --scan-models
 	java -jar /usr/local/bin/swagger-codegen-cli.jar generate -i ./out/swagger/openapi.yml -o ./out/swagger/ -l html2 -t ./swagger/templates/
 
 swagger: swagger-get swagger-doc
 
 test:
-	GOSUMDB=off GOPROXY=direct go  test ./... -coverprofile cover.out
+	GOSUMDB=off go  test ./... -coverprofile cover.out
 	go tool cover -func cover.out
 	go tool cover -html=cover.out -o cover.html
 
