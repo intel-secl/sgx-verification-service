@@ -1,4 +1,5 @@
 name: push
+permissions: read-all
 
 on:
   push:
